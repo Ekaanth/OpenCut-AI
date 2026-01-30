@@ -1,166 +1,190 @@
-import { MediaType } from "@/types/media";
-import { generateUUID } from "@/lib/utils";
+export interface TScene {
+	id: string;
+	name: string;
+	isMain: boolean;
+	tracks: TimelineTrack[];
+	bookmarks: number[];
+	createdAt: Date;
+	updatedAt: Date;
+}
 
-export type TrackType = "media" | "text" | "audio";
+export type TrackType = "video" | "text" | "audio" | "sticker";
 
-// Base element properties
+interface BaseTrack {
+	id: string;
+	name: string;
+}
+
+export interface VideoTrack extends BaseTrack {
+	type: "video";
+	elements: (VideoElement | ImageElement)[];
+	isMain: boolean;
+	muted: boolean;
+	hidden: boolean;
+}
+
+export interface TextTrack extends BaseTrack {
+	type: "text";
+	elements: TextElement[];
+	hidden: boolean;
+}
+
+export interface AudioTrack extends BaseTrack {
+	type: "audio";
+	elements: AudioElement[];
+	muted: boolean;
+}
+
+export interface StickerTrack extends BaseTrack {
+	type: "sticker";
+	elements: StickerElement[];
+	hidden: boolean;
+}
+
+export type TimelineTrack = VideoTrack | TextTrack | AudioTrack | StickerTrack;
+
+export interface Transform {
+	scale: number;
+	position: {
+		x: number;
+		y: number;
+	};
+	rotate: number;
+}
+
+interface BaseAudioElement extends BaseTimelineElement {
+	type: "audio";
+	volume: number;
+	muted?: boolean;
+	buffer?: AudioBuffer;
+}
+
+export interface UploadAudioElement extends BaseAudioElement {
+	sourceType: "upload";
+	mediaId: string;
+}
+
+export interface LibraryAudioElement extends BaseAudioElement {
+	sourceType: "library";
+	sourceUrl: string;
+}
+
+export type AudioElement = UploadAudioElement | LibraryAudioElement;
+
 interface BaseTimelineElement {
-  id: string;
-  name: string;
-  duration: number;
-  startTime: number;
-  trimStart: number;
-  trimEnd: number;
-  hidden?: boolean;
+	id: string;
+	name: string;
+	duration: number;
+	startTime: number;
+	trimStart: number;
+	trimEnd: number;
 }
 
-// Media element that references MediaStore
-export interface MediaElement extends BaseTimelineElement {
-  type: "media";
-  mediaId: string;
-  muted?: boolean;
+export interface VideoElement extends BaseTimelineElement {
+	type: "video";
+	mediaId: string;
+	muted?: boolean;
+	hidden?: boolean;
+	transform: Transform;
+	opacity: number;
 }
 
-// Text element with embedded text data
+export interface ImageElement extends BaseTimelineElement {
+	type: "image";
+	mediaId: string;
+	hidden?: boolean;
+	transform: Transform;
+	opacity: number;
+}
+
 export interface TextElement extends BaseTimelineElement {
-  type: "text";
-  content: string;
-  fontSize: number;
-  fontFamily: string;
-  color: string;
-  backgroundColor: string;
-  textAlign: "left" | "center" | "right";
-  fontWeight: "normal" | "bold";
-  fontStyle: "normal" | "italic";
-  textDecoration: "none" | "underline" | "line-through";
-  x: number; // Position relative to canvas center
-  y: number; // Position relative to canvas center
-  rotation: number; // in degrees
-  opacity: number; // 0-1
+	type: "text";
+	content: string;
+	fontSize: number;
+	fontFamily: string;
+	color: string;
+	backgroundColor: string;
+	textAlign: "left" | "center" | "right";
+	fontWeight: "normal" | "bold";
+	fontStyle: "normal" | "italic";
+	textDecoration: "none" | "underline" | "line-through";
+	hidden?: boolean;
+	transform: Transform;
+	opacity: number;
 }
 
-// Typed timeline elements
-export type TimelineElement = MediaElement | TextElement;
+export interface StickerElement extends BaseTimelineElement {
+	type: "sticker";
+	iconName: string;
+	hidden?: boolean;
+	transform: Transform;
+	opacity: number;
+	color?: string;
+}
 
-// Creation types (without id, for addElementToTrack)
-export type CreateMediaElement = Omit<MediaElement, "id">;
+export type TimelineElement =
+	| AudioElement
+	| VideoElement
+	| ImageElement
+	| TextElement
+	| StickerElement;
+
+export type ElementType = TimelineElement["type"];
+
+export type CreateUploadAudioElement = Omit<UploadAudioElement, "id">;
+export type CreateLibraryAudioElement = Omit<LibraryAudioElement, "id">;
+export type CreateAudioElement =
+	| CreateUploadAudioElement
+	| CreateLibraryAudioElement;
+export type CreateVideoElement = Omit<VideoElement, "id">;
+export type CreateImageElement = Omit<ImageElement, "id">;
 export type CreateTextElement = Omit<TextElement, "id">;
-export type CreateTimelineElement = CreateMediaElement | CreateTextElement;
+export type CreateStickerElement = Omit<StickerElement, "id">;
+export type CreateTimelineElement =
+	| CreateAudioElement
+	| CreateVideoElement
+	| CreateImageElement
+	| CreateTextElement
+	| CreateStickerElement;
 
-export interface TimelineElementProps {
-  element: TimelineElement;
-  track: TimelineTrack;
-  zoomLevel: number;
-  isSelected: boolean;
-  onElementMouseDown: (e: React.MouseEvent, element: TimelineElement) => void;
-  onElementClick: (e: React.MouseEvent, element: TimelineElement) => void;
+// ---- Drag State ----
+
+export interface ElementDragState {
+	isDragging: boolean;
+	elementId: string | null;
+	trackId: string | null;
+	startMouseX: number;
+	startMouseY: number;
+	startElementTime: number;
+	clickOffsetTime: number;
+	currentTime: number;
+	currentMouseY: number;
 }
 
-export interface ResizeState {
-  elementId: string;
-  side: "left" | "right";
-  startX: number;
-  initialTrimStart: number;
-  initialTrimEnd: number;
+export interface DropTarget {
+	trackIndex: number;
+	isNewTrack: boolean;
+	insertPosition: "above" | "below" | null;
+	xPosition: number;
 }
 
-// Drag data types for type-safe drag and drop
-export interface MediaItemDragData {
-  id: string;
-  type: MediaType;
-  name: string;
+export interface ComputeDropTargetParams {
+	elementType: ElementType;
+	mouseX: number;
+	mouseY: number;
+	tracks: TimelineTrack[];
+	playheadTime: number;
+	isExternalDrop: boolean;
+	elementDuration: number;
+	pixelsPerSecond: number;
+	zoomLevel: number;
+	verticalDragDirection?: "up" | "down" | null;
+	startTimeOverride?: number;
+	excludeElementId?: string;
 }
 
-export interface TextItemDragData {
-  id: string;
-  type: "text";
-  name: string;
-  content: string;
-}
-
-export type DragData = MediaItemDragData | TextItemDragData;
-
-export interface TimelineTrack {
-  id: string;
-  name: string;
-  type: TrackType;
-  elements: TimelineElement[];
-  muted?: boolean;
-  isMain?: boolean;
-}
-
-export function sortTracksByOrder(tracks: TimelineTrack[]): TimelineTrack[] {
-  return [...tracks].sort((a, b) => {
-    // Text tracks always go to the top
-    if (a.type === "text" && b.type !== "text") return -1;
-    if (b.type === "text" && a.type !== "text") return 1;
-
-    // Audio tracks always go to bottom
-    if (a.type === "audio" && b.type !== "audio") return 1;
-    if (b.type === "audio" && a.type !== "audio") return -1;
-
-    // Main track goes above audio but below text tracks
-    if (a.isMain && !b.isMain && b.type !== "audio" && b.type !== "text")
-      return 1;
-    if (b.isMain && !a.isMain && a.type !== "audio" && a.type !== "text")
-      return -1;
-
-    // Within same category, maintain creation order
-    return 0;
-  });
-}
-
-export function getMainTrack(tracks: TimelineTrack[]): TimelineTrack | null {
-  return tracks.find((track) => track.isMain) || null;
-}
-
-export function ensureMainTrack(tracks: TimelineTrack[]): TimelineTrack[] {
-  const hasMainTrack = tracks.some((track) => track.isMain);
-
-  if (!hasMainTrack) {
-    // Create main track if it doesn't exist
-    const mainTrack: TimelineTrack = {
-      id: generateUUID(),
-      name: "Main Track",
-      type: "media",
-      elements: [],
-      muted: false,
-      isMain: true,
-    };
-    return [mainTrack, ...tracks];
-  }
-
-  return tracks;
-}
-
-// Timeline validation utilities
-export function canElementGoOnTrack(
-  elementType: "text" | "media",
-  trackType: TrackType
-): boolean {
-  if (elementType === "text") {
-    return trackType === "text";
-  }
-  if (elementType === "media") {
-    return trackType === "media" || trackType === "audio";
-  }
-  return false;
-}
-
-export function validateElementTrackCompatibility(
-  element: { type: "text" | "media" },
-  track: { type: TrackType }
-): { isValid: boolean; errorMessage?: string } {
-  const isValid = canElementGoOnTrack(element.type, track.type);
-
-  if (!isValid) {
-    const errorMessage =
-      element.type === "text"
-        ? "Text elements can only be placed on text tracks"
-        : "Media elements can only be placed on media or audio tracks";
-
-    return { isValid: false, errorMessage };
-  }
-
-  return { isValid: true };
+export interface ClipboardItem {
+	trackId: string;
+	trackType: TrackType;
+	element: CreateTimelineElement;
 }

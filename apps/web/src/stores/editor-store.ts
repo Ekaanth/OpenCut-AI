@@ -1,91 +1,70 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { CanvasPreset } from "@/types/editor";
-
-export type PlatformLayout = "tiktok";
-
-export const PLATFORM_LAYOUTS: Record<PlatformLayout, string> = {
-  tiktok: "TikTok",
-};
+import type { TPlatformLayout } from "@/types/editor";
+import { DEFAULT_CANVAS_PRESETS } from "@/constants/project-constants";
+import type { TCanvasSize } from "@/types/project";
 
 interface LayoutGuideSettings {
-  platform: PlatformLayout | null;
+	platform: TPlatformLayout | null;
 }
 
 interface EditorState {
-  // Loading states
-  isInitializing: boolean;
-  isPanelsReady: boolean;
-
-  // Editor UI settings
-  canvasPresets: CanvasPreset[];
-  layoutGuide: LayoutGuideSettings;
-
-  // Actions
-  setInitializing: (loading: boolean) => void;
-  setPanelsReady: (ready: boolean) => void;
-  initializeApp: () => Promise<void>;
-  setLayoutGuide: (settings: Partial<LayoutGuideSettings>) => void;
-  toggleLayoutGuide: (platform: PlatformLayout) => void;
+	isInitializing: boolean;
+	isPanelsReady: boolean;
+	canvasPresets: TCanvasSize[];
+	layoutGuide: LayoutGuideSettings;
+	setInitializing: (loading: boolean) => void;
+	setPanelsReady: (ready: boolean) => void;
+	initializeApp: () => Promise<void>;
+	setLayoutGuide: (settings: Partial<LayoutGuideSettings>) => void;
+	toggleLayoutGuide: (platform: TPlatformLayout) => void;
 }
 
-const DEFAULT_CANVAS_PRESETS: CanvasPreset[] = [
-  { name: "16:9", width: 1920, height: 1080 },
-  { name: "9:16", width: 1080, height: 1920 },
-  { name: "1:1", width: 1080, height: 1080 },
-  { name: "4:3", width: 1440, height: 1080 },
-];
-
 export const useEditorStore = create<EditorState>()(
-  persist(
-    (set) => ({
-      // Initial states
-      isInitializing: true,
-      isPanelsReady: false,
-      canvasPresets: DEFAULT_CANVAS_PRESETS,
-      layoutGuide: {
-        platform: null,
-      },
+	persist(
+		(set) => ({
+			isInitializing: true,
+			isPanelsReady: false,
+			canvasPresets: DEFAULT_CANVAS_PRESETS,
+			layoutGuide: {
+				platform: null,
+			},
+			setInitializing: (loading) => {
+				set({ isInitializing: loading });
+			},
 
-      // Actions
-      setInitializing: (loading) => {
-        set({ isInitializing: loading });
-      },
+			setPanelsReady: (ready) => {
+				set({ isPanelsReady: ready });
+			},
 
-      setPanelsReady: (ready) => {
-        set({ isPanelsReady: ready });
-      },
+			initializeApp: async () => {
+				set({ isInitializing: true, isPanelsReady: false });
 
-      initializeApp: async () => {
-        console.log("Initializing video editor...");
-        set({ isInitializing: true, isPanelsReady: false });
+				set({ isPanelsReady: true, isInitializing: false });
+			},
 
-        set({ isPanelsReady: true, isInitializing: false });
-        console.log("Video editor ready");
-      },
+			setLayoutGuide: (settings) => {
+				set((state) => ({
+					layoutGuide: {
+						...state.layoutGuide,
+						...settings,
+					},
+				}));
+			},
 
-      setLayoutGuide: (settings) => {
-        set((state) => ({
-          layoutGuide: {
-            ...state.layoutGuide,
-            ...settings,
-          },
-        }));
-      },
-
-      toggleLayoutGuide: (platform) => {
-        set((state) => ({
-          layoutGuide: {
-            platform: state.layoutGuide.platform === platform ? null : platform,
-          },
-        }));
-      },
-    }),
-    {
-      name: "editor-settings",
-      partialize: (state) => ({
-        layoutGuide: state.layoutGuide,
-      }),
-    }
-  )
+			toggleLayoutGuide: (platform) => {
+				set((state) => ({
+					layoutGuide: {
+						platform: state.layoutGuide.platform === platform ? null : platform,
+					},
+				}));
+			},
+		}),
+		{
+			name: "editor-settings",
+			partialize: (state) => ({
+				layoutGuide: state.layoutGuide,
+			}),
+		},
+	),
 );

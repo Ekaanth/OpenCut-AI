@@ -1,387 +1,554 @@
 "use client";
 
+import { useEditor } from "@/hooks/use-editor";
+import { useAssetsPanelStore } from "@/stores/assets-panel-store";
+import AudioWaveform from "./audio-waveform";
+import { useTimelineElementResize } from "@/hooks/timeline/element/use-element-resize";
+import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
+import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import {
-  Scissors,
-  Trash2,
-  Copy,
-  Search,
-  RefreshCw,
-  EyeOff,
-  Eye,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import { useMediaStore } from "@/stores/media-store";
-import { useTimelineStore } from "@/stores/timeline-store";
-import { usePlaybackStore } from "@/stores/playback-store";
-import AudioWaveform from "../audio-waveform";
-import { toast } from "sonner";
-import { TimelineElementProps, MediaElement } from "@/types/timeline";
-import { useTimelineElementResize } from "@/hooks/use-timeline-element-resize";
+	getTrackClasses,
+	getTrackHeight,
+	canElementHaveAudio,
+	canElementBeHidden,
+	hasMediaId,
+} from "@/lib/timeline";
 import {
-  getTrackElementClasses,
-  TIMELINE_CONSTANTS,
-  getTrackHeight,
-} from "@/constants/timeline-constants";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
 } from "../../ui/context-menu";
-import { useMediaPanelStore } from "../media-panel/store";
+import type {
+	TimelineElement as TimelineElementType,
+	TimelineTrack,
+	ElementDragState,
+} from "@/types/timeline";
+import type { MediaAsset } from "@/types/assets";
+import { mediaSupportsAudio } from "@/lib/media/media-utils";
+import { getActionDefinition, type TAction, invokeAction } from "@/lib/actions";
+import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
+import Image from "next/image";
+import {
+	ScissorIcon,
+	Delete02Icon,
+	Copy01Icon,
+	ViewIcon,
+	ViewOffSlashIcon,
+	VolumeHighIcon,
+	VolumeOffIcon,
+	VolumeMute02Icon,
+	Search01Icon,
+	Exchange01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { uppercase } from "@/utils/string";
+import type { ComponentProps } from "react";
+
+function getDisplayShortcut(action: TAction) {
+	const { defaultShortcuts } = getActionDefinition(action);
+	if (!defaultShortcuts?.length) {
+		return "";
+	}
+
+	return uppercase({
+		string: defaultShortcuts[0].replace("+", " "),
+	});
+}
+
+interface TimelineElementProps {
+	element: TimelineElementType;
+	track: TimelineTrack;
+	zoomLevel: number;
+	isSelected: boolean;
+	onSnapPointChange?: (snapPoint: SnapPoint | null) => void;
+	onResizeStateChange?: (params: { isResizing: boolean }) => void;
+	onElementMouseDown: (
+		e: React.MouseEvent,
+		element: TimelineElementType,
+	) => void;
+	onElementClick: (e: React.MouseEvent, element: TimelineElementType) => void;
+	dragState: ElementDragState;
+}
 
 export function TimelineElement({
-  element,
-  track,
-  zoomLevel,
-  isSelected,
-  onElementMouseDown,
-  onElementClick,
+	element,
+	track,
+	zoomLevel,
+	isSelected,
+	onSnapPointChange,
+	onResizeStateChange,
+	onElementMouseDown,
+	onElementClick,
+	dragState,
 }: TimelineElementProps) {
-  const { mediaFiles } = useMediaStore();
-  const {
-    dragState,
-    copySelected,
-    selectedElements,
-    deleteSelected,
-    splitSelected,
-    toggleSelectedHidden,
-    toggleSelectedMuted,
-    duplicateElement,
-    revealElementInMedia,
-    replaceElementWithFile,
-    getContextMenuState,
-  } = useTimelineStore();
-  const { currentTime } = usePlaybackStore();
+	const editor = useEditor();
+	const { selectedElements } = useElementSelection();
+	const { requestRevealMedia } = useAssetsPanelStore();
 
-  const mediaItem =
-    element.type === "media"
-      ? mediaFiles.find((file) => file.id === element.mediaId)
-      : null;
-  const hasAudio = mediaItem?.type === "audio" || mediaItem?.type === "video";
+	const mediaAssets = editor.media.getAssets();
+	let mediaAsset: MediaAsset | null = null;
 
-  const { resizing, handleResizeStart, handleResizeMove, handleResizeEnd } =
-    useTimelineElementResize({
-      element,
-      track,
-      zoomLevel,
-    });
+	if (hasMediaId(element)) {
+		mediaAsset =
+			mediaAssets.find((asset) => asset.id === element.mediaId) ?? null;
+	}
 
-  const {
-    isMultipleSelected,
-    isCurrentElementSelected,
-    hasAudioElements,
-    canSplitSelected,
-  } = getContextMenuState(track.id, element.id);
+	const hasAudio = mediaSupportsAudio({ media: mediaAsset });
 
-  const effectiveDuration =
-    element.duration - element.trimStart - element.trimEnd;
-  const elementWidth = Math.max(
-    TIMELINE_CONSTANTS.ELEMENT_MIN_WIDTH,
-    effectiveDuration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel
-  );
+	const { handleResizeStart, isResizing, currentStartTime, currentDuration } =
+		useTimelineElementResize({
+			element,
+			track,
+			zoomLevel,
+			onSnapPointChange,
+			onResizeStateChange,
+		});
 
-  const isBeingDragged = dragState.elementId === element.id;
-  const elementStartTime =
-    isBeingDragged && dragState.isDragging
-      ? dragState.currentTime
-      : element.startTime;
+	const isCurrentElementSelected = selectedElements.some(
+		(selected) =>
+			selected.elementId === element.id && selected.trackId === track.id,
+	);
 
-  const elementLeft = elementStartTime * 50 * zoomLevel;
+	const isBeingDragged = dragState.elementId === element.id;
+	const dragOffsetY =
+		isBeingDragged && dragState.isDragging
+			? dragState.currentMouseY - dragState.startMouseY
+			: 0;
+	const elementStartTime =
+		isBeingDragged && dragState.isDragging
+			? dragState.currentTime
+			: element.startTime;
+	const displayedStartTime = isResizing ? currentStartTime : elementStartTime;
+	const displayedDuration = isResizing ? currentDuration : element.duration;
+	const elementWidth =
+		displayedDuration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+	const elementLeft = displayedStartTime * 50 * zoomLevel;
 
-  const handleElementSplitContext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    splitSelected(
-      currentTime,
-      isMultipleSelected && isCurrentElementSelected ? undefined : track.id,
-      isMultipleSelected && isCurrentElementSelected ? undefined : element.id
-    );
-  };
+	const handleRevealInMedia = ({ event }: { event: React.MouseEvent }) => {
+		event.stopPropagation();
+		if (hasMediaId(element)) {
+			requestRevealMedia(element.mediaId);
+		}
+	};
 
-  const handleElementDuplicateContext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    duplicateElement(track.id, element.id);
-  };
+	const isMuted = canElementHaveAudio(element) && element.muted === true;
 
-  const handleElementCopyContext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    copySelected();
-  };
+	return (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<div
+					className={`absolute top-0 h-full select-none ${
+						isBeingDragged ? "z-30" : "z-10"
+					}`}
+					style={{
+						left: `${elementLeft}px`,
+						width: `${elementWidth}px`,
+						transform:
+							isBeingDragged && dragState.isDragging
+								? `translate3d(0, ${dragOffsetY}px, 0)`
+								: undefined,
+					}}
+				>
+					<ElementInner
+						element={element}
+						track={track}
+						isSelected={isSelected}
+						isBeingDragged={isBeingDragged}
+						hasAudio={hasAudio}
+						isMuted={isMuted}
+						mediaAssets={mediaAssets}
+						onElementClick={onElementClick}
+						onElementMouseDown={onElementMouseDown}
+						handleResizeStart={handleResizeStart}
+					/>
+				</div>
+			</ContextMenuTrigger>
+			<ContextMenuContent className="z-200 w-64">
+				<ActionMenuItem action="split" icon={<HugeiconsIcon icon={ScissorIcon} />}>
+					Split
+				</ActionMenuItem>
+				<CopyMenuItem />
+				{canElementHaveAudio(element) && hasAudio && (
+					<MuteMenuItem
+						isMultipleSelected={selectedElements.length > 1}
+						isCurrentElementSelected={isCurrentElementSelected}
+						isMuted={isMuted}
+					/>
+				)}
+				{canElementBeHidden(element) && (
+					<VisibilityMenuItem
+						element={element}
+						isMultipleSelected={selectedElements.length > 1}
+						isCurrentElementSelected={isCurrentElementSelected}
+					/>
+				)}
+				{selectedElements.length === 1 && (
+					<ActionMenuItem action="duplicate-selected" icon={<HugeiconsIcon icon={Copy01Icon} />}>
+						Duplicate
+					</ActionMenuItem>
+				)}
+				{selectedElements.length === 1 && hasMediaId(element) && (
+					<>
+						<ContextMenuItem
+							icon={<HugeiconsIcon icon={Search01Icon} />}
+							onClick={(event) => handleRevealInMedia({ event })}
+						>
+							Reveal media
+						</ContextMenuItem>
+						<ContextMenuItem
+							icon={<HugeiconsIcon icon={Exchange01Icon} />}
+							disabled
+						>
+							Replace media
+						</ContextMenuItem>
+					</>
+				)}
+				<ContextMenuSeparator />
+				<DeleteMenuItem
+					isMultipleSelected={selectedElements.length > 1}
+					isCurrentElementSelected={isCurrentElementSelected}
+					elementType={element.type}
+					selectedCount={selectedElements.length}
+				/>
+			</ContextMenuContent>
+		</ContextMenu>
+	);
+}
 
-  const handleElementDeleteContext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    deleteSelected(
-      isMultipleSelected && isCurrentElementSelected ? undefined : track.id,
-      isMultipleSelected && isCurrentElementSelected ? undefined : element.id
-    );
-  };
+function ElementInner({
+	element,
+	track,
+	isSelected,
+	isBeingDragged,
+	hasAudio,
+	isMuted,
+	mediaAssets,
+	onElementClick,
+	onElementMouseDown,
+	handleResizeStart,
+}: {
+	element: TimelineElementType;
+	track: TimelineTrack;
+	isSelected: boolean;
+	isBeingDragged: boolean;
+	hasAudio: boolean;
+	isMuted: boolean;
+	mediaAssets: MediaAsset[];
+	onElementClick: (e: React.MouseEvent, element: TimelineElementType) => void;
+	onElementMouseDown: (
+		e: React.MouseEvent,
+		element: TimelineElementType,
+	) => void;
+	handleResizeStart: (params: {
+		e: React.MouseEvent;
+		elementId: string;
+		side: "left" | "right";
+	}) => void;
+}) {
+	return (
+		<div
+			className={`relative h-full cursor-pointer overflow-hidden rounded-[0.5rem] ${getTrackClasses(
+				{
+					type: track.type,
+				},
+			)} ${isBeingDragged ? "z-30" : "z-10"} ${canElementBeHidden(element) && element.hidden ? "opacity-50" : ""}`}
+		>
+			<button
+				type="button"
+				className="absolute inset-0 size-full cursor-pointer"
+				onClick={(e) => onElementClick(e, element)}
+				onMouseDown={(e) => onElementMouseDown(e, element)}
+			>
+				<div className="absolute inset-0 flex h-full items-center">
+					<ElementContent
+						element={element}
+						track={track}
+						isSelected={isSelected}
+						mediaAssets={mediaAssets}
+					/>
+				</div>
 
-  const handleToggleElementContext = (e: React.MouseEvent) => {
-    e.stopPropagation();
+				{(hasAudio
+					? isMuted
+					: canElementBeHidden(element) && element.hidden) && (
+					<div className="bg-opacity-50 pointer-events-none absolute inset-0 flex items-center justify-center bg-black">
+						{hasAudio ? (
+							<HugeiconsIcon
+								icon={VolumeHighIcon}
+								className="size-6 text-white"
+							/>
+						) : (
+							<HugeiconsIcon
+								icon={VolumeOffIcon}
+								className="size-6 text-white"
+							/>
+						)}
+					</div>
+				)}
+			</button>
 
-    if (hasAudio && element.type === "media") {
-      toggleSelectedMuted(
-        isMultipleSelected && isCurrentElementSelected ? undefined : track.id,
-        isMultipleSelected && isCurrentElementSelected ? undefined : element.id
-      );
-    } else {
-      toggleSelectedHidden(
-        isMultipleSelected && isCurrentElementSelected ? undefined : track.id,
-        isMultipleSelected && isCurrentElementSelected ? undefined : element.id
-      );
-    }
-  };
+			{isSelected && (
+				<>
+					<ResizeHandle
+						side="left"
+						elementId={element.id}
+						handleResizeStart={handleResizeStart}
+					/>
+					<ResizeHandle
+						side="right"
+						elementId={element.id}
+						handleResizeStart={handleResizeStart}
+					/>
+				</>
+			)}
+		</div>
+	);
+}
 
-  const handleReplaceClip = (e: React.MouseEvent) => {
-    e.stopPropagation();
+function ResizeHandle({
+	side,
+	elementId,
+	handleResizeStart,
+}: {
+	side: "left" | "right";
+	elementId: string;
+	handleResizeStart: (params: {
+		e: React.MouseEvent;
+		elementId: string;
+		side: "left" | "right";
+	}) => void;
+}) {
+	const isLeft = side === "left";
+	return (
+		<button
+			type="button"
+			className={`bg-primary absolute top-0 bottom-0 z-50 flex w-[0.6rem] items-center justify-center ${isLeft ? "left-0 cursor-w-resize" : "right-0 cursor-e-resize"}`}
+			onMouseDown={(e) => handleResizeStart({ e, elementId, side })}
+			aria-label={`${isLeft ? "Left" : "Right"} resize handle`}
+		>
+			<div className="bg-foreground h-[1.5rem] w-[0.2rem] rounded-full" />
+		</button>
+	);
+}
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "video/*,audio/*,image/*";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        await replaceElementWithFile(track.id, element.id, file);
-      }
-    };
-    input.click();
-  };
+function ElementContent({
+	element,
+	track,
+	isSelected,
+	mediaAssets,
+}: {
+	element: TimelineElementType;
+	track: TimelineTrack;
+	isSelected: boolean;
+	mediaAssets: MediaAsset[];
+}) {
+	if (element.type === "text") {
+		return (
+			<div className="flex size-full items-center justify-start pl-2">
+				<span className="truncate text-xs text-white">{element.content}</span>
+			</div>
+		);
+	}
 
-  const handleRevealInMedia = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    revealElementInMedia(element.id);
-  };
+	if (element.type === "sticker") {
+		return (
+			<div className="flex size-full items-center gap-2 pl-2">
+				<Image
+					src={`https://api.iconify.design/${element.iconName}.svg?width=20&height=20`}
+					alt={element.name}
+					className="size-5 shrink-0"
+					width={20}
+					height={20}
+					unoptimized
+				/>
+				<span className="truncate text-xs text-white">{element.name}</span>
+			</div>
+		);
+	}
 
-  const renderElementContent = () => {
-    if (element.type === "text") {
-      return (
-        <div className="w-full h-full flex items-center justify-start pl-2">
-          <span className="text-xs text-white truncate">{element.content}</span>
-        </div>
-      );
-    }
+	if (element.type === "audio") {
+		const audioBuffer =
+			element.sourceType === "library" ? element.buffer : undefined;
 
-    const mediaItem = mediaFiles.find((file) => file.id === element.mediaId);
-    if (!mediaItem) {
-      return (
-        <span className="text-xs text-foreground/80 truncate">
-          {element.name}
-        </span>
-      );
-    }
+		const audioUrl =
+			element.sourceType === "library"
+				? element.sourceUrl
+				: mediaAssets.find((asset) => asset.id === element.mediaId)?.url;
 
-    if (
-      mediaItem.type === "image" ||
-      (mediaItem.type === "video" && mediaItem.thumbnailUrl)
-    ) {
-      const trackHeight = getTrackHeight(track.type);
-      const tileWidth = trackHeight * (16 / 9);
+		if (audioBuffer || audioUrl) {
+			return (
+				<div className="flex size-full items-center gap-2">
+					<div className="min-w-0 flex-1">
+						<AudioWaveform
+							audioBuffer={audioBuffer}
+							audioUrl={audioUrl}
+							height={24}
+							className="w-full"
+						/>
+					</div>
+				</div>
+			);
+		}
 
-      const imageUrl =
-        mediaItem.type === "image" ? mediaItem.url : mediaItem.thumbnailUrl;
+		return (
+			<span className="text-foreground/80 truncate text-xs">
+				{element.name}
+			</span>
+		);
+	}
 
-      return (
-        <div className="w-full h-full flex items-center justify-center">
-          <div
-            className={`w-full h-full relative ${
-              isSelected ? "bg-primary" : "bg-transparent"
-            }`}
-          >
-            <div
-              className={`absolute top-[0.25rem] bottom-[0.25rem] left-0 right-0`}
-              style={{
-                backgroundImage: imageUrl ? `url(${imageUrl})` : "none",
-                backgroundRepeat: "repeat-x",
-                backgroundSize: `${tileWidth}px ${trackHeight}px`,
-                backgroundPosition: "left center",
-                pointerEvents: "none",
-              }}
-              aria-label={`Tiled ${mediaItem.type === "image" ? "background" : "thumbnail"} of ${mediaItem.name}`}
-            />
-          </div>
-        </div>
-      );
-    }
+	const mediaAsset = mediaAssets.find((asset) => asset.id === element.mediaId);
+	if (!mediaAsset) {
+		return (
+			<span className="text-foreground/80 truncate text-xs">
+				{element.name}
+			</span>
+		);
+	}
 
-    if (mediaItem.type === "audio") {
-      return (
-        <div className="w-full h-full flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <AudioWaveform
-              audioUrl={mediaItem.url || ""}
-              height={24}
-              className="w-full"
-            />
-          </div>
-        </div>
-      );
-    }
+	if (
+		mediaAsset.type === "image" ||
+		(mediaAsset.type === "video" && mediaAsset.thumbnailUrl)
+	) {
+		const trackHeight = getTrackHeight({ type: track.type });
+		const tileWidth = trackHeight * (16 / 9);
+		const imageUrl =
+			mediaAsset.type === "image" ? mediaAsset.url : mediaAsset.thumbnailUrl;
 
-    return (
-      <span className="text-xs text-foreground/80 truncate">
-        {element.name}
-      </span>
-    );
-  };
+		return (
+			<div className="flex size-full items-center justify-center">
+				<div
+					className={`relative size-full ${isSelected ? "bg-primary" : "bg-transparent"}`}
+				>
+					<div
+						className="absolute right-0 left-0"
+						style={{
+							backgroundImage: imageUrl ? `url(${imageUrl})` : "none",
+							backgroundRepeat: "repeat-x",
+							backgroundSize: `${tileWidth}px ${trackHeight}px`,
+							backgroundPosition: "left center",
+							pointerEvents: "none",
+							top: isSelected ? "0.25rem" : "0rem",
+							bottom: isSelected ? "0.25rem" : "0rem",
+						}}
+					/>
+				</div>
+			</div>
+		);
+	}
 
-  const handleElementMouseDown = (e: React.MouseEvent) => {
-    if (onElementMouseDown) {
-      onElementMouseDown(e, element);
-    }
-  };
+	return (
+		<span className="text-foreground/80 truncate text-xs">{element.name}</span>
+	);
+}
 
-  const isMuted = element.type === "media" && element.muted;
+function CopyMenuItem() {
+	return (
+		<ActionMenuItem action="copy-selected" icon={<HugeiconsIcon icon={Copy01Icon} />}>
+			Copy
+		</ActionMenuItem>
+	);
+}
 
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div
-          className={`absolute top-0 h-full select-none timeline-element ${
-            isBeingDragged ? "z-50" : "z-10"
-          }`}
-          style={{
-            left: `${elementLeft}px`,
-            width: `${elementWidth}px`,
-          }}
-          data-element-id={element.id}
-          data-track-id={track.id}
-          onMouseMove={resizing ? handleResizeMove : undefined}
-          onMouseUp={resizing ? handleResizeEnd : undefined}
-          onMouseLeave={resizing ? handleResizeEnd : undefined}
-        >
-          <div
-            className={`relative h-full rounded-[0.5rem] cursor-pointer overflow-hidden ${getTrackElementClasses(
-              track.type
-            )} ${isSelected ? "" : ""} ${
-              isBeingDragged ? "z-50" : "z-10"
-            } ${element.hidden ? "opacity-50" : ""}`}
-            onClick={(e) => onElementClick && onElementClick(e, element)}
-            onMouseDown={handleElementMouseDown}
-            onContextMenu={(e) =>
-              onElementMouseDown && onElementMouseDown(e, element)
-            }
-          >
-            <div className="absolute inset-0 flex items-center h-full">
-              {renderElementContent()}
-            </div>
+function MuteMenuItem({
+	isMultipleSelected,
+	isCurrentElementSelected,
+	isMuted,
+}: {
+	isMultipleSelected: boolean;
+	isCurrentElementSelected: boolean;
+	isMuted: boolean;
+}) {
+	const getIcon = () => {
+		if (isMultipleSelected && isCurrentElementSelected) {
+			return <HugeiconsIcon icon={VolumeMute02Icon} />;
+		}
+		return isMuted ? (
+			<HugeiconsIcon icon={VolumeHighIcon} />
+		) : (
+			<HugeiconsIcon icon={VolumeOffIcon} />
+		);
+	};
 
-            {(hasAudio ? isMuted : element.hidden) && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center pointer-events-none">
-                {hasAudio ? (
-                  <VolumeX className="h-6 w-6 text-white" />
-                ) : (
-                  <EyeOff className="h-6 w-6 text-white" />
-                )}
-              </div>
-            )}
+	return (
+		<ActionMenuItem action="toggle-elements-muted-selected" icon={getIcon()}>
+			{isMuted ? "Unmute" : "Mute"}
+		</ActionMenuItem>
+	);
+}
 
-            {isSelected && (
-              <>
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-[0.6rem] cursor-w-resize bg-primary z-50 flex items-center justify-center"
-                  onMouseDown={(e) => handleResizeStart(e, element.id, "left")}
-                >
-                  <div className="w-[0.2rem] h-[1.5rem] bg-foreground/75 rounded-full" />
-                </div>
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-[0.6rem] cursor-e-resize bg-primary z-50 flex items-center justify-center"
-                  onMouseDown={(e) => handleResizeStart(e, element.id, "right")}
-                >
-                  <div className="w-[0.2rem] h-[1.5rem] bg-foreground/75 rounded-full" />
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="z-200">
-        {(!isMultipleSelected ||
-          (isMultipleSelected &&
-            isCurrentElementSelected &&
-            canSplitSelected)) && (
-          <ContextMenuItem onClick={handleElementSplitContext}>
-            <Scissors className="h-4 w-4 mr-2" />
-            {isMultipleSelected && isCurrentElementSelected
-              ? `Split ${selectedElements.length} elements at playhead`
-              : "Split at playhead"}
-          </ContextMenuItem>
-        )}
+function VisibilityMenuItem({
+	element,
+	isMultipleSelected,
+	isCurrentElementSelected,
+}: {
+	element: TimelineElementType;
+	isMultipleSelected: boolean;
+	isCurrentElementSelected: boolean;
+}) {
+	const isHidden = canElementBeHidden(element) && element.hidden;
 
-        <ContextMenuItem onClick={handleElementCopyContext}>
-          <Copy className="h-4 w-4 mr-2" />
-          {isMultipleSelected && isCurrentElementSelected
-            ? `Copy ${selectedElements.length} elements`
-            : "Copy element"}
-        </ContextMenuItem>
+	const getIcon = () => {
+		if (isMultipleSelected && isCurrentElementSelected) {
+			return <HugeiconsIcon icon={ViewOffSlashIcon} />;
+		}
+		return isHidden ? (
+			<HugeiconsIcon icon={ViewIcon} />
+		) : (
+			<HugeiconsIcon icon={ViewOffSlashIcon} />
+		);
+	};
 
-        <ContextMenuItem onClick={handleToggleElementContext}>
-          {isMultipleSelected && isCurrentElementSelected ? (
-            hasAudioElements ? (
-              <VolumeX className="h-4 w-4 mr-2" />
-            ) : (
-              <EyeOff className="h-4 w-4 mr-2" />
-            )
-          ) : hasAudio ? (
-            isMuted ? (
-              <Volume2 className="h-4 w-4 mr-2" />
-            ) : (
-              <VolumeX className="h-4 w-4 mr-2" />
-            )
-          ) : element.hidden ? (
-            <Eye className="h-4 w-4 mr-2" />
-          ) : (
-            <EyeOff className="h-4 w-4 mr-2" />
-          )}
-          <span>
-            {isMultipleSelected && isCurrentElementSelected
-              ? hasAudioElements
-                ? `Toggle mute ${selectedElements.length} elements`
-                : `Toggle visibility ${selectedElements.length} elements`
-              : hasAudio
-                ? isMuted
-                  ? "Unmute"
-                  : "Mute"
-                : element.hidden
-                  ? "Show"
-                  : "Hide"}{" "}
-            {!isMultipleSelected && (element.type === "text" ? "text" : "clip")}
-          </span>
-        </ContextMenuItem>
+	return (
+		<ActionMenuItem action="toggle-elements-visibility-selected" icon={getIcon()}>
+			{isHidden ? "Show" : "Hide"}
+		</ActionMenuItem>
+	);
+}
 
-        {!isMultipleSelected && (
-          <ContextMenuItem onClick={handleElementDuplicateContext}>
-            <Copy className="h-4 w-4 mr-2" />
-            Duplicate {element.type === "text" ? "text" : "clip"}
-          </ContextMenuItem>
-        )}
+function DeleteMenuItem({
+	isMultipleSelected,
+	isCurrentElementSelected,
+	elementType,
+	selectedCount,
+}: {
+	isMultipleSelected: boolean;
+	isCurrentElementSelected: boolean;
+	elementType: TimelineElementType["type"];
+	selectedCount: number;
+}) {
+	return (
+		<ActionMenuItem
+			action="delete-selected"
+			variant="destructive"
+			icon={<HugeiconsIcon icon={Delete02Icon} />}
+		>
+			{isMultipleSelected && isCurrentElementSelected
+				? `Delete ${selectedCount} elements`
+				: `Delete ${elementType === "text" ? "text" : "clip"}`}
+		</ActionMenuItem>
+	);
+}
 
-        {!isMultipleSelected && element.type === "media" && (
-          <>
-            <ContextMenuItem onClick={handleRevealInMedia}>
-              <Search className="h-4 w-4 mr-2" />
-              Reveal in media
-            </ContextMenuItem>
-            <ContextMenuItem onClick={handleReplaceClip}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Replace clip
-            </ContextMenuItem>
-          </>
-        )}
-
-        <ContextMenuSeparator />
-
-        <ContextMenuItem
-          onClick={handleElementDeleteContext}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          {isMultipleSelected && isCurrentElementSelected
-            ? `Delete ${selectedElements.length} elements`
-            : `Delete ${element.type === "text" ? "text" : "clip"}`}
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
+function ActionMenuItem({
+	action,
+	children,
+	...props
+}: Omit<ComponentProps<typeof ContextMenuItem>, "onClick" | "textRight"> & {
+	action: TAction;
+}) {
+	return (
+		<ContextMenuItem
+			onClick={(event) => {
+				event.stopPropagation();
+				invokeAction(action);
+			}}
+			textRight={getDisplayShortcut(action)}
+			{...props}
+		>
+			{children}
+		</ContextMenuItem>
+	);
 }

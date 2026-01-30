@@ -1,80 +1,81 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { useProjectStore } from "@/stores/project-store";
-import { useMediaStore } from "@/stores/media-store";
-import { storageService } from "@/lib/storage/storage-service";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useEditor } from "@/hooks/use-editor";
+import { storageService } from "@/services/storage/storage-service";
 
 interface StorageContextType {
-  isInitialized: boolean;
-  isLoading: boolean;
-  hasSupport: boolean;
-  error: string | null;
+	isInitialized: boolean;
+	isLoading: boolean;
+	hasSupport: boolean;
+	error: string | null;
 }
 
 const StorageContext = createContext<StorageContextType | null>(null);
 
 export function useStorage() {
-  const context = useContext(StorageContext);
-  if (!context) {
-    throw new Error("useStorage must be used within StorageProvider");
-  }
-  return context;
+	const context = useContext(StorageContext);
+	if (!context) {
+		throw new Error("useStorage must be used within StorageProvider");
+	}
+	return context;
 }
 
 interface StorageProviderProps {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }
 
 export function StorageProvider({ children }: StorageProviderProps) {
-  const [status, setStatus] = useState<StorageContextType>({
-    isInitialized: false,
-    isLoading: true,
-    hasSupport: false,
-    error: null,
-  });
+	const [status, setStatus] = useState<StorageContextType>({
+		isInitialized: false,
+		isLoading: true,
+		hasSupport: false,
+		error: null,
+	});
 
-  const loadAllProjects = useProjectStore((state) => state.loadAllProjects);
+	const editor = useEditor();
+	const hasInitialized = useRef(false);
 
-  useEffect(() => {
-    const initializeStorage = async () => {
-      setStatus((prev) => ({ ...prev, isLoading: true }));
+	useEffect(() => {
+		if (hasInitialized.current) return;
+		hasInitialized.current = true;
 
-      try {
-        // Check browser support
-        const hasSupport = storageService.isFullySupported();
+		const initializeStorage = async () => {
+			setStatus((prev) => ({ ...prev, isLoading: true }));
 
-        if (!hasSupport) {
-          toast.warning(
-            "Storage not fully supported. Some features may not work."
-          );
-        }
+			try {
+				const hasSupport = storageService.isFullySupported();
 
-        // Load saved projects (media will be loaded when a project is loaded)
-        await loadAllProjects();
+				if (!hasSupport) {
+					toast.warning(
+						"Storage not fully supported. Some features may not work.",
+					);
+				}
 
-        setStatus({
-          isInitialized: true,
-          isLoading: false,
-          hasSupport,
-          error: null,
-        });
-      } catch (error) {
-        console.error("Failed to initialize storage:", error);
-        setStatus({
-          isInitialized: false,
-          isLoading: false,
-          hasSupport: storageService.isFullySupported(),
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    };
+				await editor.project.loadAllProjects();
 
-    initializeStorage();
-  }, [loadAllProjects]);
+				setStatus({
+					isInitialized: true,
+					isLoading: false,
+					hasSupport,
+					error: null,
+				});
+			} catch (error) {
+				console.error("Failed to initialize storage:", error);
+				setStatus({
+					isInitialized: false,
+					isLoading: false,
+					hasSupport: storageService.isFullySupported(),
+					error: error instanceof Error ? error.message : "Unknown error",
+				});
+			}
+		};
 
-  return (
-    <StorageContext.Provider value={status}>{children}</StorageContext.Provider>
-  );
+		initializeStorage();
+	}, [editor.project.loadAllProjects]);
+
+	return (
+		<StorageContext.Provider value={status}>{children}</StorageContext.Provider>
+	);
 }

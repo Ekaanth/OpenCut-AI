@@ -5,6 +5,9 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"],
       "env": [
+        "NODE_ENV",
+        "NEXT_PUBLIC_SITE_URL",
+        "NEXT_PUBLIC_MARBLE_API_URL",
         "DATABASE_URL",
         "BETTER_AUTH_SECRET",
         "UPSTASH_REDIS_REST_URL",

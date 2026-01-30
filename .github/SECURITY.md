@@ -25,4 +25,4 @@ Please do not report security vulnerabilities through public GitHub issues.
 - We will provide a detailed response within 5 business days
 - We will keep you updated on our progress
 
-Thank you for helping keep OpenCut secure! 
+Thank you for helping keep OpenCut secure!

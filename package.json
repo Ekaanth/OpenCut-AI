@@ -1,29 +1,27 @@
 {
   "name": "opencut",
   "packageManager": "bun@1.2.18",
-  "devDependencies": {
-    "@biomejs/biome": "2.1.2",
-    "husky": "^9.1.7",
-    "turbo": "^2.5.4",
-    "typescript": "5.8.3",
-    "ultracite": "5.0.48"
-  },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "check-types": "turbo run check-types",
-    "lint": "npx ultracite@latest lint",
-    "format": "npx ultracite@latest format"
+    "dev:web": "turbo run dev --filter=@opencut/web",
+    "build:web": "turbo run build --filter=@opencut/web",
+    "dev:tools": "turbo run dev --filter=@opencut/tools",
+    "build:tools": "turbo run build --filter=@opencut/tools",
+    "start:tools": "turbo run start --filter=@opencut/tools",
+    "lint:web": "biome lint apps/web/src --max-diagnostics=1000",
+    "lint:web:fix": "biome lint apps/web/src --write --max-diagnostics=1000",
+    "format:web": "biome format apps/web/src/services/renderer --write --max-diagnostics=1000"
   },
   "dependencies": {
-    "mediabunny": "^1.9.3",
-    "next": "^15.5.7",
-    "react-country-flag": "^3.1.0",
-    "wavesurfer.js": "^7.9.8"
+    "better-auth": "^1.4.15",
+    "next": "^16.1.3"
+  },
+  "devDependencies": {
+    "turbo": "^2.7.5",
+    "typescript": "5.8.3"
   },
   "trustedDependencies": [
     "@tailwindcss/oxide"

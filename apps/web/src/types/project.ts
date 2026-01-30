@@ -1,35 +1,51 @@
-import { CanvasSize } from "./editor";
+import type { TScene } from "./timeline";
 
-export type BlurIntensity = 4 | 8 | 18;
+export type TBackground =
+	| {
+			type: "color";
+			color: string;
+	  }
+	| {
+			type: "blur";
+			blurIntensity: number;
+	  };
 
-export interface Scene {
-  id: string;
-  name: string;
-  isMain: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+export interface TCanvasSize {
+	width: number;
+	height: number;
+}
+
+export interface TProjectMetadata {
+	id: string;
+	name: string;
+	thumbnail?: string;
+	duration: number;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface TProjectSettings {
+	fps: number;
+	canvasSize: TCanvasSize;
+	originalCanvasSize?: TCanvasSize | null;
+	background: TBackground;
+}
+
+export interface TTimelineViewState {
+	zoomLevel: number;
+	scrollLeft: number;
+	playheadTime: number;
 }
 
 export interface TProject {
-  id: string;
-  name: string;
-  thumbnail: string;
-  createdAt: Date;
-  updatedAt: Date;
-  scenes: Scene[];
-  currentSceneId: string;
-  mediaItems?: string[];
-  backgroundColor?: string;
-  backgroundType?: "color" | "blur";
-  blurIntensity?: BlurIntensity;
-  fps?: number;
-  bookmarks?: number[];
-  canvasSize: CanvasSize;
-  /**
-   * Tracks how the canvas size was set:
-   * - "preset": User selected a standard preset (e.g. 16:9, 9:16)
-   * - "original": Using the first media item's dimensions
-   * - "custom": User set a custom aspect ratio or dimensions
-   */
-  canvasMode: "preset" | "original" | "custom";
+	metadata: TProjectMetadata;
+	scenes: TScene[];
+	currentSceneId: string;
+	settings: TProjectSettings;
+	version: number;
+	timelineViewState?: TTimelineViewState;
 }
+
+export type TProjectSortKey = "createdAt" | "updatedAt" | "name" | "duration";
+export type TSortOrder = "asc" | "desc";
+export type TProjectSortOption = `${TProjectSortKey}-${TSortOrder}`;

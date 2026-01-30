@@ -1,81 +1,46 @@
 "use client";
 
-import { motion } from "motion/react";
 import { Button } from "../ui/button";
-import { SponsorButton } from "../ui/sponsor-button";
-import { VercelIcon } from "../icons";
 import { ArrowRight } from "lucide-react";
-
 import Image from "next/image";
 import { Handlebars } from "./handlebars";
 import Link from "next/link";
 
 export function Hero() {
-  return (
-    <div className="min-h-[calc(100svh-4.5rem)] flex flex-col justify-between items-center text-center px-4">
-      <Image
-        className="absolute top-0 left-0 -z-50 size-full object-cover invert dark:invert-0 opacity-85"
-        src="/landing-page-dark.png"
-        height={1903.5}
-        width={1269}
-        alt="landing-page.bg"
-      />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-        className="max-w-3xl mx-auto w-full flex-1 flex flex-col justify-center"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-          className="mb-4 flex justify-center"
-        >
-          <SponsorButton
-            href="https://vercel.com/home?utm_source=opencut"
-            logo={VercelIcon}
-            companyName="Vercel"
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="inline-block font-bold tracking-tighter text-4xl md:text-[4rem]"
-        >
-          <h1>The Open Source</h1>
-          <Handlebars>Video Editor</Handlebars>
-        </motion.div>
+	return (
+		<div className="flex min-h-[calc(100svh-4.5rem)] flex-col items-center justify-between px-4 text-center">
+			<Image
+				className="absolute top-0 left-0 -z-50 size-full object-cover opacity-85 invert dark:invert-0"
+				src="/landing-page-dark.png"
+				height={1903.5}
+				width={1269}
+				alt="landing-page.bg"
+			/>
+			<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
+				<div className="inline-block text-4xl font-bold tracking-tighter md:text-[4rem]">
+					<h1>The open source</h1>
+					<Handlebars>Video editor</Handlebars>
+				</div>
 
-        <motion.p
-          className="mt-10 text-base sm:text-xl text-muted-foreground font-light tracking-wide max-w-xl mx-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-        >
-          A simple but powerful video editor that gets the job done. Works on
-          any platform.
-        </motion.p>
+				<p className="text-muted-foreground mx-auto mt-10 max-w-xl text-base font-light tracking-wide sm:text-xl">
+					A simple but powerful video editor that gets the job done. Works on
+					any platform.
+				</p>
 
-        <motion.div
-          className="mt-8 flex gap-8 justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-        >
-          <Link href="/projects">
-            <Button
-              type="submit"
-              size="lg"
-              className="px-6 h-11 text-base bg-foreground"
-            >
-              Try early beta
-              <ArrowRight className="relative z-10 ml-0.5 h-4 w-4 inline-block" />
-            </Button>
-          </Link>
-        </motion.div>
-      </motion.div>
-    </div>
-  );
+				<div className="mt-8 flex justify-center gap-8">
+					<Link href="/projects">
+						<Button
+							variant="foreground"
+							type="submit"
+							size="lg"
+							className="h-11 text-base"
+						>
+							Try early beta
+							<ArrowRight className="ml-0.5" />
+						</Button>
+					</Link>
+				</div>
+			</div>
+		</div>
+	);
 }

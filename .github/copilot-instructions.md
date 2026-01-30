@@ -3,15 +3,18 @@ applyTo: "**/*.{ts,tsx,js,jsx}"
 ---
 
 # Project Context
+
 Ultracite enforces strict type safety, accessibility standards, and consistent code quality for JavaScript/TypeScript projects using Biome's lightning-fast formatter and linter.
 
 ## Key Principles
+
 - Zero configuration required
 - Subsecond performance
 - Maximum type safety
 - AI-friendly code generation
 
 ## Before Writing Code
+
 1. Analyze existing patterns in the codebase
 2. Consider edge cases and error scenarios
 3. Follow the rules below strictly
@@ -20,6 +23,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 ## Rules
 
 ### Accessibility (a11y)
+
 - Don't use `accessKey` attribute on any HTML element.
 - Don't set `aria-hidden="true"` on focusable elements.
 - Don't add ARIA roles, states, and properties to elements that don't support them.
@@ -56,6 +60,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Use correct ISO language/country codes for the `lang` attribute.
 
 ### Code Complexity and Quality
+
 - Don't use consecutive spaces in regular expression literals.
 - Don't use the `arguments` object.
 - Don't use primitive type aliases or misleading types.
@@ -111,6 +116,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Don't use literal numbers that lose precision.
 
 ### React and JSX Best Practices
+
 - Don't use the return value of React.render.
 - Make sure all dependencies are correctly specified in React hooks.
 - Make sure all React hooks are called from the top level of component functions.
@@ -129,6 +135,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Watch out for possible "wrong" semicolons inside JSX elements.
 
 ### Correctness and Safety
+
 - Don't assign a value to itself.
 - Don't return a value from a setter.
 - Don't compare expressions that modify string case with non-compliant values.
@@ -153,7 +160,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Don't use bitwise operators.
 - Don't use expressions where the operation doesn't change the value.
 - Make sure Promise-like statements are handled appropriately.
-- Don't use __dirname and __filename in the global scope.
+- Don't use **dirname and **filename in the global scope.
 - Prevent import cycles.
 - Don't use configured elements.
 - Don't hardcode sensitive data like API keys and tokens.
@@ -184,6 +191,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Don't use `target="_blank"` without `rel="noopener"`.
 
 ### TypeScript Best Practices
+
 - Don't use TypeScript enums.
 - Don't export imported variables.
 - Don't add type annotations to variables, parameters, and class properties that are initialized with literal expressions.
@@ -208,6 +216,7 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Use the namespace keyword instead of the module keyword to declare TypeScript namespaces.
 
 ### Style and Consistency
+
 - Don't use global `eval()`.
 - Don't use callbacks in asynchronous tests and hooks.
 - Don't use negation in `if` statements that have `else` clauses.
@@ -295,30 +304,34 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 - Make sure to use the "use strict" directive in script files.
 
 ### Next.js Specific Rules
+
 - Don't use `<img>` elements in Next.js projects.
 - Don't use `<head>` elements in Next.js projects.
-- Don't import next/document outside of pages/_document.jsx in Next.js projects.
-- Don't use the next/head module in pages/_document.js on Next.js projects.
+- Don't import next/document outside of pages/\_document.jsx in Next.js projects.
+- Don't use the next/head module in pages/\_document.js on Next.js projects.
 
 ### Testing Best Practices
+
 - Don't use export or module.exports in test files.
 - Don't use focused tests.
 - Make sure the assertion function, like expect, is placed inside an it() function call.
 - Don't use disabled tests.
 
 ## Common Tasks
+
 - `npx ultracite init` - Initialize Ultracite in your project
 - `npx ultracite format` - Format and fix code automatically
 - `npx ultracite lint` - Check for issues without fixing
 
 ## Example: Error Handling
+
 ```typescript
 // ✅ Good: Comprehensive error handling
 try {
   const result = await fetchData();
   return { success: true, data: result };
 } catch (error) {
-  console.error('API call failed:', error);
+  console.error("API call failed:", error);
   return { success: false, error: error.message };
 }
 

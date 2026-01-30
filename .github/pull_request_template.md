@@ -24,9 +24,10 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] Test B
 
 **Test Configuration**:
-* Node version:
-* Browser (if applicable):
-* Operating System:
+
+- Node version:
+- Browser (if applicable):
+- Operating System:
 
 ## Screenshots (if applicable)
 
@@ -46,4 +47,4 @@ Add screenshots to help explain your changes.
 
 ## Additional context
 
-Add any other context about the pull request here. 
+Add any other context about the pull request here.

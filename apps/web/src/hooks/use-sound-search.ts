@@ -1,156 +1,154 @@
 import { useEffect } from "react";
 import { useSoundsStore } from "@/stores/sounds-store";
 
-/**
- * Custom hook for searching sound effects with race condition protection.
- * Uses global Zustand store to persist search state across tab switches.
- * - Debounced search (300ms)
- * - Race condition protection with cleanup
- * - Proper error handling
- */
+export function useSoundSearch({
+	query,
+	commercialOnly,
+}: {
+	query: string;
+	commercialOnly: boolean;
+}) {
+	const {
+		searchResults,
+		isSearching,
+		searchError,
+		lastSearchQuery,
+		currentPage,
+		hasNextPage,
+		isLoadingMore,
+		totalCount,
+		setSearchResults,
+		setSearching,
+		setSearchError,
+		setLastSearchQuery,
+		setCurrentPage,
+		setHasNextPage,
+		setTotalCount,
+		setLoadingMore,
+		appendSearchResults,
+		appendTopSounds,
+		resetPagination,
+	} = useSoundsStore();
 
-export function useSoundSearch(query: string, commercialOnly: boolean) {
-  const {
-    searchResults,
-    isSearching,
-    searchError,
-    lastSearchQuery,
-    currentPage,
-    hasNextPage,
-    isLoadingMore,
-    totalCount,
-    setSearchResults,
-    setSearching,
-    setSearchError,
-    setLastSearchQuery,
-    setCurrentPage,
-    setHasNextPage,
-    setTotalCount,
-    setLoadingMore,
-    appendSearchResults,
-    appendTopSounds,
-    resetPagination,
-  } = useSoundsStore();
+	const loadMore = async () => {
+		if (isLoadingMore || !hasNextPage) return;
 
-  // Load more function for infinite scroll
-  const loadMore = async () => {
-    if (isLoadingMore || !hasNextPage) return;
+		try {
+			setLoadingMore({ loading: true });
+			const nextPage = currentPage + 1;
 
-    try {
-      setLoadingMore(true);
-      const nextPage = currentPage + 1;
+			const searchParams = new URLSearchParams({
+				page: nextPage.toString(),
+				type: "effects",
+			});
 
-      const searchParams = new URLSearchParams({
-        page: nextPage.toString(),
-        type: "effects",
-      });
+			if (query.trim()) {
+				searchParams.set("q", query);
+			}
 
-      if (query.trim()) {
-        searchParams.set("q", query);
-      }
+			searchParams.set("commercial_only", commercialOnly.toString());
+			const response = await fetch(
+				`/api/sounds/search?${searchParams.toString()}`,
+			);
 
-      searchParams.set("commercial_only", commercialOnly.toString());
-      const response = await fetch(
-        `/api/sounds/search?${searchParams.toString()}`
-      );
+			if (response.ok) {
+				const data = await response.json();
 
-      if (response.ok) {
-        const data = await response.json();
+				if (query.trim()) {
+					appendSearchResults(data.results);
+				} else {
+					appendTopSounds(data.results);
+				}
 
-        // Append to appropriate array based on whether we have a query
-        if (query.trim()) {
-          appendSearchResults(data.results);
-        } else {
-          appendTopSounds(data.results);
-        }
+				setCurrentPage({ page: nextPage });
+				setHasNextPage({ hasNext: !!data.next });
+				setTotalCount(data.count);
+			} else {
+				setSearchError({ error: `Load more failed: ${response.status}` });
+			}
+		} catch (err) {
+			setSearchError({
+				error: err instanceof Error ? err.message : "Load more failed",
+			});
+		} finally {
+			setLoadingMore({ loading: false });
+		}
+	};
 
-        setCurrentPage(nextPage);
-        setHasNextPage(!!data.next);
-        setTotalCount(data.count);
-      } else {
-        setSearchError(`Load more failed: ${response.status}`);
-      }
-    } catch (err) {
-      setSearchError(err instanceof Error ? err.message : "Load more failed");
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+	useEffect(() => {
+		if (!query.trim()) {
+			setSearchResults({ results: [] });
+			setSearchError({ error: null });
+			setLastSearchQuery({ query: "" });
+			return;
+		}
 
-  useEffect(() => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setSearchError(null);
-      setLastSearchQuery("");
-      // Don't reset pagination here - top sounds pagination is managed by prefetcher
-      return;
-    }
+		if (query === lastSearchQuery && searchResults.length > 0) {
+			return;
+		}
 
-    // If we already searched for this query and have results, don't search again
-    if (query === lastSearchQuery && searchResults.length > 0) {
-      return;
-    }
+		let ignore = false;
 
-    let ignore = false;
+		const timeoutId = setTimeout(async () => {
+			try {
+				setSearching({ searching: true });
+				setSearchError({ error: null });
+				resetPagination();
 
-    const timeoutId = setTimeout(async () => {
-      try {
-        setSearching(true);
-        setSearchError(null);
-        resetPagination();
+				const response = await fetch(
+					`/api/sounds/search?q=${encodeURIComponent(query)}&type=effects&page=1`,
+				);
 
-        const response = await fetch(
-          `/api/sounds/search?q=${encodeURIComponent(query)}&type=effects&page=1`
-        );
+				if (!ignore) {
+					if (response.ok) {
+						const data = await response.json();
+						setSearchResults({ results: data.results });
+						setLastSearchQuery({ query: query });
+						setHasNextPage({ hasNext: !!data.next });
+						setTotalCount({ count: data.count });
+						setCurrentPage({ page: 1 });
+					} else {
+						setSearchError({ error: `Search failed: ${response.status}` });
+					}
+				}
+			} catch (err) {
+				if (!ignore) {
+					setSearchError({
+						error: err instanceof Error ? err.message : "Search failed",
+					});
+				}
+			} finally {
+				if (!ignore) {
+					setSearching({ searching: false });
+				}
+			}
+		}, 300);
 
-        if (!ignore) {
-          if (response.ok) {
-            const data = await response.json();
-            setSearchResults(data.results);
-            setLastSearchQuery(query);
-            setHasNextPage(!!data.next);
-            setTotalCount(data.count);
-            setCurrentPage(1);
-          } else {
-            setSearchError(`Search failed: ${response.status}`);
-          }
-        }
-      } catch (err) {
-        if (!ignore) {
-          setSearchError(err instanceof Error ? err.message : "Search failed");
-        }
-      } finally {
-        if (!ignore) {
-          setSearching(false);
-        }
-      }
-    }, 300);
+		return () => {
+			clearTimeout(timeoutId);
+			ignore = true;
+		};
+	}, [
+		query,
+		lastSearchQuery,
+		searchResults.length,
+		setSearchResults,
+		setSearching,
+		setSearchError,
+		setLastSearchQuery,
+		setCurrentPage,
+		setHasNextPage,
+		setTotalCount,
+		resetPagination,
+	]);
 
-    return () => {
-      clearTimeout(timeoutId);
-      ignore = true;
-    };
-  }, [
-    query,
-    lastSearchQuery,
-    searchResults.length,
-    setSearchResults,
-    setSearching,
-    setSearchError,
-    setLastSearchQuery,
-    setCurrentPage,
-    setHasNextPage,
-    setTotalCount,
-    resetPagination,
-  ]);
-
-  return {
-    results: searchResults,
-    isLoading: isSearching,
-    error: searchError,
-    loadMore,
-    hasNextPage,
-    isLoadingMore,
-    totalCount,
-  };
+	return {
+		results: searchResults,
+		isLoading: isSearching,
+		error: searchError,
+		loadMore,
+		hasNextPage,
+		isLoadingMore,
+		totalCount,
+	};
 }

@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Project Context
 
-Ultracite enforces strict type safety, accessibility standards, and consistent code quality for JavaScript/TypeScript projects using Biome's lightning-fast formatter and linter.
+Ultracite enforces strict type safety, accessibility standards, and consistent code quality for JavaScript/TypeScript projects using Biome's formatter.
 
 ## Key Principles
 
@@ -43,7 +43,6 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 ### React and JSX Best Practices
 
 - Don't import `React` itself.
-- Don't define React components inside other components.
 - Don't use both `children` and `dangerouslySetInnerHTML` props on the same element.
 - Don't insert comments as text nodes.
 - Use `<>...</>` instead of `<Fragment>...</Fragment>`.

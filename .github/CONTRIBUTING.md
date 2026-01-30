@@ -98,11 +98,11 @@ If you're unsure whether your idea falls into the preview category, feel free to
 
    ```bash
    # Database (matches docker-compose.yaml)
-   DATABASE_URL="postgresql://opencut:opencutthegoat@localhost:5432/opencut"
+   DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut"
 
    # Generate a secure secret for Better Auth
    BETTER_AUTH_SECRET="your-generated-secret-here"
-   NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+   NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 
    # Redis (matches docker-compose.yaml)
    UPSTASH_REDIS_REST_URL="http://localhost:8079"
