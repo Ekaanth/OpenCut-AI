@@ -1,8 +1,8 @@
 import { Command } from "@/lib/commands/base-command";
 import { EditorCore } from "@/core";
 import type { MediaAsset } from "@/types/assets";
-import { storageService } from "@/services/storage/storage-service";
-import { videoCache } from "@/services/media/video-cache";
+import { storageService } from "@/services/storage/service";
+import { videoCache } from "@/services/video-cache/service";
 import { hasMediaId } from "@/lib/timeline/element-utils";
 import type { TimelineTrack } from "@/types/timeline";
 

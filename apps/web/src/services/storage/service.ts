@@ -333,12 +333,9 @@ class StorageService {
 		]);
 	}
 
-	// Utility methods
 	async clearAllData(): Promise<void> {
-		// Clear all projects
 		await this.projectsAdapter.clear();
-
-		// Note: Project-specific media and timelines will be cleaned up when projects are deleted
+		// project-specific media and timelines cleaned up when projects are deleted
 	}
 
 	async getStorageInfo(): Promise<{
@@ -392,7 +389,6 @@ class StorageService {
 		try {
 			const currentData = await this.loadSavedSounds();
 
-			// Check if sound is already saved
 			if (currentData.sounds.some((sound) => sound.id === soundEffect.id)) {
 				return; // Already saved
 			}
@@ -456,7 +452,6 @@ class StorageService {
 		}
 	}
 
-	// Check browser support
 	isOPFSSupported(): boolean {
 		return OPFSAdapter.isSupported();
 	}
@@ -470,6 +465,5 @@ class StorageService {
 	}
 }
 
-// Export singleton instance
 export const storageService = new StorageService();
 export { StorageService };

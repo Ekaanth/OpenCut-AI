@@ -1,6 +1,6 @@
 import type { EditorCore } from "@/core";
 import type { TimelineTrack, TScene } from "@/types/timeline";
-import { storageService } from "@/services/storage/storage-service";
+import { storageService } from "@/services/storage/service";
 import {
 	getMainScene,
 	ensureMainScene,

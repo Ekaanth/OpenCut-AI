@@ -1,8 +1,8 @@
 import type { EditorCore } from "@/core";
 import type { MediaAsset } from "@/types/assets";
-import { storageService } from "@/services/storage/storage-service";
+import { storageService } from "@/services/storage/service";
 import { generateUUID } from "@/utils/id";
-import { videoCache } from "@/services/media/video-cache";
+import { videoCache } from "@/services/video-cache/service";
 import { hasMediaId } from "@/lib/timeline/element-utils";
 
 export class MediaManager {

@@ -8,7 +8,7 @@ import type {
 	TTimelineViewState,
 } from "@/types/project";
 import type { ExportOptions, ExportResult } from "@/types/export";
-import { storageService } from "@/services/storage/storage-service";
+import { storageService } from "@/services/storage/service";
 import { toast } from "sonner";
 import { generateUUID } from "@/utils/id";
 import { UpdateProjectSettingsCommand } from "@/lib/commands/project";

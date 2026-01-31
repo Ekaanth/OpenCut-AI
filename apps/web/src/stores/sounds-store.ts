@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { SoundEffect, SavedSound } from "@/types/sounds";
-import { storageService } from "@/services/storage/storage-service";
+import { storageService } from "@/services/storage/service";
 import { toast } from "sonner";
 import { EditorCore } from "@/core";
 import { buildLibraryAudioElement } from "@/lib/timeline/element-utils";

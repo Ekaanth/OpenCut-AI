@@ -1,4 +1,5 @@
 import type {
+	TranscriptionLanguage,
 	TranscriptionResult,
 	TranscriptionProgress,
 	TranscriptionModelId,
@@ -8,7 +9,6 @@ import {
 	TRANSCRIPTION_MODELS,
 } from "@/constants/transcription-constants";
 import type { WorkerMessage, WorkerResponse } from "./worker";
-import type { LanguageCode } from "@/types/language";
 
 type ProgressCallback = (progress: TranscriptionProgress) => void;
 
@@ -20,12 +20,12 @@ class TranscriptionService {
 
 	async transcribe({
 		audioData,
-		language,
+		language = "auto",
 		modelId = DEFAULT_TRANSCRIPTION_MODEL,
 		onProgress,
 	}: {
 		audioData: Float32Array;
-		language?: LanguageCode;
+		language?: TranscriptionLanguage;
 		modelId?: TranscriptionModelId;
 		onProgress?: ProgressCallback;
 	}): Promise<TranscriptionResult> {

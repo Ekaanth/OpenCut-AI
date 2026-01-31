@@ -17,7 +17,7 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionProgress,
 } from "@/types/transcription";
-import { transcriptionService } from "@/services/transcription";
+import { transcriptionService } from "@/services/transcription/service";
 import { decodeAudioToFloat32 } from "@/lib/media/audio";
 import { buildCaptionChunks } from "@/lib/transcription/caption";
 import { Spinner } from "@/components/ui/spinner";
