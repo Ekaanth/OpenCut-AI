@@ -1,6 +1,6 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
-import { videoCache } from "@/services/media/video-cache";
+import { videoCache } from "@/services/video-cache/service";
 
 const VIDEO_EPSILON = 1 / 1000;
 
