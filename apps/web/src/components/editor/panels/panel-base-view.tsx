@@ -15,7 +15,7 @@ interface PanelBaseViewProps {
 		content: React.ReactNode;
 	}[];
 	className?: string;
-	ref?: React.RefObject<HTMLDivElement>;
+	ref?: React.Ref<HTMLDivElement>;
 }
 
 function ViewContent({
