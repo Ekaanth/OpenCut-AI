@@ -5,10 +5,10 @@ import { getSnappedSeekTime } from "@/lib/time";
 import { useEditor } from "../use-editor";
 
 interface UseTimelineSeekProps {
-	playheadRef: RefObject<HTMLDivElement | null>;
-	trackLabelsRef: RefObject<HTMLDivElement | null>;
-	rulerScrollRef: RefObject<HTMLDivElement | null>;
-	tracksScrollRef: RefObject<HTMLDivElement | null>;
+	playheadRef: RefObject<HTMLDivElement>;
+	trackLabelsRef: RefObject<HTMLDivElement>;
+	rulerScrollRef: RefObject<HTMLDivElement>;
+	tracksScrollRef: RefObject<HTMLDivElement>;
 	zoomLevel: number;
 	duration: number;
 	isSelecting: boolean;

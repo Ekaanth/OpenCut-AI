@@ -7,7 +7,7 @@ import { TimelineTick } from "./timeline-tick";
 interface TimelineRulerProps {
 	zoomLevel: number;
 	dynamicTimelineWidth: number;
-	rulerRef: React.RefObject<HTMLDivElement>;
+	rulerRef: React.Ref<HTMLDivElement>;
 	handleWheel: (e: React.WheelEvent) => void;
 	handleTimelineContentClick: (e: React.MouseEvent) => void;
 	handleRulerTrackingMouseDown: (e: React.MouseEvent) => void;

@@ -3,8 +3,8 @@ import { useEffect, useRef } from "react";
 interface UseEdgeAutoScrollParams {
 	isActive: boolean;
 	getMouseClientX: () => number;
-	rulerScrollRef: React.RefObject<HTMLDivElement | null>;
-	tracksScrollRef: React.RefObject<HTMLDivElement | null>;
+	rulerScrollRef: React.RefObject<HTMLDivElement>;
+	tracksScrollRef: React.RefObject<HTMLDivElement>;
 	contentWidth: number;
 	edgeThreshold?: number;
 	maxScrollSpeed?: number;

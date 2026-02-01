@@ -4,12 +4,12 @@ import { getCumulativeHeightBefore, getTrackHeight } from "@/lib/timeline";
 import { useEditor } from "../use-editor";
 
 interface UseSelectionBoxProps {
-	containerRef: React.RefObject<HTMLElement | null>;
+	containerRef: React.RefObject<HTMLElement>;
 	onSelectionComplete: (
 		elements: { trackId: string; elementId: string }[],
 	) => void;
 	isEnabled?: boolean;
-	tracksScrollRef: React.RefObject<HTMLDivElement | null>;
+	tracksScrollRef: React.RefObject<HTMLDivElement>;
 	zoomLevel: number;
 }
 

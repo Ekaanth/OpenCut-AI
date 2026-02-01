@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 
 interface UseScrollSyncProps {
-	rulerScrollRef?: React.RefObject<HTMLDivElement | null>;
-	tracksScrollRef: React.RefObject<HTMLDivElement | null>;
-	trackLabelsScrollRef?: React.RefObject<HTMLDivElement | null>;
-	bookmarksScrollRef?: React.RefObject<HTMLDivElement | null>;
+	rulerScrollRef?: React.RefObject<HTMLDivElement>;
+	tracksScrollRef: React.RefObject<HTMLDivElement>;
+	trackLabelsScrollRef?: React.RefObject<HTMLDivElement>;
+	bookmarksScrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function useScrollSync({

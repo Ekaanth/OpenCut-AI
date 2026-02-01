@@ -25,10 +25,10 @@ const DRAG_THRESHOLD_PX = 5;
 
 interface UseElementInteractionProps {
 	zoomLevel: number;
-	timelineRef: RefObject<HTMLDivElement | null>;
-	tracksContainerRef: RefObject<HTMLDivElement | null>;
-	tracksScrollRef: RefObject<HTMLDivElement | null>;
-	headerRef?: RefObject<HTMLElement | null>;
+	timelineRef: RefObject<HTMLDivElement>;
+	tracksContainerRef: RefObject<HTMLDivElement>;
+	tracksScrollRef: RefObject<HTMLDivElement>;
+	headerRef?: RefObject<HTMLElement>;
 	snappingEnabled: boolean;
 	onSnapPointChange?: (snapPoint: SnapPoint | null) => void;
 }
@@ -115,9 +115,9 @@ function getDragDropTarget({
 	elementId: string;
 	trackId: string;
 	tracks: TimelineTrack[];
-	tracksContainerRef: RefObject<HTMLDivElement | null>;
-	tracksScrollRef: RefObject<HTMLDivElement | null>;
-	headerRef?: RefObject<HTMLElement | null>;
+	tracksContainerRef: RefObject<HTMLDivElement>;
+	tracksScrollRef: RefObject<HTMLDivElement>;
+	headerRef?: RefObject<HTMLElement>;
 	zoomLevel: number;
 	snappedTime: number;
 	verticalDragDirection?: "up" | "down" | null;

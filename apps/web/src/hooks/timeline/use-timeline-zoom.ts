@@ -11,13 +11,13 @@ import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { useEditor } from "@/hooks/use-editor";
 
 interface UseTimelineZoomProps {
-	containerRef: RefObject<HTMLDivElement | null>;
+	containerRef: RefObject<HTMLDivElement>;
 	minZoom?: number;
 	initialZoom?: number;
 	initialScrollLeft?: number;
 	initialPlayheadTime?: number;
-	tracksScrollRef: RefObject<HTMLDivElement | null>;
-	rulerScrollRef: RefObject<HTMLDivElement | null>;
+	tracksScrollRef: RefObject<HTMLDivElement>;
+	rulerScrollRef: RefObject<HTMLDivElement>;
 }
 
 interface UseTimelineZoomReturn {
