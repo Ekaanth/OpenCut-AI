@@ -17,8 +17,8 @@ import type { TrackType, DropTarget, ElementType } from "@/types/timeline";
 import type { MediaDragData, StickerDragData } from "@/types/drag";
 
 interface UseTimelineDragDropProps {
-	containerRef: RefObject<HTMLDivElement>;
-	headerRef?: RefObject<HTMLElement>;
+	containerRef: RefObject<HTMLDivElement | null>;
+	headerRef?: RefObject<HTMLElement | null>;
 	zoomLevel: number;
 }
 
