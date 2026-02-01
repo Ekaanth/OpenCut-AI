@@ -7,7 +7,7 @@ interface ColorPickerProps {
 	value?: string;
 	onChange?: (value: string) => void;
 	className?: string;
-	containerRef?: React.RefObject<HTMLDivElement>;
+	containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const hexToHsv = (hex: string) => {
