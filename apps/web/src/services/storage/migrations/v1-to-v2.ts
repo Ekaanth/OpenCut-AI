@@ -1,3 +1,7 @@
+/*
+ * Adds default values for new project properties introduced in v2
+ */
+
 import {
 	DEFAULT_BLUR_INTENSITY,
 	DEFAULT_CANVAS_SIZE,

@@ -1,3 +1,9 @@
+/*
+ * Ensures every project has at least one scene
+ * Adds a default "Main scene" if none exist
+ * Sets currentSceneId to the new scene's id
+ */
+
 import { IndexedDBAdapter } from "@/services/storage/indexeddb-adapter";
 import type { SerializedScene } from "@/services/storage/types";
 import { buildDefaultScene } from "@/lib/scenes";

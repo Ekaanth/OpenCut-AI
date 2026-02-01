@@ -1,3 +1,6 @@
+/*
+ * Adds a "duration" field to each project's metadata,
+ */
 import { getProjectDurationFromScenes } from "@/lib/scenes";
 import { IndexedDBAdapter } from "@/services/storage/indexeddb-adapter";
 import type { TScene } from "@/types/timeline";
@@ -84,7 +87,9 @@ function isV3Project({ project }: { project: ProjectRecord }): boolean {
 		return true;
 	}
 
-	return isRecord(project.metadata) && typeof project.metadata.duration === "number";
+	return (
+		isRecord(project.metadata) && typeof project.metadata.duration === "number"
+	);
 }
 
 function isRecord(value: unknown): value is ProjectRecord {
