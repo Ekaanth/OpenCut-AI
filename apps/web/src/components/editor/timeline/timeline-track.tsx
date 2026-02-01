@@ -15,8 +15,8 @@ interface TimelineTrackContentProps {
 	track: TimelineTrack;
 	zoomLevel: number;
 	dragState: ElementDragState;
-	rulerScrollRef: React.RefObject<HTMLDivElement>;
-	tracksScrollRef: React.RefObject<HTMLDivElement>;
+	rulerScrollRef: React.RefObject<HTMLDivElement | null>;
+	tracksScrollRef: React.RefObject<HTMLDivElement | null>;
 	lastMouseXRef: React.RefObject<number>;
 	onSnapPointChange?: (snapPoint: SnapPoint | null) => void;
 	onResizeStateChange?: (params: { isResizing: boolean }) => void;
