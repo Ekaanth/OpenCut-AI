@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { DEFAULT_FPS } from "@/constants/project-constants";
 import { useEditor } from "@/hooks/use-editor";
