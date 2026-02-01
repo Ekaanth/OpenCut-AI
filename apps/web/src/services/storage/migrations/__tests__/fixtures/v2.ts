@@ -119,3 +119,29 @@ export const v2ProjectEmptyScenes = {
 	currentSceneId: "",
 	scenes: [],
 };
+
+export const v2ProjectSceneWithoutTracks = {
+	id: "project-v2-no-tracks",
+	version: 2,
+	metadata: {
+		id: "project-v2-no-tracks",
+		name: "Scene Without Tracks",
+		createdAt: "2024-04-01T00:00:00.000Z",
+		updatedAt: "2024-04-01T00:00:00.000Z",
+	},
+	settings: {
+		fps: 30,
+		canvasSize: { width: 1920, height: 1080 },
+		background: { type: "color", color: "#000000" },
+	},
+	currentSceneId: "scene-1",
+	scenes: [
+		{
+			id: "scene-1",
+			name: "Main Scene",
+			isMain: true,
+			createdAt: "2024-04-01T00:00:00.000Z",
+			updatedAt: "2024-04-01T00:00:00.000Z",
+		},
+	],
+};

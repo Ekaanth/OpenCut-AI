@@ -4,6 +4,7 @@ import {
 	projectWithNoId,
 	v2Project,
 	v2ProjectEmptyScenes,
+	v2ProjectSceneWithoutTracks,
 	v2ProjectWithBlurBackground,
 	v3Project,
 } from "./fixtures";
@@ -42,6 +43,16 @@ describe("V2 to V3 Migration", () => {
 
 		test("handles empty scenes with zero duration", () => {
 			const result = transformProjectV2ToV3({ project: v2ProjectEmptyScenes });
+
+			expect(result.skipped).toBe(false);
+			const metadata = result.project.metadata as Record<string, unknown>;
+			expect(metadata.duration).toBe(0);
+		});
+
+		test("handles scene without tracks property", () => {
+			const result = transformProjectV2ToV3({
+				project: v2ProjectSceneWithoutTracks,
+			});
 
 			expect(result.skipped).toBe(false);
 			const metadata = result.project.metadata as Record<string, unknown>;
