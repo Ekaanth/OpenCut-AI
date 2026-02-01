@@ -81,7 +81,7 @@ export function getProjectDurationFromScenes({
 	scenes: TScene[];
 }): number {
 	const mainScene = getMainScene({ scenes }) ?? scenes[0] ?? null;
-	if (!mainScene) {
+	if (!mainScene?.tracks || !Array.isArray(mainScene.tracks)) {
 		return 0;
 	}
 
