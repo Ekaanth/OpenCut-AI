@@ -16,6 +16,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { formatTimeCode } from "@/lib/time";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
+import { sliderToZoom, zoomToSlider } from "@/lib/timeline/zoom-utils";
 import { EditableTimecode } from "@/components/editable-timecode";
 import { ScenesView } from "../scenes-view";
 import { type TAction, invokeAction } from "@/lib/actions";
@@ -50,13 +51,11 @@ export function TimelineToolbar({
 	setZoomLevel: ({ zoom }: { zoom: number }) => void;
 }) {
 	const handleZoom = ({ direction }: { direction: "in" | "out" }) => {
+		const zoomFactor = 1.25;
 		const newZoomLevel =
 			direction === "in"
-				? Math.min(
-						TIMELINE_CONSTANTS.ZOOM_MAX,
-						zoomLevel + TIMELINE_CONSTANTS.ZOOM_STEP,
-					)
-				: Math.max(minZoom, zoomLevel - TIMELINE_CONSTANTS.ZOOM_STEP);
+				? Math.min(TIMELINE_CONSTANTS.ZOOM_MAX, zoomLevel * zoomFactor)
+				: Math.max(minZoom, zoomLevel / zoomFactor);
 		setZoomLevel({ zoom: newZoomLevel });
 	};
 
@@ -127,17 +126,13 @@ function ToolbarLeftSection() {
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
 					tooltip="Split element"
-					onClick={({ event }) =>
-						handleAction({ action: "split", event })
-					}
+					onClick={({ event }) => handleAction({ action: "split", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignLeftIcon} />}
 					tooltip="Split left"
-					onClick={({ event }) =>
-						handleAction({ action: "split-left", event })
-					}
+					onClick={({ event }) => handleAction({ action: "split-left", event })}
 				/>
 
 				<ToolbarButton
@@ -305,12 +300,14 @@ function ToolbarRightSection({
 					<HugeiconsIcon icon={SearchAddIcon} />
 				</Button>
 				<Slider
-					className="w-24"
-					value={[zoomLevel]}
-					onValueChange={(values) => onZoomChange(values[0])}
-					min={minZoom}
-					max={TIMELINE_CONSTANTS.ZOOM_MAX}
-					step={TIMELINE_CONSTANTS.ZOOM_STEP}
+					className="w-28"
+					value={[zoomToSlider({ zoomLevel, minZoom })]}
+					onValueChange={(values) =>
+						onZoomChange(sliderToZoom({ sliderPosition: values[0], minZoom }))
+					}
+					min={0}
+					max={1}
+					step={0.005}
 				/>
 				<Button
 					variant="text"
