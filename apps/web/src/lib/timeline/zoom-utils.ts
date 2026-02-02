@@ -70,7 +70,7 @@ export function sliderToZoom({
 }
 
 /**
- * Convert exponential zoom level to linear slider position (0-1).
+ * convert exponential zoom level to linear slider position (0-1).
  */
 export function zoomToSlider({
 	zoomLevel,
