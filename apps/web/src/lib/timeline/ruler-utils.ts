@@ -1,51 +1,51 @@
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 
 /**
- * Frame intervals for labels - starts at 2 so there's always at least
+ * frame intervals for labels - starts at 2 so there's always at least
  * one tick between labels even at max zoom.
- * Pattern: 2, 3, 5, 10, 15 (matches CapCut)
+ * pattern: 2, 3, 5, 10, 15 (matches CapCut)
  */
 const LABEL_FRAME_INTERVALS = [2, 3, 5, 10, 15] as const;
 
 /**
- * Frame intervals for ticks - can go down to 1 for max granularity.
+ * frame intervals for ticks - can go down to 1 for max granularity.
  */
 const TICK_FRAME_INTERVALS = [1, 2, 3, 5, 10, 15] as const;
 
 /**
- * Second intervals for when we're zoomed out past frame-level detail.
+ * second intervals for when we're zoomed out past frame-level detail.
  */
 const SECOND_MULTIPLIERS = [1, 2, 3, 5, 10, 15, 30, 60] as const;
 
 /**
- * Minimum pixel spacing between labels to keep them readable
+ * minimum pixel spacing between labels to keep them readable
  */
 const MIN_LABEL_SPACING_PX = 120;
 
 /**
- * Minimum pixel spacing between ticks. Much denser than labels.
+ * minimum pixel spacing between ticks. much denser than labels.
  */
 const MIN_TICK_SPACING_PX = 18;
 
 export interface RulerConfig {
-	/** Time interval in seconds between each label */
+	/** time interval in seconds between each label */
 	labelIntervalSeconds: number;
-	/** Time interval in seconds between each tick */
+	/** time interval in seconds between each tick */
 	tickIntervalSeconds: number;
 }
 
 /**
- * Determines the optimal label and tick intervals based on zoom level and FPS.
+ * determines the optimal label and tick intervals based on zoom level and FPS.
  *
- * Labels and ticks scale independently:
- * - Labels need wide spacing (~50px) to stay readable
- * - Ticks can be denser (~8px) to show finer subdivisions
+ * labels and ticks scale independently:
+ * - labels need wide spacing (~50px) to stay readable
+ * - ticks can be denser (~8px) to show finer subdivisions
  *
- * Example at different zoom levels:
- * - Very zoomed in: labels every 2f, ticks every 1f
- * - Zoomed in: labels every 10f, ticks every 1f
- * - Zoomed out: labels every 15f, ticks every 3f
- * - Very zoomed out: labels every 1s, ticks every 5f
+ * example at different zoom levels:
+ * - very zoomed in: labels every 2f, ticks every 1f
+ * - zoomed in: labels every 10f, ticks every 1f
+ * - zoomed out: labels every 15f, ticks every 3f
+ * - very zoomed out: labels every 1s, ticks every 5f
  */
 export function getRulerConfig({
 	zoomLevel,
@@ -73,11 +73,12 @@ export function getRulerConfig({
 		frameIntervals: TICK_FRAME_INTERVALS,
 	});
 
-	// Ensure tick interval divides evenly into label interval so labels always land on ticks
+	// ensure tick interval divides evenly into label interval so labels always land on ticks
 	const tickIntervalSeconds = ensureTickDividesLabel({
 		tickIntervalSeconds: rawTickIntervalSeconds,
 		labelIntervalSeconds,
 		pixelsPerFrame,
+		pixelsPerSecond,
 		fps,
 	});
 
@@ -85,40 +86,54 @@ export function getRulerConfig({
 }
 
 /**
- * Adjusts tick interval to ensure it divides evenly into the label interval.
- * This guarantees labels always land on tick positions.
+ * adjusts tick interval to ensure it divides evenly into the label interval.
+ * this guarantees labels always land on tick positions.
  */
 function ensureTickDividesLabel({
 	tickIntervalSeconds,
 	labelIntervalSeconds,
 	pixelsPerFrame,
+	pixelsPerSecond,
 	fps,
 }: {
 	tickIntervalSeconds: number;
 	labelIntervalSeconds: number;
 	pixelsPerFrame: number;
+	pixelsPerSecond: number;
 	fps: number;
 }): number {
 	const labelFrames = Math.round(labelIntervalSeconds * fps);
 	const tickFrames = Math.round(tickIntervalSeconds * fps);
 
-	// If tick already divides label evenly, we're good
+	// if tick already divides label evenly, we're good
 	if (labelFrames % tickFrames === 0) {
 		return tickIntervalSeconds;
 	}
 
-	// Find the smallest tick interval that divides the label interval and has adequate spacing
+	// find the smallest tick interval that divides the label interval and has adequate spacing
 	for (const candidateFrames of TICK_FRAME_INTERVALS) {
 		if (labelFrames % candidateFrames === 0) {
 			const candidateSpacing = pixelsPerFrame * candidateFrames;
-			// Accept if spacing meets minimum threshold
+			// accept if spacing meets minimum threshold
 			if (candidateSpacing >= MIN_TICK_SPACING_PX) {
 				return candidateFrames / fps;
 			}
 		}
 	}
 
-	// Fallback: use the label interval itself (no intermediate ticks)
+	// try second-level tick intervals that divide the label interval cleanly
+	for (const candidateSeconds of SECOND_MULTIPLIERS) {
+		const ratio = labelIntervalSeconds / candidateSeconds;
+		const isDivisor = Math.abs(ratio - Math.round(ratio)) < 0.0001;
+		if (isDivisor) {
+			const candidateSpacing = pixelsPerSecond * candidateSeconds;
+			if (candidateSpacing >= MIN_TICK_SPACING_PX) {
+				return candidateSeconds;
+			}
+		}
+	}
+
+	// fallback: use the label interval itself (no intermediate ticks)
 	return labelIntervalSeconds;
 }
 
@@ -135,7 +150,7 @@ function findOptimalInterval({
 	minSpacingPx: number;
 	frameIntervals: readonly number[];
 }): number {
-	// Try frame-level intervals first
+	// try frame-level intervals first
 	for (const frameInterval of frameIntervals) {
 		const pixelSpacing = pixelsPerFrame * frameInterval;
 		if (pixelSpacing >= minSpacingPx) {
@@ -143,7 +158,7 @@ function findOptimalInterval({
 		}
 	}
 
-	// Then try second-level intervals
+	// then try second-level intervals
 	for (const secondMultiplier of SECOND_MULTIPLIERS) {
 		const pixelSpacing = pixelsPerSecond * secondMultiplier;
 		if (pixelSpacing >= minSpacingPx) {
@@ -155,7 +170,7 @@ function findOptimalInterval({
 }
 
 /**
- * Checks if a time should have a label based on the label interval.
+ * checks if a time should have a label based on the label interval.
  */
 export function shouldShowLabel({
 	time,
@@ -170,10 +185,10 @@ export function shouldShowLabel({
 }
 
 /**
- * Formats a ruler tick label.
+ * formats a ruler tick label.
  *
- * - On second boundaries: "MM:SS" (e.g., "00:00", "01:30")
- * - Between seconds: "Xf" (e.g., "5f", "15f")
+ * - on second boundaries: "MM:SS" (e.g., "00:00", "01:30")
+ * - between seconds: "Xf" (e.g., "5f", "15f")
  */
 export function formatRulerLabel({
 	timeInSeconds,
@@ -191,7 +206,7 @@ export function formatRulerLabel({
 }
 
 /**
- * Checks if a time falls exactly on a second boundary.
+ * checks if a time falls exactly on a second boundary.
  */
 function isSecondBoundary({
 	timeInSeconds,
@@ -204,7 +219,7 @@ function isSecondBoundary({
 }
 
 /**
- * Gets the frame number within the current second.
+ * gets the frame number within the current second.
  */
 function getFrameWithinSecond({
 	timeInSeconds,
@@ -218,7 +233,7 @@ function getFrameWithinSecond({
 }
 
 /**
- * Formats a timestamp as MM:SS.
+ * formats a timestamp as MM:SS.
  */
 function formatTimestamp({ timeInSeconds }: { timeInSeconds: number }): string {
 	const totalSeconds = Math.round(timeInSeconds);
