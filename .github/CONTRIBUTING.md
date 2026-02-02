@@ -1,5 +1,15 @@
 # Contributing to OpenCut
 
+⚠️ We are currently NOT accepting feature PRs while we build out the core editor.
+
+If you want to contribute:
+
+1. Open an issue first to discuss
+2. Wait for maintainer approval
+3. Only then start coding
+
+Critical bug fixes may be accepted on a case-by-case basis.
+
 Thank you for your interest in contributing to OpenCut! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
