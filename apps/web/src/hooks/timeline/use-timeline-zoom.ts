@@ -9,6 +9,7 @@ import {
 } from "react";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { useEditor } from "@/hooks/use-editor";
+import { zoomToSlider } from "@/lib/timeline/zoom-utils";
 
 interface UseTimelineZoomProps {
 	containerRef: RefObject<HTMLDivElement | null>;
@@ -122,18 +123,47 @@ export function useTimelineZoom({
 		if (previousZoom === zoomLevel) return;
 
 		const scrollElement = tracksScrollRef.current;
-		if (scrollElement) {
-			editor.project.setTimelineViewState({
-				viewState: {
-					zoomLevel,
-					scrollLeft: scrollElement.scrollLeft,
-					playheadTime: editor.playback.getCurrentTime(),
-				},
-			});
+		if (!scrollElement) {
+			previousZoomRef.current = zoomLevel;
+			return;
+		}
+
+		const currentScrollLeft = scrollElement.scrollLeft;
+		const playheadTime = editor.playback.getCurrentTime();
+		const sliderPercent = zoomToSlider({ zoomLevel, minZoom });
+
+		if (sliderPercent >= TIMELINE_CONSTANTS.ZOOM_ANCHOR_PLAYHEAD_THRESHOLD) {
+			const playheadPixelsBefore =
+				playheadTime * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * previousZoom;
+			const playheadPixelsAfter =
+				playheadTime * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+
+			const viewportOffset = playheadPixelsBefore - currentScrollLeft;
+			const newScrollLeft = playheadPixelsAfter - viewportOffset;
+
+			const maxScrollLeft =
+				scrollElement.scrollWidth - scrollElement.clientWidth;
+			const clampedScrollLeft = Math.max(
+				0,
+				Math.min(maxScrollLeft, newScrollLeft),
+			);
+
+			scrollElement.scrollLeft = clampedScrollLeft;
+			if (rulerScrollRef.current) {
+				rulerScrollRef.current.scrollLeft = clampedScrollLeft;
+			}
 		}
 
 		previousZoomRef.current = zoomLevel;
-	}, [zoomLevel, editor, tracksScrollRef]);
+
+		editor.project.setTimelineViewState({
+			viewState: {
+				zoomLevel,
+				scrollLeft: scrollElement.scrollLeft,
+				playheadTime,
+			},
+		});
+	}, [zoomLevel, editor, tracksScrollRef, rulerScrollRef, minZoom]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: tracksScrollRef is a stable ref
 	const saveScrollPosition = useCallback(() => {

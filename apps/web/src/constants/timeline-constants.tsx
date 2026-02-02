@@ -39,6 +39,7 @@ export const TIMELINE_CONSTANTS = {
 	ZOOM_MIN: 0.1,
 	ZOOM_MAX: 100,
 	ZOOM_BUTTON_FACTOR: 1.7,
+	ZOOM_ANCHOR_PLAYHEAD_THRESHOLD: 0.15,
 } as const;
 
 export const DEFAULT_TIMELINE_VIEW_STATE: TTimelineViewState = {
