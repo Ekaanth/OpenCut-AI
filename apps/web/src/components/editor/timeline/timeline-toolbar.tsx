@@ -51,11 +51,13 @@ export function TimelineToolbar({
 	setZoomLevel: ({ zoom }: { zoom: number }) => void;
 }) {
 	const handleZoom = ({ direction }: { direction: "in" | "out" }) => {
-		const zoomFactor = 1.25;
 		const newZoomLevel =
 			direction === "in"
-				? Math.min(TIMELINE_CONSTANTS.ZOOM_MAX, zoomLevel * zoomFactor)
-				: Math.max(minZoom, zoomLevel / zoomFactor);
+				? Math.min(
+						TIMELINE_CONSTANTS.ZOOM_MAX,
+						zoomLevel * TIMELINE_CONSTANTS.ZOOM_BUTTON_FACTOR,
+					)
+				: Math.max(minZoom, zoomLevel / TIMELINE_CONSTANTS.ZOOM_BUTTON_FACTOR);
 		setZoomLevel({ zoom: newZoomLevel });
 	};
 
@@ -297,7 +299,7 @@ function ToolbarRightSection({
 					type="button"
 					onClick={() => onZoom({ direction: "out" })}
 				>
-					<HugeiconsIcon icon={SearchAddIcon} />
+					<HugeiconsIcon icon={SearchMinusIcon} />
 				</Button>
 				<Slider
 					className="w-28"
@@ -315,7 +317,7 @@ function ToolbarRightSection({
 					type="button"
 					onClick={() => onZoom({ direction: "in" })}
 				>
-					<HugeiconsIcon icon={SearchMinusIcon} />
+					<HugeiconsIcon icon={SearchAddIcon} />
 				</Button>
 			</div>
 		</div>

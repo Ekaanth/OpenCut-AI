@@ -53,8 +53,8 @@ export function getZoomPercent({
 }
 
 /**
- * Convert linear slider position (0-1) to exponential zoom level.
- * At low slider values, zoom changes are small. At high values, changes are large.
+ * convert linear slider position (0-1) to exponential zoom level.
+ * at low slider values, zoom changes are small. at high values, changes are large.
  */
 export function sliderToZoom({
 	sliderPosition,
