@@ -423,7 +423,11 @@ export function Timeline() {
 															onResizeStateChange={handleResizeStateChange}
 															onElementMouseDown={handleElementMouseDown}
 															onElementClick={handleElementClick}
-															onTrackMouseDown={handleSelectionMouseDown}
+															onTrackMouseDown={(event) => {
+																handleSelectionMouseDown(event);
+																handleTracksMouseDown(event);
+															}}
+															onTrackClick={handleTracksClick}
 															shouldIgnoreClick={shouldIgnoreClick}
 														/>
 													</div>

@@ -51,3 +51,36 @@ export function getZoomPercent({
 }): number {
 	return (zoomLevel - minZoom) / (TIMELINE_CONSTANTS.ZOOM_MAX - minZoom);
 }
+
+/**
+ * convert linear slider position (0-1) to exponential zoom level.
+ * at low slider values, zoom changes are small. at high values, changes are large.
+ */
+export function sliderToZoom({
+	sliderPosition,
+	minZoom,
+	maxZoom = TIMELINE_CONSTANTS.ZOOM_MAX,
+}: {
+	sliderPosition: number;
+	minZoom: number;
+	maxZoom?: number;
+}): number {
+	const clampedPosition = Math.max(0, Math.min(1, sliderPosition));
+	return minZoom * (maxZoom / minZoom) ** clampedPosition;
+}
+
+/**
+ * convert exponential zoom level to linear slider position (0-1).
+ */
+export function zoomToSlider({
+	zoomLevel,
+	minZoom,
+	maxZoom = TIMELINE_CONSTANTS.ZOOM_MAX,
+}: {
+	zoomLevel: number;
+	minZoom: number;
+	maxZoom?: number;
+}): number {
+	const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoomLevel));
+	return Math.log(clampedZoom / minZoom) / Math.log(maxZoom / minZoom);
+}
