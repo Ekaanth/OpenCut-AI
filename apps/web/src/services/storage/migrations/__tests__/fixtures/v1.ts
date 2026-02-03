@@ -1,4 +1,3 @@
-// v1 projects: Scenes exist but tracks stored in separate IndexedDB (video-editor-timelines-{projectId}-{sceneId})
 export const v1Project = {
 	id: "project-v1-123",
 	version: 1,
