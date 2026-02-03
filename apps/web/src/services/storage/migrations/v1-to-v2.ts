@@ -1,10 +1,14 @@
-/*
- * Adds default values for new project properties introduced in v2
- */
-
-import { IndexedDBAdapter } from "@/services/storage/indexeddb-adapter";
+import {
+	IndexedDBAdapter,
+	deleteDatabase,
+} from "@/services/storage/indexeddb-adapter";
+import type { MediaAssetData } from "@/services/storage/types";
 import { StorageMigration } from "./base";
-import { getProjectId, transformProjectV1ToV2 } from "./transformers/v1-to-v2";
+import {
+	getProjectId,
+	transformProjectV1ToV2,
+	type TransformV1ToV2Options,
+} from "./transformers/v1-to-v2";
 
 export class V1toV2Migration extends StorageMigration {
 	from = 1;
@@ -23,20 +27,81 @@ export class V1toV2Migration extends StorageMigration {
 				continue;
 			}
 
-			const result = transformProjectV1ToV2({
+			const projectId = getProjectId({
 				project: project as Record<string, unknown>,
+			});
+			if (!projectId) {
+				continue;
+			}
+
+			const loadMediaAsset = createMediaAssetLoader({ projectId });
+
+			const result = await transformProjectV1ToV2({
+				project: project as Record<string, unknown>,
+				options: { loadMediaAsset },
 			});
 
 			if (result.skipped) {
 				continue;
 			}
 
-			const projectId = getProjectId({ project: result.project });
-			if (!projectId) {
-				continue;
-			}
-
 			await projectsAdapter.set(projectId, result.project);
+
+			await cleanupLegacyTimelineDBs({ projectId, project: result.project });
+		}
+	}
+}
+
+function createMediaAssetLoader({
+	projectId,
+}: {
+	projectId: string;
+}): TransformV1ToV2Options["loadMediaAsset"] {
+	return async ({ mediaId }: { mediaId: string }) => {
+		const mediaMetadataAdapter = new IndexedDBAdapter<MediaAssetData>(
+			`video-editor-media-${projectId}`,
+			"media-metadata",
+			1,
+		);
+
+		return mediaMetadataAdapter.get(mediaId);
+	};
+}
+
+async function cleanupLegacyTimelineDBs({
+	projectId,
+	project,
+}: {
+	projectId: string;
+	project: Record<string, unknown>;
+}): Promise<void> {
+	const scenes = project.scenes;
+	if (!Array.isArray(scenes)) {
+		return;
+	}
+
+	const dbNamesToDelete: string[] = [];
+
+	for (const scene of scenes) {
+		if (typeof scene !== "object" || scene === null) {
+			continue;
+		}
+
+		const sceneId = scene.id;
+		if (typeof sceneId === "string") {
+			const sceneDbName = `video-editor-timelines-${projectId}-${sceneId}`;
+			dbNamesToDelete.push(sceneDbName);
+		}
+	}
+
+	const projectDbName = `video-editor-timelines-${projectId}`;
+	dbNamesToDelete.push(projectDbName);
+
+	for (const dbName of dbNamesToDelete) {
+		try {
+			await deleteDatabase({ dbName });
+		} catch {
+			// ignore errors, DB might not exist or already deleted
 		}
 	}
 }

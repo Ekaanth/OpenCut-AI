@@ -1,6 +1,5 @@
-import { buildDefaultScene } from "@/lib/scenes";
+import { generateUUID } from "@/utils/id";
 import type { SerializedScene } from "@/services/storage/types";
-import type { TScene } from "@/types/timeline";
 import type { MigrationResult, ProjectRecord } from "./types";
 
 export interface TransformV0ToV1Options {
@@ -21,12 +20,24 @@ export function transformProjectV0ToV1({
 		return { project, skipped: true, reason: "already has scenes" };
 	}
 
-	const mainScene = buildDefaultScene({ isMain: true, name: "Main scene" });
-	const serializedScene = serializeScene({ scene: mainScene });
+	const sceneId = generateUUID();
+	const sceneCreatedAt = now.toISOString();
+	const sceneUpdatedAt = now.toISOString();
+
+	const mainScene: SerializedScene = {
+		id: sceneId,
+		name: "Main scene",
+		isMain: true,
+		tracks: [],
+		bookmarks: [],
+		createdAt: sceneCreatedAt,
+		updatedAt: sceneUpdatedAt,
+	};
+
 	const updatedProject: ProjectRecord = {
 		...project,
-		scenes: [serializedScene],
-		currentSceneId: mainScene.id,
+		scenes: [mainScene],
+		currentSceneId: sceneId,
 		version: 1,
 	};
 
@@ -64,18 +75,6 @@ export function getProjectId({
 	}
 
 	return null;
-}
-
-function serializeScene({ scene }: { scene: TScene }): SerializedScene {
-	return {
-		id: scene.id,
-		name: scene.name,
-		isMain: scene.isMain,
-		tracks: scene.tracks,
-		bookmarks: scene.bookmarks,
-		createdAt: scene.createdAt.toISOString(),
-		updatedAt: scene.updatedAt.toISOString(),
-	};
 }
 
 function isRecord(value: unknown): value is ProjectRecord {

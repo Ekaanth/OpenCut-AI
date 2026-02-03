@@ -1,3 +1,4 @@
+// v1 projects: Scenes exist but tracks stored in separate IndexedDB (video-editor-timelines-{projectId}-{sceneId})
 export const v1Project = {
 	id: "project-v1-123",
 	version: 1,
@@ -15,42 +16,7 @@ export const v1Project = {
 			id: "scene-main",
 			name: "Main scene",
 			isMain: true,
-			tracks: [
-				{
-					id: "track-1",
-					type: "video",
-					name: "Video Track",
-					isMain: true,
-					elements: [
-						{
-							id: "element-1",
-							type: "video",
-							mediaId: "media-1",
-							startTime: 0,
-							duration: 10,
-							trimStart: 0,
-							trimEnd: 0,
-						},
-					],
-				},
-				{
-					id: "track-2",
-					type: "audio",
-					name: "Audio Track",
-					elements: [
-						{
-							id: "element-2",
-							type: "audio",
-							sourceType: "upload",
-							mediaId: "media-2",
-							startTime: 0,
-							duration: 10,
-							trimStart: 0,
-							trimEnd: 0,
-						},
-					],
-				},
-			],
+			tracks: [],
 			bookmarks: [],
 			createdAt: "2024-01-15T10:00:00.000Z",
 			updatedAt: "2024-01-15T12:00:00.000Z",
@@ -76,22 +42,7 @@ export const v1ProjectWithMultipleScenes = {
 			id: "scene-1",
 			name: "Intro",
 			isMain: true,
-			tracks: [
-				{
-					id: "track-1",
-					type: "video",
-					isMain: true,
-					elements: [
-						{
-							id: "el-1",
-							type: "video",
-							mediaId: "m1",
-							startTime: 0,
-							duration: 5,
-						},
-					],
-				},
-			],
+			tracks: [],
 			bookmarks: [1.0],
 			createdAt: "2024-02-20T14:00:00.000Z",
 			updatedAt: "2024-02-20T16:00:00.000Z",
@@ -100,22 +51,7 @@ export const v1ProjectWithMultipleScenes = {
 			id: "scene-2",
 			name: "Content",
 			isMain: false,
-			tracks: [
-				{
-					id: "track-2",
-					type: "video",
-					isMain: true,
-					elements: [
-						{
-							id: "el-2",
-							type: "video",
-							mediaId: "m2",
-							startTime: 0,
-							duration: 20,
-						},
-					],
-				},
-			],
+			tracks: [],
 			bookmarks: [],
 			createdAt: "2024-02-20T14:30:00.000Z",
 			updatedAt: "2024-02-20T16:00:00.000Z",

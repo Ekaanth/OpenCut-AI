@@ -7,24 +7,6 @@ export const v0Project = {
 	canvasSize: { width: 1920, height: 1080 },
 	backgroundColor: "#000000",
 	backgroundType: "color",
-	tracks: [
-		{
-			id: "track-1",
-			type: "video",
-			name: "Video Track",
-			elements: [
-				{
-					id: "element-1",
-					type: "video",
-					mediaId: "media-1",
-					startTime: 0,
-					duration: 5,
-					trimStart: 0,
-					trimEnd: 0,
-				},
-			],
-		},
-	],
 	bookmarks: [1.5, 3.0],
 };
 
