@@ -117,15 +117,19 @@ function checkProjectVersion({ project }: { project: unknown }): number {
 	}
 
 	const versionValue = project.version;
+
+	// v2 and up
 	if (typeof versionValue === "number") {
 		return versionValue;
 	}
 
+	// v1 (got scenes)
 	const scenesValue = project.scenes;
 	if (Array.isArray(scenesValue) && scenesValue.length > 0) {
 		return 1;
 	}
 
+	// v0 (didn't have scenes)
 	return 0;
 }
 
