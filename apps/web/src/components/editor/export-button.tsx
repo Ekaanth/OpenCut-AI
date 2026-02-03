@@ -45,7 +45,7 @@ export function ExportButton() {
 					className={cn(
 						"flex items-center gap-1.5 rounded-md bg-[#38BDF8] px-[0.12rem] py-[0.12rem] text-white",
 						hasProject
-							? "cursor-pointer hover:brightness-105"
+							? "cursor-pointer"
 							: "cursor-not-allowed opacity-50",
 					)}
 					onClick={hasProject ? handleExport : undefined}
