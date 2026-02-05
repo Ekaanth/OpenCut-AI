@@ -51,7 +51,7 @@ export function buildScene(params: BuildSceneParams) {
 		for (const element of elements) {
 			if (element.type === "video" || element.type === "image") {
 				const mediaAsset = mediaMap.get(element.mediaId);
-				if (!mediaAsset?.file) {
+				if (!mediaAsset?.file || !mediaAsset?.url) {
 					continue;
 				}
 
@@ -59,6 +59,7 @@ export function buildScene(params: BuildSceneParams) {
 					contentNodes.push(
 						new VideoNode({
 							mediaId: mediaAsset.id,
+							url: mediaAsset.url,
 							file: mediaAsset.file,
 							duration: element.duration,
 							timeOffset: element.startTime,
@@ -70,7 +71,7 @@ export function buildScene(params: BuildSceneParams) {
 				if (mediaAsset.type === "image") {
 					contentNodes.push(
 						new ImageNode({
-							file: mediaAsset.file,
+							url: mediaAsset.url,
 							duration: element.duration,
 							timeOffset: element.startTime,
 							trimStart: element.trimStart,

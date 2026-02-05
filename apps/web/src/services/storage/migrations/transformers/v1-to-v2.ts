@@ -15,6 +15,7 @@ import type {
 	VideoElement,
 } from "@/types/timeline";
 import type { MigrationResult, ProjectRecord } from "./types";
+import { getProjectId, isRecord } from "./utils";
 
 interface LegacyTimelineData {
 	tracks: unknown[];
@@ -51,10 +52,8 @@ interface LegacyMediaTrack {
 
 export interface TransformV1ToV2Options {
 	loadMediaAsset?: ({
-		projectId,
 		mediaId,
 	}: {
-		projectId: string;
 		mediaId: string;
 	}) => Promise<MediaAssetData | null>;
 }
@@ -91,10 +90,8 @@ async function migrateProject({
 	project: ProjectRecord;
 	projectId: string;
 	loadMediaAsset?: ({
-		projectId,
 		mediaId,
 	}: {
-		projectId: string;
 		mediaId: string;
 	}) => Promise<MediaAssetData | null>;
 }): Promise<ProjectRecord> {
@@ -261,10 +258,8 @@ async function transformTracks({
 	tracks: unknown[];
 	projectId: string;
 	loadMediaAsset?: ({
-		projectId,
 		mediaId,
 	}: {
-		projectId: string;
 		mediaId: string;
 	}) => Promise<MediaAssetData | null>;
 }): Promise<TimelineTrack[]> {
@@ -318,10 +313,8 @@ async function transformMediaTrack({
 	track: LegacyMediaTrack;
 	projectId: string;
 	loadMediaAsset?: ({
-		projectId,
 		mediaId,
 	}: {
-		projectId: string;
 		mediaId: string;
 	}) => Promise<MediaAssetData | null>;
 	isMain: boolean;
@@ -342,7 +335,7 @@ async function transformMediaTrack({
 
 			let mediaType: "video" | "image" = "video";
 			if (loadMediaAsset) {
-				const mediaAsset = await loadMediaAsset({ projectId, mediaId });
+				const mediaAsset = await loadMediaAsset({ mediaId });
 				if (mediaAsset) {
 					mediaType = mediaAsset.type === "image" ? "image" : "video";
 				}
@@ -543,28 +536,7 @@ function transformAudioTrack({
 	};
 }
 
-export function getProjectId({
-	project,
-}: {
-	project: ProjectRecord;
-}): string | null {
-	const idValue = project.id;
-	if (typeof idValue === "string" && idValue.length > 0) {
-		return idValue;
-	}
-
-	const metadataValue = project.metadata;
-	if (!isRecord(metadataValue)) {
-		return null;
-	}
-
-	const metadataId = metadataValue.id;
-	if (typeof metadataId === "string" && metadataId.length > 0) {
-		return metadataId;
-	}
-
-	return null;
-}
+export { getProjectId } from "./utils";
 
 function getCurrentSceneId({
 	value,
@@ -771,8 +743,4 @@ function isV2Project({ project }: { project: ProjectRecord }): boolean {
 	}
 
 	return isRecord(project.metadata) && isRecord(project.settings);
-}
-
-function isRecord(value: unknown): value is ProjectRecord {
-	return typeof value === "object" && value !== null;
 }

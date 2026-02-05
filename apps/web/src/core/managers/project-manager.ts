@@ -21,7 +21,7 @@ import { buildDefaultScene, getProjectDurationFromScenes } from "@/lib/scenes";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { CanvasRenderer } from "@/services/renderer/canvas-renderer";
 import {
-	CURRENT_STORAGE_VERSION,
+	CURRENT_PROJECT_VERSION,
 	migrations,
 	runStorageMigrations,
 } from "@/services/storage/migrations";
@@ -58,31 +58,7 @@ export class ProjectManager {
 		}
 
 		this.storageMigrationPromise = (async () => {
-			let hasShownState = false;
-
-			await runStorageMigrations({
-				migrations,
-				callbacks: {
-					onMigrationStart: ({ fromVersion, toVersion }) => {
-						hasShownState = true;
-						this.setMigrationState({
-							isMigrating: true,
-							fromVersion,
-							toVersion,
-							projectName: null,
-						});
-					},
-				},
-			});
-
-			if (hasShownState) {
-				this.setMigrationState({
-					isMigrating: false,
-					fromVersion: null,
-					toVersion: null,
-					projectName: null,
-				});
-			}
+			await runStorageMigrations({ migrations });
 		})();
 
 		await this.storageMigrationPromise;
@@ -109,7 +85,7 @@ export class ProjectManager {
 					color: DEFAULT_COLOR,
 				},
 			},
-			version: CURRENT_STORAGE_VERSION,
+			version: CURRENT_PROJECT_VERSION,
 		};
 
 		this.active = newProject;
@@ -570,11 +546,6 @@ export class ProjectManager {
 
 	getMigrationState(): MigrationState {
 		return this.migrationState;
-	}
-
-	private setMigrationState(state: Partial<MigrationState>): void {
-		this.migrationState = { ...this.migrationState, ...state };
-		this.notify();
 	}
 
 	setActiveProject({ project }: { project: TProject }): void {

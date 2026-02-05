@@ -454,115 +454,115 @@ rate-limit.ts
 scenes.ts
   export function getMainScene({ scenes }: { scenes: TScene[] }): TScene | null
   export function ensureMainScene({ scenes }: { scenes: TScene[] }): TScene[]
-  export function buildDefaultScene({
-  	name,
-  	isMain,
-  }: {
-  	name: string;
-  	isMain: boolean;
+  export function buildDefaultScene({
+  	name,
+  	isMain,
+  }: {
+  	name: string;
+  	isMain: boolean;
   }): TScene
-  export function canDeleteScene({ scene }: { scene: TScene }): {
-  	canDelete: boolean;
-  	reason?: string;
+  export function canDeleteScene({ scene }: { scene: TScene }): {
+  	canDelete: boolean;
+  	reason?: string;
   }
-  export function getFallbackSceneAfterDelete({
-  	scenes,
-  	deletedSceneId,
-  	currentSceneId,
-  }: {
-  	scenes: TScene[];
-  	deletedSceneId: string;
-  	currentSceneId: string | null;
+  export function getFallbackSceneAfterDelete({
+  	scenes,
+  	deletedSceneId,
+  	currentSceneId,
+  }: {
+  	scenes: TScene[];
+  	deletedSceneId: string;
+  	currentSceneId: string | null;
   }): TScene | null
-  export function findCurrentScene({
-  	scenes,
-  	currentSceneId,
-  }: {
-  	scenes: TScene[];
-  	currentSceneId: string;
+  export function findCurrentScene({
+  	scenes,
+  	currentSceneId,
+  }: {
+  	scenes: TScene[];
+  	currentSceneId: string;
   }): TScene | null
-  export function getProjectDurationFromScenes({
-  	scenes,
-  }: {
-  	scenes: TScene[];
+  export function getProjectDurationFromScenes({
+  	scenes,
+  }: {
+  	scenes: TScene[];
   }): number
-  export function updateSceneInArray({
-  	scenes,
-  	sceneId,
-  	updates,
-  }: {
-  	scenes: TScene[];
-  	sceneId: string;
-  	updates: Partial<TScene>;
+  export function updateSceneInArray({
+  	scenes,
+  	sceneId,
+  	updates,
+  }: {
+  	scenes: TScene[];
+  	sceneId: string;
+  	updates: Partial<TScene>;
   }): TScene[]
 
 time.ts
-  export function roundToFrame({
-  	time,
-  	fps,
-  }: {
-  	time: number;
-  	fps: number;
+  export function roundToFrame({
+  	time,
+  	fps,
+  }: {
+  	time: number;
+  	fps: number;
   }): number
-  export function formatTimeCode({
-  	timeInSeconds,
-  	format = "HH:MM:SS:CS",
-  	fps,
-  }: {
-  	timeInSeconds: number;
-  	format?: TTimeCode;
-  	fps?: number;
+  export function formatTimeCode({
+  	timeInSeconds,
+  	format = "HH:MM:SS:CS",
+  	fps,
+  }: {
+  	timeInSeconds: number;
+  	format?: TTimeCode;
+  	fps?: number;
   }): string
-  export function parseTimeCode({
-  	timeCode,
-  	format = "HH:MM:SS:CS",
-  	fps,
-  }: {
-  	timeCode: string;
-  	format?: TTimeCode;
-  	fps: number;
+  export function parseTimeCode({
+  	timeCode,
+  	format = "HH:MM:SS:CS",
+  	fps,
+  }: {
+  	timeCode: string;
+  	format?: TTimeCode;
+  	fps: number;
   }): number | null
-  export function guessTimeCodeFormat({
-  	timeCode,
-  }: {
-  	timeCode: string;
+  export function guessTimeCodeFormat({
+  	timeCode,
+  }: {
+  	timeCode: string;
   }): TTimeCode | null
-  export function timeToFrame({
-  	time,
-  	fps,
-  }: {
-  	time: number;
-  	fps: number;
+  export function timeToFrame({
+  	time,
+  	fps,
+  }: {
+  	time: number;
+  	fps: number;
   }): number
-  export function frameToTime({
-  	frame,
-  	fps,
-  }: {
-  	frame: number;
-  	fps: number;
+  export function frameToTime({
+  	frame,
+  	fps,
+  }: {
+  	frame: number;
+  	fps: number;
   }): number
-  export function snapTimeToFrame({
-  	time,
-  	fps,
-  }: {
-  	time: number;
-  	fps: number;
+  export function snapTimeToFrame({
+  	time,
+  	fps,
+  }: {
+  	time: number;
+  	fps: number;
   }): number
-  export function getSnappedSeekTime({
-  	rawTime,
-  	duration,
-  	fps,
-  }: {
-  	rawTime: number;
-  	duration: number;
-  	fps: number;
+  export function getSnappedSeekTime({
+  	rawTime,
+  	duration,
+  	fps,
+  }: {
+  	rawTime: number;
+  	duration: number;
+  	fps: number;
   }): number
-  export function getLastFrameTime({
-  	duration,
-  	fps,
-  }: {
-  	duration: number;
-  	fps: number;
+  export function getLastFrameTime({
+  	duration,
+  	fps,
+  }: {
+  	duration: number;
+  	fps: number;
   }): number
 
 ## apps/web/src/lib/actions
@@ -689,28 +689,27 @@ parser.ts
 ## apps/web/src/lib/media
 
 audio.ts
-  export type CollectedAudioElement = Omit<
-  	AudioElement,
-  	"type" | "mediaId" | "volume" | "id" | "name" | "sourceType" | "sourceUrl"
-  ...
+  export type CollectedAudioElement = Omit<
+  	AudioElement,
+  	"type" | "mediaId" | "volume" | "id" | "name" | "sourceType" | "sourceUrl...
   export function createAudioContext(): AudioContext
   export interface DecodedAudio {
     samples: Float32Array
     sampleRate: number
   }
-  export function decodeAudioToFloat32({
-  	audioBlob,
-  }: {
-  	audioBlob: Blob;
+  export function decodeAudioToFloat32({
+  	audioBlob,
+  }: {
+  	audioBlob: Blob;
   }): Promise<DecodedAudio>
-  export function collectAudioElements({
-  	tracks,
-  	mediaAssets,
-  	audioContext,
-  }: {
-  	tracks: TimelineTrack[];
-  	mediaAssets: MediaAsset[];
-  	audioContext: AudioContext;
+  export function collectAudioElements({
+  	tracks,
+  	mediaAssets,
+  	audioContext,
+  }: {
+  	tracks: TimelineTrack[];
+  	mediaAssets: MediaAsset[];
+  	audioContext: AudioContext;
   }): Promise<CollectedAudioElement[]>
   export interface AudioClipSource {
     id: string
@@ -722,32 +721,32 @@ audio.ts
     trimEnd: number
     muted: boolean
   }
-  export function collectAudioMixSources({
-  	tracks,
-  	mediaAssets,
-  }: {
-  	tracks: TimelineTrack[];
-  	mediaAssets: MediaAsset[];
+  export function collectAudioMixSources({
+  	tracks,
+  	mediaAssets,
+  }: {
+  	tracks: TimelineTrack[];
+  	mediaAssets: MediaAsset[];
   }): Promise<AudioMixSource[]>
-  export function collectAudioClips({
-  	tracks,
-  	mediaAssets,
-  }: {
-  	tracks: TimelineTrack[];
-  	mediaAssets: MediaAsset[];
+  export function collectAudioClips({
+  	tracks,
+  	mediaAssets,
+  }: {
+  	tracks: TimelineTrack[];
+  	mediaAssets: MediaAsset[];
   }): Promise<AudioClipSource[]>
-  export function createTimelineAudioBuffer({
-  	tracks,
-  	mediaAssets,
-  	duration,
-  	sampleRate = 44100,
-  	audioContext,
-  }: {
-  	tracks: TimelineTrack[];
-  	mediaAssets: MediaAsset[];
-  	duration: number;
-  	sampleRate?: number;
-  	audioContext?: AudioContext;
+  export function createTimelineAudioBuffer({
+  	tracks,
+  	mediaAssets,
+  	duration,
+  	sampleRate = 44100,
+  	audioContext,
+  }: {
+  	tracks: TimelineTrack[];
+  	mediaAssets: MediaAsset[];
+  	duration: number;
+  	sampleRate?: number;
+  	audioContext?: AudioContext;
   }): Promise<AudioBuffer | null>
 
 media-utils.ts
@@ -977,10 +976,10 @@ element-utils.ts
   }): { trackId: string; elementId: string }[]
 
 index.ts
-  export function calculateTotalDuration({
-  	tracks,
-  }: {
-  	tracks: TimelineTrack[];
+  export function calculateTotalDuration({
+  	tracks,
+  }: {
+  	tracks: TimelineTrack[];
   }): number
 
 ruler-utils.ts
@@ -1220,6 +1219,11 @@ indexeddb-adapter.ts
     async getAll(): Promise<T[]>
     async clear(): Promise<void>
   }
+  export function deleteDatabase({
+  	dbName,
+  }: {
+  	dbName: string;
+  }): Promise<void>
 
 opfs-adapter.ts
   export class OPFSAdapter implements StorageAdapter<File> {
@@ -1256,7 +1260,6 @@ types.ts
     fps?: number
     ephemeral?: boolean
     thumbnailUrl?: string
-    sourceStickerIconName?: string
   }
   export type SerializedScene = Omit<TScene, "createdAt" | "updatedAt"> & {
   	createdAt: string;

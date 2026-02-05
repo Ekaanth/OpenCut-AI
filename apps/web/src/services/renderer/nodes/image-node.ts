@@ -1,10 +1,20 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
-import type { BaseMediaNodeParams } from "./video-node";
 
 const IMAGE_EPSILON = 1 / 1000;
 
-export type ImageNodeParams = BaseMediaNodeParams;
+export interface ImageNodeParams {
+	url: string;
+	duration: number;
+	timeOffset: number;
+	trimStart: number;
+	trimEnd: number;
+	x?: number;
+	y?: number;
+	width?: number;
+	height?: number;
+	opacity?: number;
+}
 
 export class ImageNode extends BaseNode<ImageNodeParams> {
 	private image?: HTMLImageElement;
@@ -18,15 +28,12 @@ export class ImageNode extends BaseNode<ImageNodeParams> {
 	private async load() {
 		const image = new Image();
 		this.image = image;
-		const url = URL.createObjectURL(this.params.file);
 
 		await new Promise<void>((resolve, reject) => {
 			image.onload = () => resolve();
 			image.onerror = () => reject(new Error("Image load failed"));
-			image.src = url;
+			image.src = this.params.url;
 		});
-
-		URL.revokeObjectURL(url);
 	}
 
 	private getImageTime(time: number) {

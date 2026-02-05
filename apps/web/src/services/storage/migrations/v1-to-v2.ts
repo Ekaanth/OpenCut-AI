@@ -4,6 +4,7 @@ import {
 } from "@/services/storage/indexeddb-adapter";
 import type { MediaAssetData } from "@/services/storage/types";
 import { StorageMigration } from "./base";
+import type { ProjectRecord } from "./transformers/types";
 import {
 	getProjectId,
 	transformProjectV1ToV2,
@@ -14,41 +15,32 @@ export class V1toV2Migration extends StorageMigration {
 	from = 1;
 	to = 2;
 
-	async run(): Promise<void> {
-		const projectsAdapter = new IndexedDBAdapter<unknown>(
-			"video-editor-projects",
-			"projects",
-			1,
-		);
-		const projects = await projectsAdapter.getAll();
-
-		for (const project of projects) {
-			if (typeof project !== "object" || project === null) {
-				continue;
-			}
-
-			const projectId = getProjectId({
-				project: project as Record<string, unknown>,
-			});
-			if (!projectId) {
-				continue;
-			}
-
-			const loadMediaAsset = createMediaAssetLoader({ projectId });
-
-			const result = await transformProjectV1ToV2({
-				project: project as Record<string, unknown>,
-				options: { loadMediaAsset },
-			});
-
-			if (result.skipped) {
-				continue;
-			}
-
-			await projectsAdapter.set(projectId, result.project);
-
-			await cleanupLegacyTimelineDBs({ projectId, project: result.project });
+	async transform(project: ProjectRecord): Promise<{
+		project: ProjectRecord;
+		skipped: boolean;
+		reason?: string;
+	}> {
+		const projectId = getProjectId({ project });
+		if (!projectId) {
+			return { project, skipped: true, reason: "no project id" };
 		}
+
+		const loadMediaAsset = createMediaAssetLoader({ projectId });
+
+		const result = await transformProjectV1ToV2({
+			project,
+			options: { loadMediaAsset },
+		});
+
+		if (!result.skipped) {
+			// cleanup legacy timeline DBs after successful transformation
+			await cleanupLegacyTimelineDBs({
+				projectId,
+				project: result.project,
+			});
+		}
+
+		return result;
 	}
 }
 
@@ -73,7 +65,7 @@ async function cleanupLegacyTimelineDBs({
 	project,
 }: {
 	projectId: string;
-	project: Record<string, unknown>;
+	project: ProjectRecord;
 }): Promise<void> {
 	const scenes = project.scenes;
 	if (!Array.isArray(scenes)) {

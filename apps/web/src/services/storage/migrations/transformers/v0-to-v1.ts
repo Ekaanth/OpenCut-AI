@@ -1,6 +1,7 @@
 import { generateUUID } from "@/utils/id";
 import type { SerializedScene } from "@/services/storage/types";
 import type { MigrationResult, ProjectRecord } from "./types";
+import { getProjectId, isRecord } from "./utils";
 
 export interface TransformV0ToV1Options {
 	now?: Date;
@@ -54,29 +55,4 @@ export function transformProjectV0ToV1({
 	return { project: updatedProject, skipped: false };
 }
 
-export function getProjectId({
-	project,
-}: {
-	project: ProjectRecord;
-}): string | null {
-	const idValue = project.id;
-	if (typeof idValue === "string" && idValue.length > 0) {
-		return idValue;
-	}
-
-	const metadataValue = project.metadata;
-	if (!isRecord(metadataValue)) {
-		return null;
-	}
-
-	const metadataId = metadataValue.id;
-	if (typeof metadataId === "string" && metadataId.length > 0) {
-		return metadataId;
-	}
-
-	return null;
-}
-
-function isRecord(value: unknown): value is ProjectRecord {
-	return typeof value === "object" && value !== null;
-}
+export { getProjectId } from "./utils";

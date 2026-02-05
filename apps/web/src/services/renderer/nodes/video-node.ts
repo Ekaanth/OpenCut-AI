@@ -4,8 +4,10 @@ import { videoCache } from "@/services/video-cache/service";
 
 const VIDEO_EPSILON = 1 / 1000;
 
-export interface BaseMediaNodeParams {
+export interface VideoNodeParams {
+	url: string;
 	file: File;
+	mediaId: string;
 	duration: number;
 	timeOffset: number;
 	trimStart: number;
@@ -15,10 +17,6 @@ export interface BaseMediaNodeParams {
 	width?: number;
 	height?: number;
 	opacity?: number;
-}
-
-export interface VideoNodeParams extends BaseMediaNodeParams {
-	mediaId: string;
 }
 
 export class VideoNode extends BaseNode<VideoNodeParams> {

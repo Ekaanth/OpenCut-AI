@@ -1,6 +1,7 @@
 import { getProjectDurationFromScenes } from "@/lib/scenes";
 import type { TScene } from "@/types/timeline";
 import type { MigrationResult, ProjectRecord } from "./types";
+import { getProjectId, isRecord } from "./utils";
 
 export function transformProjectV2ToV3({
 	project,
@@ -33,28 +34,7 @@ export function transformProjectV2ToV3({
 	return { project: migratedProject, skipped: false };
 }
 
-export function getProjectId({
-	project,
-}: {
-	project: ProjectRecord;
-}): string | null {
-	const idValue = project.id;
-	if (typeof idValue === "string" && idValue.length > 0) {
-		return idValue;
-	}
-
-	const metadataValue = project.metadata;
-	if (!isRecord(metadataValue)) {
-		return null;
-	}
-
-	const metadataId = metadataValue.id;
-	if (typeof metadataId === "string" && metadataId.length > 0) {
-		return metadataId;
-	}
-
-	return null;
-}
+export { getProjectId } from "./utils";
 
 function getScenes({ project }: { project: ProjectRecord }): TScene[] {
 	const scenesValue = project.scenes;
@@ -74,8 +54,4 @@ function isV3Project({ project }: { project: ProjectRecord }): boolean {
 	return (
 		isRecord(project.metadata) && typeof project.metadata.duration === "number"
 	);
-}
-
-function isRecord(value: unknown): value is ProjectRecord {
-	return typeof value === "object" && value !== null;
 }
