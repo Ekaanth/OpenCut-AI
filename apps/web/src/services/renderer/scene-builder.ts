@@ -29,10 +29,9 @@ export function buildScene(params: BuildSceneParams) {
 		(track) => !("hidden" in track && track.hidden),
 	);
 
-	const mainTrack = visibleTracks.find((track) => isMainTrack(track)) ?? null;
 	const orderedTracksTopToBottom = [
 		...visibleTracks.filter((track) => !isMainTrack(track)),
-		...(mainTrack ? [mainTrack] : []),
+		...visibleTracks.filter((track) => isMainTrack(track)),
 	];
 
 	const orderedTracksBottomToTop = orderedTracksTopToBottom.slice().reverse();

@@ -33,8 +33,7 @@ export class V1toV2Migration extends StorageMigration {
 		});
 
 		if (!result.skipped) {
-			// cleanup legacy timeline DBs after successful transformation
-			await cleanupLegacyTimelineDBs({
+			void cleanupLegacyTimelineDBs({
 				projectId,
 				project: result.project,
 			});
@@ -60,13 +59,13 @@ function createMediaAssetLoader({
 	};
 }
 
-async function cleanupLegacyTimelineDBs({
+function cleanupLegacyTimelineDBs({
 	projectId,
 	project,
 }: {
 	projectId: string;
 	project: ProjectRecord;
-}): Promise<void> {
+}): void {
 	const scenes = project.scenes;
 	if (!Array.isArray(scenes)) {
 		return;
@@ -89,11 +88,12 @@ async function cleanupLegacyTimelineDBs({
 	const projectDbName = `video-editor-timelines-${projectId}`;
 	dbNamesToDelete.push(projectDbName);
 
-	for (const dbName of dbNamesToDelete) {
-		try {
-			await deleteDatabase({ dbName });
-		} catch {
-			// ignore errors, DB might not exist or already deleted
-		}
-	}
+	// Fire-and-forget: delete in parallel, don't block migration
+	void Promise.all(
+		dbNamesToDelete.map((dbName) =>
+			deleteDatabase({ dbName }).catch(() => {
+				// ignore errors, DB might not exist or already deleted
+			}),
+		),
+	);
 }

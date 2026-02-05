@@ -862,7 +862,7 @@ function ProjectsSkeleton() {
 	);
 
 	return (
-		<div className="xs:grid-cols-2 grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+		<div className="px-4 xs:grid-cols-2 grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-4">
 			{skeletonIds.map((skeletonId) => (
 				<Card
 					key={skeletonId}

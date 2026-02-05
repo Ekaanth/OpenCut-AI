@@ -26,7 +26,7 @@ interface LegacyMediaElement {
 	type: "media";
 	mediaId: string;
 	muted?: boolean;
-	[id: string]: unknown;
+	[key: string]: unknown;
 }
 
 interface LegacyTextElement {
@@ -35,19 +35,19 @@ interface LegacyTextElement {
 	y: number;
 	rotation: number;
 	opacity: number;
-	[id: string]: unknown;
+	[key: string]: unknown;
 }
 
 interface LegacyAudioElement {
 	type: "audio";
 	mediaId: string;
-	[id: string]: unknown;
+	[key: string]: unknown;
 }
 
 interface LegacyMediaTrack {
 	type: "media";
 	elements: unknown[];
-	[id: string]: unknown;
+	[key: string]: unknown;
 }
 
 export interface TransformV1ToV2Options {
@@ -265,35 +265,38 @@ async function transformTracks({
 	}
 
 	let isFirstVideoTrackFound = false;
+	const transformedTracks: (TimelineTrack | null)[] = [];
 
-	const transformedTracks = await Promise.all(
-		tracks.map(async (track) => {
-			if (!isRecord(track)) {
-				return null;
-			}
+	for (const track of tracks) {
+		if (!isRecord(track)) {
+			transformedTracks.push(null);
+			continue;
+		}
 
-			const trackType = track.type;
-			if (trackType === "media") {
-				const videoTrack = await transformMediaTrack({
-					track: track as LegacyMediaTrack,
-					loadMediaAsset,
-					isMain: !isFirstVideoTrackFound,
-				});
-				isFirstVideoTrackFound = true;
-				return videoTrack;
-			}
+		const trackType = track.type;
+		if (trackType === "media") {
+			const videoTrack = await transformMediaTrack({
+				track: track as LegacyMediaTrack,
+				loadMediaAsset,
+				isMain: !isFirstVideoTrackFound,
+			});
+			isFirstVideoTrackFound = true;
+			transformedTracks.push(videoTrack);
+			continue;
+		}
 
-			if (trackType === "text") {
-				return transformTextTrack({ track });
-			}
+		if (trackType === "text") {
+			transformedTracks.push(transformTextTrack({ track }));
+			continue;
+		}
 
-			if (trackType === "audio") {
-				return transformAudioTrack({ track });
-			}
+		if (trackType === "audio") {
+			transformedTracks.push(transformAudioTrack({ track }));
+			continue;
+		}
 
-			return null;
-		}),
-	);
+		transformedTracks.push(null);
+	}
 
 	return transformedTracks.filter(
 		(track): track is TimelineTrack => track !== null,

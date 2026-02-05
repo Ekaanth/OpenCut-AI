@@ -19,6 +19,8 @@ export interface MigrationProgress {
 
 let hasCleanedUpMetaDb = false;
 
+const MIN_MIGRATION_DISPLAY_MS = 1000;
+
 export async function runStorageMigrations({
 	migrations,
 	onProgress,
@@ -45,6 +47,7 @@ export async function runStorageMigrations({
 
 	const orderedMigrations = [...migrations].sort((a, b) => a.from - b.from);
 	let migratedCount = 0;
+	let migrationStartTime: number | null = null;
 
 	for (const project of projects) {
 		if (typeof project !== "object" || project === null) {
@@ -57,6 +60,11 @@ export async function runStorageMigrations({
 
 		if (currentVersion >= targetVersion) {
 			continue;
+		}
+
+		// Track when we first showed the migration dialog
+		if (migrationStartTime === null) {
+			migrationStartTime = Date.now();
 		}
 
 		const projectName = getProjectName({ project: projectRecord });
@@ -87,6 +95,16 @@ export async function runStorageMigrations({
 			migratedCount++;
 			currentVersion = migration.to;
 			projectRecord = result.project;
+		}
+	}
+
+	// Ensure dialog is visible for minimum time so users can see it
+	if (migrationStartTime !== null) {
+		const elapsed = Date.now() - migrationStartTime;
+		if (elapsed < MIN_MIGRATION_DISPLAY_MS) {
+			await new Promise((resolve) =>
+				setTimeout(resolve, MIN_MIGRATION_DISPLAY_MS - elapsed),
+			);
 		}
 	}
 
