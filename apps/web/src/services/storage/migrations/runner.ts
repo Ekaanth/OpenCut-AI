@@ -4,18 +4,27 @@ import {
 } from "@/services/storage/indexeddb-adapter";
 import type { StorageMigration } from "./base";
 import type { ProjectRecord } from "./transformers/types";
-import { getProjectId } from "./transformers/utils";
+import { getProjectId, isRecord } from "./transformers/utils";
 
 export interface StorageMigrationResult {
 	migratedCount: number;
+}
+
+export interface MigrationProgress {
+	isMigrating: boolean;
+	fromVersion: number | null;
+	toVersion: number | null;
+	projectName: string | null;
 }
 
 let hasCleanedUpMetaDb = false;
 
 export async function runStorageMigrations({
 	migrations,
+	onProgress,
 }: {
 	migrations: StorageMigration[];
+	onProgress?: (progress: MigrationProgress) => void;
 }): Promise<StorageMigrationResult> {
 	// One-time cleanup: delete the old global version database
 	if (!hasCleanedUpMetaDb) {
@@ -44,8 +53,20 @@ export async function runStorageMigrations({
 
 		let projectRecord = project as ProjectRecord;
 		let currentVersion = getProjectVersion({ project: projectRecord });
+		const targetVersion = orderedMigrations.at(-1)?.to ?? currentVersion;
 
-		// Apply migrations sequentially until project is up to date
+		if (currentVersion >= targetVersion) {
+			continue;
+		}
+
+		const projectName = getProjectName({ project: projectRecord });
+		onProgress?.({
+			isMigrating: true,
+			fromVersion: currentVersion,
+			toVersion: targetVersion,
+			projectName,
+		});
+
 		for (const migration of orderedMigrations) {
 			if (migration.from !== currentVersion) {
 				continue;
@@ -54,23 +75,27 @@ export async function runStorageMigrations({
 			const result = await migration.transform(projectRecord);
 
 			if (result.skipped) {
-				break; // Project is already at this version or higher
+				break;
 			}
 
-			// Update project with migrated version
 			const projectId = getProjectId({ project: result.project });
 			if (!projectId) {
-				break; // Can't save without ID
+				break;
 			}
 
 			await projectsAdapter.set(projectId, result.project);
 			migratedCount++;
 			currentVersion = migration.to;
-
-			// Use migrated project for next iteration
 			projectRecord = result.project;
 		}
 	}
+
+	onProgress?.({
+		isMigrating: false,
+		fromVersion: null,
+		toVersion: null,
+		projectName: null,
+	});
 
 	return { migratedCount };
 }
@@ -91,4 +116,18 @@ function getProjectVersion({ project }: { project: ProjectRecord }): number {
 
 	// v0 - no scenes
 	return 0;
+}
+
+function getProjectName({ project }: { project: ProjectRecord }): string | null {
+	const metadata = project.metadata;
+	if (isRecord(metadata) && typeof metadata.name === "string") {
+		return metadata.name;
+	}
+
+	// v0 had name directly on project
+	if (typeof project.name === "string") {
+		return project.name;
+	}
+
+	return null;
 }

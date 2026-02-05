@@ -148,7 +148,6 @@ async function migrateProject({
 
 			const transformedTracks = await transformTracks({
 				tracks,
-				projectId,
 				loadMediaAsset,
 			});
 
@@ -252,11 +251,9 @@ async function loadTracksFromLegacyDB({
 
 async function transformTracks({
 	tracks,
-	projectId,
 	loadMediaAsset,
 }: {
 	tracks: unknown[];
-	projectId: string;
 	loadMediaAsset?: ({
 		mediaId,
 	}: {
@@ -279,7 +276,6 @@ async function transformTracks({
 			if (trackType === "media") {
 				const videoTrack = await transformMediaTrack({
 					track: track as LegacyMediaTrack,
-					projectId,
 					loadMediaAsset,
 					isMain: !isFirstVideoTrackFound,
 				});
@@ -306,12 +302,10 @@ async function transformTracks({
 
 async function transformMediaTrack({
 	track,
-	projectId,
 	loadMediaAsset,
 	isMain,
 }: {
 	track: LegacyMediaTrack;
-	projectId: string;
 	loadMediaAsset?: ({
 		mediaId,
 	}: {

@@ -1,7 +1,3 @@
-/*
- * Adds a "duration" field to each project's metadata
- */
-
 import { StorageMigration } from "./base";
 import type { ProjectRecord } from "./transformers/types";
 import { transformProjectV2ToV3 } from "./transformers/v2-to-v3";

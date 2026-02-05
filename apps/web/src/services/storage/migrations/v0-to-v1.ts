@@ -1,9 +1,3 @@
-/*
- * Ensures every project has at least one scene
- * Adds a default "Main scene" if none exist
- * Sets currentSceneId to the new scene's id
- */
-
 import { StorageMigration } from "./base";
 import type { ProjectRecord } from "./transformers/types";
 import { transformProjectV0ToV1 } from "./transformers/v0-to-v1";

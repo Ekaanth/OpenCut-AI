@@ -24,6 +24,7 @@ import {
 	CURRENT_PROJECT_VERSION,
 	migrations,
 	runStorageMigrations,
+	type MigrationProgress,
 } from "@/services/storage/migrations";
 import { DEFAULT_TIMELINE_VIEW_STATE } from "@/constants/timeline-constants";
 
@@ -58,7 +59,13 @@ export class ProjectManager {
 		}
 
 		this.storageMigrationPromise = (async () => {
-			await runStorageMigrations({ migrations });
+			await runStorageMigrations({
+				migrations,
+				onProgress: (progress: MigrationProgress) => {
+					this.migrationState = progress;
+					this.notify();
+				},
+			});
 		})();
 
 		await this.storageMigrationPromise;
