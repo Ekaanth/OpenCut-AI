@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BasePage } from "@/app/base-page";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { getPosts } from "@/lib/blog/query";
-import type { Author, Post } from "@/types/blog";
 
 export const metadata: Metadata = {
 	title: "Blog - OpenCut",
@@ -47,27 +45,7 @@ function BlogPostItem({ post }: { post: Post }) {
 					<h2 className="text-xl font-semibold">{post.title}</h2>
 					<p className="text-muted-foreground">{post.description}</p>
 				</div>
-				{post.authors && post.authors.length > 0 && (
-					<AuthorList authors={post.authors} />
-				)}
 			</div>
 		</Link>
-	);
-}
-
-function AuthorList({ authors }: { authors: Author[] }) {
-	return (
-		<div className="flex items-center gap-2">
-			{authors.map((author) => (
-				<div key={author.id} className="flex items-center gap-2">
-					<Avatar className="size-6 shadow-sm">
-						<AvatarImage src={author.image} alt={author.name} />
-						<AvatarFallback className="text-xs">
-							{author.name.charAt(0).toUpperCase()}
-						</AvatarFallback>
-					</Avatar>
-				</div>
-			))}
-		</div>
 	);
 }
