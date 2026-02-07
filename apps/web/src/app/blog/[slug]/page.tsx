@@ -88,18 +88,17 @@ function PostHeader({ post }: { post: Post }) {
 	});
 
 	return (
-		<>
-			{post.coverImage && <PostCoverImage post={post} />}
+		<div className="flex flex-col items-center justify-center gap-8">
 			<PostMeta date={formattedDate} publishedAt={post.publishedAt} />
 			<PostTitle title={post.title} />
-			<PostAuthor author={post.authors[0]} />
-		</>
+			{post.coverImage && <PostCoverImage post={post} />}
+		</div>
 	);
 }
 
 function PostCoverImage({ post }: { post: Post }) {
 	return (
-		<div className="relative aspect-video overflow-hidden rounded-lg">
+		<div className="relative aspect-video overflow-hidden rounded-lg w-full mt-4">
 			<Image
 				src={post.coverImage}
 				alt={post.title}
@@ -121,31 +120,13 @@ function PostMeta({ date, publishedAt }: { date: string; publishedAt: Date }) {
 
 function PostTitle({ title }: { title: string }) {
 	return (
-		<h1 className="text-5xl font-bold tracking-tight md:text-4xl">{title}</h1>
-	);
-}
-
-function PostAuthor({ author }: { author?: Author }) {
-	if (!author) return null;
-
-	return (
-		<div className="flex items-center justify-center gap-2">
-			<Image
-				src={author.image}
-				alt={author.name}
-				width={36}
-				height={36}
-				loading="eager"
-				className="aspect-square size-8 shrink-0 rounded-full"
-			/>
-			<p className="text-muted-foreground">{author.name}</p>
-		</div>
+		<h1 className="text-5xl font-bold tracking-tight md:text-4xl text-center">{title}</h1>
 	);
 }
 
 function PostContent({ html }: { html: string }) {
 	return (
-		<section className="pt-8">
+		<section className="">
 			<Prose html={html} />
 		</section>
 	);
