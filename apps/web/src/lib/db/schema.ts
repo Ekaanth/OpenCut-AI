@@ -2,6 +2,9 @@ import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
 	id: text("id").primaryKey(),
+
+	// todo: implement fully anonymous sign-in for privacy
+	// we don't have any auth flows currently so this is fine for now
 	name: text("name").notNull(),
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
