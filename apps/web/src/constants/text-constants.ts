@@ -13,7 +13,7 @@ export const FONT_SIZE_SCALE_REFERENCE = 90;
 export const DEFAULT_TEXT_ELEMENT: Omit<TextElement, "id"> = {
 	type: "text",
 	name: "Text",
-	content: "Default Text",
+	content: "Default text",
 	fontSize: 15,
 	fontFamily: "Arial",
 	color: "#ffffff",
