@@ -15,7 +15,9 @@ const TICK_FRAME_INTERVALS = [1, 2, 3, 5, 10, 15] as const;
 /**
  * second intervals for when we're zoomed out past frame-level detail.
  */
-const SECOND_MULTIPLIERS = [1, 2, 3, 5, 10, 15, 30, 60] as const;
+const SECOND_MULTIPLIERS = [
+	1, 2, 3, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600,
+] as const;
 
 /**
  * minimum pixel spacing between labels to keep them readable
@@ -233,11 +235,20 @@ function getFrameWithinSecond({
 }
 
 /**
- * formats a timestamp as MM:SS.
+ * formats a timestamp as MM:SS or H:MM:SS when >= 1 hour.
  */
 function formatTimestamp({ timeInSeconds }: { timeInSeconds: number }): string {
 	const totalSeconds = Math.round(timeInSeconds);
-	const minutes = Math.floor(totalSeconds / 60);
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
 	const seconds = totalSeconds % 60;
-	return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+	const mm = minutes.toString().padStart(2, "0");
+	const ss = seconds.toString().padStart(2, "0");
+
+	if (hours > 0) {
+		return `${hours}:${mm}:${ss}`;
+	}
+
+	return `${mm}:${ss}`;
 }
