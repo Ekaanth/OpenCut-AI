@@ -58,10 +58,8 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		if (this.params.backgroundColor) {
 			const metrics = renderer.context.measureText(this.params.content);
-			const ascent =
-				metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
-			const descent =
-				metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
+			const ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
+			const descent = metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
 			const textW = metrics.width;
 			const textH = ascent + descent;
 			const padX = 8;
