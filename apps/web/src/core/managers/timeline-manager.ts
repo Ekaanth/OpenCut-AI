@@ -2,7 +2,6 @@ import type { EditorCore } from "@/core";
 import type {
 	TrackType,
 	TimelineTrack,
-	TextElement,
 	TimelineElement,
 	ClipboardItem,
 } from "@/types/timeline";
@@ -19,7 +18,7 @@ import {
 	DuplicateElementsCommand,
 	ToggleElementsVisibilityCommand,
 	ToggleElementsMutedCommand,
-	UpdateTextElementCommand,
+	UpdateElementCommand,
 	SplitElementsCommand,
 	PasteCommand,
 	UpdateElementStartTimeCommand,
@@ -199,31 +198,16 @@ export class TimelineManager {
 		this.editor.command.execute({ command });
 	}
 
-	updateTextElement({
+	updateElement({
 		trackId,
 		elementId,
 		updates,
 	}: {
 		trackId: string;
 		elementId: string;
-		updates: Partial<
-			Pick<
-				TextElement,
-				| "content"
-				| "fontSize"
-				| "fontFamily"
-				| "color"
-				| "backgroundColor"
-				| "textAlign"
-				| "fontWeight"
-				| "fontStyle"
-				| "textDecoration"
-				| "transform"
-				| "opacity"
-			>
-		>;
+		updates: Partial<Record<string, unknown>>;
 	}): void {
-		const command = new UpdateTextElementCommand(trackId, elementId, updates);
+		const command = new UpdateElementCommand(trackId, elementId, updates);
 		this.editor.command.execute({ command });
 	}
 

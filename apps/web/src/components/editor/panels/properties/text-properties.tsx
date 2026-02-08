@@ -59,7 +59,7 @@ export function TextProperties({
 			const fontSize = Number.isNaN(parsed)
 				? element.fontSize
 				: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
-			editor.timeline.updateTextElement({
+			editor.timeline.updateElement({
 				trackId,
 				elementId: element.id,
 				updates: { fontSize },
@@ -73,7 +73,7 @@ export function TextProperties({
 			? element.fontSize
 			: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
 		setFontSizeInput(fontSize.toString());
-		editor.timeline.updateTextElement({
+		editor.timeline.updateElement({
 			trackId,
 			elementId: element.id,
 			updates: { fontSize },
@@ -88,7 +88,7 @@ export function TextProperties({
 			const opacityPercent = Number.isNaN(parsed)
 				? Math.round(element.opacity * 100)
 				: clamp({ value: parsed, min: 0, max: 100 });
-			editor.timeline.updateTextElement({
+			editor.timeline.updateElement({
 				trackId,
 				elementId: element.id,
 				updates: { opacity: opacityPercent / 100 },
@@ -102,7 +102,7 @@ export function TextProperties({
 			? Math.round(element.opacity * 100)
 			: clamp({ value: parsed, min: 0, max: 100 });
 		setOpacityInput(opacityPercent.toString());
-		editor.timeline.updateTextElement({
+		editor.timeline.updateElement({
 			trackId,
 			elementId: element.id,
 			updates: { opacity: opacityPercent / 100 },
@@ -113,7 +113,7 @@ export function TextProperties({
 		if (color !== "transparent") {
 			lastSelectedColor.current = color;
 		}
-		editor.timeline.updateTextElement({
+		editor.timeline.updateElement({
 			trackId,
 			elementId: element.id,
 			updates: { backgroundColor: color },
@@ -126,7 +126,7 @@ export function TextProperties({
 		isTransparent: boolean;
 	}) => {
 		const newColor = isTransparent ? "transparent" : lastSelectedColor.current;
-		editor.timeline.updateTextElement({
+		editor.timeline.updateElement({
 			trackId,
 			elementId: element.id,
 			updates: { backgroundColor: newColor },
@@ -154,7 +154,7 @@ export function TextProperties({
 								defaultValue={element.content}
 								className="bg-panel-accent min-h-20"
 								onChange={(e) =>
-									editor.timeline.updateTextElement({
+									editor.timeline.updateElement({
 										trackId,
 										elementId: element.id,
 										updates: { content: e.target.value },
@@ -167,7 +167,7 @@ export function TextProperties({
 									<FontPicker
 										defaultValue={element.fontFamily}
 										onValueChange={(value: FontFamily) =>
-											editor.timeline.updateTextElement({
+											editor.timeline.updateElement({
 												trackId,
 												elementId: element.id,
 												updates: { fontFamily: value },
@@ -186,7 +186,7 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateTextElement({
+												editor.timeline.updateElement({
 													trackId,
 													elementId: element.id,
 													updates: {
@@ -205,7 +205,7 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateTextElement({
+												editor.timeline.updateElement({
 													trackId,
 													elementId: element.id,
 													updates: {
@@ -228,7 +228,7 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateTextElement({
+												editor.timeline.updateElement({
 													trackId,
 													elementId: element.id,
 													updates: {
@@ -251,7 +251,7 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateTextElement({
+												editor.timeline.updateElement({
 													trackId,
 													elementId: element.id,
 													updates: {
@@ -279,7 +279,7 @@ export function TextProperties({
 											max={MAX_FONT_SIZE}
 											step={1}
 											onValueChange={([value]) => {
-												editor.timeline.updateTextElement({
+												editor.timeline.updateElement({
 													trackId,
 													elementId: element.id,
 													updates: { fontSize: value },
@@ -310,7 +310,7 @@ export function TextProperties({
 											string: (element.color || "FFFFFF").replace("#", ""),
 										})}
 										onChange={(color) => {
-											editor.timeline.updateTextElement({
+											editor.timeline.updateElement({
 												trackId,
 												elementId: element.id,
 												updates: { color: `#${color}` },
@@ -330,7 +330,7 @@ export function TextProperties({
 											max={100}
 											step={1}
 											onValueChange={([value]) => {
-												editor.timeline.updateTextElement({
+												editor.timeline.updateElement({
 													trackId,
 													elementId: element.id,
 													updates: { opacity: value / 100 },
