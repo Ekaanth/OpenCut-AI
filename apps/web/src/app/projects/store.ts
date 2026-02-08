@@ -122,7 +122,11 @@ export const useProjectsStore = create<ProjectsState>()(
 		}),
 		{
 			name: "projects-view-mode",
-			partialize: (state) => ({ viewMode: state.viewMode }),
+			partialize: (state) => ({
+				viewMode: state.viewMode,
+				sortKey: state.sortKey,
+				sortOrder: state.sortOrder,
+			}),
 			onRehydrateStorage: () => (state) => {
 				state?.setIsHydrated({ isHydrated: true });
 			},
