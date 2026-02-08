@@ -64,6 +64,8 @@ export function buildScene(params: BuildSceneParams) {
 							timeOffset: element.startTime,
 							trimStart: element.trimStart,
 							trimEnd: element.trimEnd,
+							transform: element.transform,
+							opacity: element.opacity,
 						}),
 					);
 				}
@@ -75,6 +77,8 @@ export function buildScene(params: BuildSceneParams) {
 							timeOffset: element.startTime,
 							trimStart: element.trimStart,
 							trimEnd: element.trimEnd,
+							transform: element.transform,
+							opacity: element.opacity,
 						}),
 					);
 				}

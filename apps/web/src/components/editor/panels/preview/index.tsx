@@ -8,6 +8,7 @@ import { CanvasRenderer } from "@/services/renderer/canvas-renderer";
 import type { RootNode } from "@/services/renderer/nodes/root-node";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { getLastFrameTime } from "@/lib/time";
+import { PreviewInteractionOverlay } from "./preview-interaction-overlay";
 
 function usePreviewSize() {
 	const editor = useEditor();
@@ -57,7 +58,7 @@ export function PreviewPanel() {
 }
 
 function PreviewCanvas() {
-	const ref = useRef<HTMLCanvasElement>(null);
+	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const lastFrameRef = useRef(-1);
 	const lastSceneRef = useRef<RootNode | null>(null);
 	const renderingRef = useRef(false);
@@ -76,7 +77,7 @@ function PreviewCanvas() {
 	const renderTree = editor.renderer.getRenderTree();
 
 	const render = useCallback(() => {
-		if (ref.current && renderTree && !renderingRef.current) {
+		if (canvasRef.current && renderTree && !renderingRef.current) {
 			const time = editor.playback.getCurrentTime();
 			const lastFrameTime = getLastFrameTime({
 				duration: renderTree.duration,
@@ -96,7 +97,7 @@ function PreviewCanvas() {
 					.renderToCanvas({
 						node: renderTree,
 						time: renderTime,
-						targetCanvas: ref.current,
+						targetCanvas: canvasRef.current,
 					})
 					.then(() => {
 						renderingRef.current = false;
@@ -108,17 +109,20 @@ function PreviewCanvas() {
 	useRafLoop(render);
 
 	return (
-		<canvas
-			ref={ref}
-			width={width}
-			height={height}
-			className="block max-h-full max-w-full border"
-			style={{
-				background:
-					activeProject.settings.background.type === "blur"
-						? "transparent"
-						: activeProject?.settings.background.color,
-			}}
-		/>
+		<div className="relative">
+			<canvas
+				ref={canvasRef}
+				width={width}
+				height={height}
+				className="block max-h-full max-w-full border"
+				style={{
+					background:
+						activeProject.settings.background.type === "blur"
+							? "transparent"
+							: activeProject?.settings.background.color,
+				}}
+			/>
+			<PreviewInteractionOverlay canvasRef={canvasRef} />
+		</div>
 	);
 }

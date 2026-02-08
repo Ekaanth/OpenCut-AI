@@ -50,6 +50,8 @@ export function TextProperties({
 	);
 
 	const lastSelectedColor = useRef(DEFAULT_COLOR);
+	const initialFontSizeRef = useRef<number | null>(null);
+	const initialOpacityRef = useRef<number | null>(null);
 
 	const handleFontSizeChange = ({ value }: { value: string }) => {
 		setFontSizeInput(value);
@@ -59,10 +61,8 @@ export function TextProperties({
 			const fontSize = Number.isNaN(parsed)
 				? element.fontSize
 				: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
-			editor.timeline.updateElement({
-				trackId,
-				elementId: element.id,
-				updates: { fontSize },
+			editor.timeline.updateElements({
+				updates: [{ trackId, elementId: element.id, updates: { fontSize } }],
 			});
 		}
 	};
@@ -73,10 +73,8 @@ export function TextProperties({
 			? element.fontSize
 			: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
 		setFontSizeInput(fontSize.toString());
-		editor.timeline.updateElement({
-			trackId,
-			elementId: element.id,
-			updates: { fontSize },
+		editor.timeline.updateElements({
+			updates: [{ trackId, elementId: element.id, updates: { fontSize } }],
 		});
 	};
 
@@ -88,10 +86,14 @@ export function TextProperties({
 			const opacityPercent = Number.isNaN(parsed)
 				? Math.round(element.opacity * 100)
 				: clamp({ value: parsed, min: 0, max: 100 });
-			editor.timeline.updateElement({
-				trackId,
-				elementId: element.id,
-				updates: { opacity: opacityPercent / 100 },
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { opacity: opacityPercent / 100 },
+					},
+				],
 			});
 		}
 	};
@@ -102,10 +104,14 @@ export function TextProperties({
 			? Math.round(element.opacity * 100)
 			: clamp({ value: parsed, min: 0, max: 100 });
 		setOpacityInput(opacityPercent.toString());
-		editor.timeline.updateElement({
-			trackId,
-			elementId: element.id,
-			updates: { opacity: opacityPercent / 100 },
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { opacity: opacityPercent / 100 },
+				},
+			],
 		});
 	};
 
@@ -113,10 +119,14 @@ export function TextProperties({
 		if (color !== "transparent") {
 			lastSelectedColor.current = color;
 		}
-		editor.timeline.updateElement({
-			trackId,
-			elementId: element.id,
-			updates: { backgroundColor: color },
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { backgroundColor: color },
+				},
+			],
 		});
 	};
 
@@ -126,10 +136,14 @@ export function TextProperties({
 		isTransparent: boolean;
 	}) => {
 		const newColor = isTransparent ? "transparent" : lastSelectedColor.current;
-		editor.timeline.updateElement({
-			trackId,
-			elementId: element.id,
-			updates: { backgroundColor: newColor },
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { backgroundColor: newColor },
+				},
+			],
 		});
 	};
 
@@ -154,10 +168,14 @@ export function TextProperties({
 								defaultValue={element.content}
 								className="bg-panel-accent min-h-20"
 								onChange={(e) =>
-									editor.timeline.updateElement({
-										trackId,
-										elementId: element.id,
-										updates: { content: e.target.value },
+									editor.timeline.updateElements({
+										updates: [
+											{
+												trackId,
+												elementId: element.id,
+												updates: { content: e.target.value },
+											},
+										],
 									})
 								}
 							/>
@@ -167,10 +185,14 @@ export function TextProperties({
 									<FontPicker
 										defaultValue={element.fontFamily}
 										onValueChange={(value: FontFamily) =>
-											editor.timeline.updateElement({
-												trackId,
-												elementId: element.id,
-												updates: { fontFamily: value },
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { fontFamily: value },
+													},
+												],
 											})
 										}
 									/>
@@ -186,13 +208,19 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateElement({
-													trackId,
-													elementId: element.id,
-													updates: {
-														fontWeight:
-															element.fontWeight === "bold" ? "normal" : "bold",
-													},
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: {
+																fontWeight:
+																	element.fontWeight === "bold"
+																		? "normal"
+																		: "bold",
+															},
+														},
+													],
 												})
 											}
 											className="h-8 px-3 font-bold"
@@ -205,15 +233,19 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateElement({
-													trackId,
-													elementId: element.id,
-													updates: {
-														fontStyle:
-															element.fontStyle === "italic"
-																? "normal"
-																: "italic",
-													},
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: {
+																fontStyle:
+																	element.fontStyle === "italic"
+																		? "normal"
+																		: "italic",
+															},
+														},
+													],
 												})
 											}
 											className="h-8 px-3 italic"
@@ -228,15 +260,19 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateElement({
-													trackId,
-													elementId: element.id,
-													updates: {
-														textDecoration:
-															element.textDecoration === "underline"
-																? "none"
-																: "underline",
-													},
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: {
+																textDecoration:
+																	element.textDecoration === "underline"
+																		? "none"
+																		: "underline",
+															},
+														},
+													],
 												})
 											}
 											className="h-8 px-3 underline"
@@ -251,15 +287,19 @@ export function TextProperties({
 											}
 											size="sm"
 											onClick={() =>
-												editor.timeline.updateElement({
-													trackId,
-													elementId: element.id,
-													updates: {
-														textDecoration:
-															element.textDecoration === "line-through"
-																? "none"
-																: "line-through",
-													},
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: {
+																textDecoration:
+																	element.textDecoration === "line-through"
+																		? "none"
+																		: "line-through",
+															},
+														},
+													],
 												})
 											}
 											className="h-8 px-3 line-through"
@@ -279,12 +319,47 @@ export function TextProperties({
 											max={MAX_FONT_SIZE}
 											step={1}
 											onValueChange={([value]) => {
-												editor.timeline.updateElement({
-													trackId,
-													elementId: element.id,
-													updates: { fontSize: value },
+												if (initialFontSizeRef.current === null) {
+													initialFontSizeRef.current = element.fontSize;
+												}
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: { fontSize: value },
+														},
+													],
+													pushHistory: false,
 												});
 												setFontSizeInput(value.toString());
+											}}
+											onValueCommit={([value]) => {
+												if (initialFontSizeRef.current !== null) {
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: {
+																	fontSize: initialFontSizeRef.current,
+																},
+															},
+														],
+														pushHistory: false,
+													});
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { fontSize: value },
+															},
+														],
+														pushHistory: true,
+													});
+													initialFontSizeRef.current = null;
+												}
 											}}
 											className="w-full"
 										/>
@@ -310,10 +385,14 @@ export function TextProperties({
 											string: (element.color || "FFFFFF").replace("#", ""),
 										})}
 										onChange={(color) => {
-											editor.timeline.updateElement({
-												trackId,
-												elementId: element.id,
-												updates: { color: `#${color}` },
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { color: `#${color}` },
+													},
+												],
 											});
 										}}
 										containerRef={containerRef}
@@ -330,12 +409,45 @@ export function TextProperties({
 											max={100}
 											step={1}
 											onValueChange={([value]) => {
-												editor.timeline.updateElement({
-													trackId,
-													elementId: element.id,
-													updates: { opacity: value / 100 },
+												if (initialOpacityRef.current === null) {
+													initialOpacityRef.current = element.opacity;
+												}
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: { opacity: value / 100 },
+														},
+													],
+													pushHistory: false,
 												});
 												setOpacityInput(value.toString());
+											}}
+											onValueCommit={([value]) => {
+												if (initialOpacityRef.current !== null) {
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: initialOpacityRef.current },
+															},
+														],
+														pushHistory: false,
+													});
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: value / 100 },
+															},
+														],
+														pushHistory: true,
+													});
+													initialOpacityRef.current = null;
+												}
 											}}
 											className="w-full"
 										/>

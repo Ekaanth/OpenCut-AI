@@ -1,21 +1,12 @@
 import type { CanvasRenderer } from "../canvas-renderer";
-import { BaseNode, type BaseNodeParams } from "./base-node";
-import type { Transform } from "@/types/timeline";
+import { VisualNode, type VisualNodeParams } from "./visual-node";
 
-const STICKER_EPSILON = 1 / 1000;
-
-export type StickerNodeParams = BaseNodeParams & {
+export interface StickerNodeParams extends VisualNodeParams {
 	iconName: string;
-	duration: number;
-	timeOffset: number;
-	trimStart: number;
-	trimEnd: number;
-	transform: Transform;
-	opacity: number;
 	color?: string;
-};
+}
 
-export class StickerNode extends BaseNode<StickerNodeParams> {
+export class StickerNode extends VisualNode<StickerNodeParams> {
 	private image?: HTMLImageElement;
 	private readyPromise: Promise<void>;
 
@@ -40,18 +31,6 @@ export class StickerNode extends BaseNode<StickerNodeParams> {
 		});
 	}
 
-	private getStickerTime(time: number) {
-		return time - this.params.timeOffset + this.params.trimStart;
-	}
-
-	private isInRange(time: number) {
-		const stickerTime = this.getStickerTime(time);
-		return (
-			stickerTime >= this.params.trimStart - STICKER_EPSILON &&
-			stickerTime < this.params.trimStart + this.params.duration
-		);
-	}
-
 	async render({ renderer, time }: { renderer: CanvasRenderer; time: number }) {
 		await super.render({ renderer, time });
 
@@ -65,23 +44,11 @@ export class StickerNode extends BaseNode<StickerNodeParams> {
 			return;
 		}
 
-		const { transform, opacity } = this.params;
-		const size = 200 * transform.scale;
-		const x = renderer.width / 2 + transform.position.x - size / 2;
-		const y = renderer.height / 2 + transform.position.y - size / 2;
-
-		renderer.context.save();
-		renderer.context.globalAlpha = opacity;
-
-		if (transform.rotate !== 0) {
-			const centerX = x + size / 2;
-			const centerY = y + size / 2;
-			renderer.context.translate(centerX, centerY);
-			renderer.context.rotate((transform.rotate * Math.PI) / 180);
-			renderer.context.translate(-centerX, -centerY);
-		}
-
-		renderer.context.drawImage(this.image, x, y, size, size);
-		renderer.context.restore();
+		this.renderVisual({
+			renderer,
+			source: this.image,
+			sourceWidth: 200,
+			sourceHeight: 200,
+		});
 	}
 }
