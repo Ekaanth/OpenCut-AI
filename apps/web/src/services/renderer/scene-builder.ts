@@ -85,6 +85,7 @@ export function buildScene(params: BuildSceneParams) {
 					new TextNode({
 						...element,
 						canvasCenter: { x: canvasSize.width / 2, y: canvasSize.height / 2 },
+						canvasHeight: canvasSize.height,
 						textBaseline: "middle",
 					}),
 				);

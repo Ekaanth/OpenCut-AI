@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useEditor } from "@/hooks/use-editor";
 import { DEFAULT_COLOR } from "@/constants/project-constants";
+import { MIN_FONT_SIZE, MAX_FONT_SIZE } from "@/constants/text-constants";
 
 export function TextProperties({
 	element,
@@ -57,7 +58,7 @@ export function TextProperties({
 			const parsed = parseInt(value, 10);
 			const fontSize = Number.isNaN(parsed)
 				? element.fontSize
-				: clamp({ value: parsed, min: 8, max: 300 });
+				: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
 			editor.timeline.updateTextElement({
 				trackId,
 				elementId: element.id,
@@ -70,7 +71,7 @@ export function TextProperties({
 		const parsed = parseInt(fontSizeInput, 10);
 		const fontSize = Number.isNaN(parsed)
 			? element.fontSize
-			: clamp({ value: parsed, min: 8, max: 300 });
+			: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
 		setFontSizeInput(fontSize.toString());
 		editor.timeline.updateTextElement({
 			trackId,
@@ -274,8 +275,8 @@ export function TextProperties({
 									<div className="flex items-center gap-2">
 										<Slider
 											value={[element.fontSize]}
-											min={8}
-											max={300}
+											min={MIN_FONT_SIZE}
+											max={MAX_FONT_SIZE}
 											step={1}
 											onValueChange={([value]) => {
 												editor.timeline.updateTextElement({
@@ -290,8 +291,8 @@ export function TextProperties({
 										<Input
 											type="number"
 											value={fontSizeInput}
-											min={8}
-											max={300}
+											min={MIN_FONT_SIZE}
+											max={MAX_FONT_SIZE}
 											onChange={(e) =>
 												handleFontSizeChange({ value: e.target.value })
 											}
