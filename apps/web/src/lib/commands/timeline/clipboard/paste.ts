@@ -10,6 +10,8 @@ import { wouldElementOverlap } from "@/lib/timeline/element-utils";
 import {
 	buildEmptyTrack,
 	getHighestInsertIndexForTrack,
+	isMainTrack,
+	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
 
 export class PasteCommand extends Command {
@@ -65,11 +67,32 @@ export class PasteCommand extends Command {
 
 			if (resolvedTargetIndex >= 0) {
 				const targetTrack = updatedTracks[resolvedTargetIndex];
+				let adjustedElements = elementsToAdd;
+
+				if (isMainTrack(targetTrack)) {
+					const earliestElement = elementsToAdd.reduce((earliest, element) =>
+						element.startTime < earliest.startTime ? element : earliest,
+					);
+					const adjustedEarliestStartTime = enforceMainTrackStart({
+						tracks: updatedTracks,
+						targetTrackId: targetTrack.id,
+						requestedStartTime: earliestElement.startTime,
+					});
+					const delta = adjustedEarliestStartTime - earliestElement.startTime;
+
+					if (delta !== 0) {
+						adjustedElements = elementsToAdd.map((element) => ({
+							...element,
+							startTime: Math.max(0, element.startTime + delta),
+						}));
+					}
+				}
+
 				updatedTracks[resolvedTargetIndex] = {
 					...targetTrack,
-					elements: [...targetTrack.elements, ...elementsToAdd],
+					elements: [...targetTrack.elements, ...adjustedElements],
 				} as TimelineTrack;
-				for (const element of elementsToAdd) {
+				for (const element of adjustedElements) {
 					this.pastedElements.push({
 						trackId: targetTrack.id,
 						elementId: element.id,

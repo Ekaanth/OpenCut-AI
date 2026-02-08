@@ -6,6 +6,7 @@ import type {
 	AudioTrack,
 	StickerTrack,
 	TextTrack,
+	TimelineElement,
 } from "@/types/timeline";
 import {
 	TRACK_COLORS,
@@ -241,4 +242,63 @@ export function validateElementTrackCompatibility({
 	}
 
 	return { isValid: true };
+}
+
+export function getEarliestMainTrackElement({
+	tracks,
+	excludeElementId,
+}: {
+	tracks: TimelineTrack[];
+	excludeElementId?: string;
+}): TimelineElement | null {
+	const mainTrack = getMainTrack({ tracks });
+	if (!mainTrack) {
+		return null;
+	}
+
+	const elements = mainTrack.elements.filter(
+		(element) => !excludeElementId || element.id !== excludeElementId,
+	);
+
+	if (elements.length === 0) {
+		return null;
+	}
+
+	return elements.reduce((earliest, element) =>
+		element.startTime < earliest.startTime ? element : earliest,
+	);
+}
+
+export function enforceMainTrackStart({
+	tracks,
+	targetTrackId,
+	requestedStartTime,
+	excludeElementId,
+}: {
+	tracks: TimelineTrack[];
+	targetTrackId: string;
+	requestedStartTime: number;
+	excludeElementId?: string;
+}): number {
+	const mainTrack = getMainTrack({ tracks });
+	if (!mainTrack || mainTrack.id !== targetTrackId) {
+		return requestedStartTime;
+	}
+
+	const earliestElement = getEarliestMainTrackElement({
+		tracks,
+		excludeElementId,
+	});
+
+	if (!earliestElement) {
+		return 0;
+	}
+
+	// main track must always start at time 0; if this element would
+	// become the earliest, pin it to the start
+	if (requestedStartTime <= earliestElement.startTime) {
+		return 0;
+	}
+
+	return requestedStartTime;
 }

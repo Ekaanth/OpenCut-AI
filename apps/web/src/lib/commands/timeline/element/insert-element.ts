@@ -17,6 +17,7 @@ import {
 	canElementGoOnTrack,
 	getDefaultInsertIndexForTrack,
 	validateElementTrackCompatibility,
+	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
 import type { MediaAsset } from "@/types/assets";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
@@ -204,9 +205,18 @@ export class InsertElementCommand extends Command {
 				return null;
 			}
 
+			const adjustedElement = this.adjustElementForMainTrack({
+				tracks,
+				targetTrackId: targetTrack.id,
+				element,
+			});
+
 			const updatedTracks = tracks.map((track) =>
 				track.id === targetTrack.id
-					? { ...track, elements: [...track.elements, element] }
+					? {
+							...track,
+							elements: [...track.elements, adjustedElement],
+						}
 					: track,
 			) as TimelineTrack[];
 
@@ -248,9 +258,18 @@ export class InsertElementCommand extends Command {
 		});
 
 		if (existingTrack) {
+			const adjustedElement = this.adjustElementForMainTrack({
+				tracks,
+				targetTrackId: existingTrack.id,
+				element,
+			});
+
 			const updatedTracks = tracks.map((track) =>
 				track.id === existingTrack.id
-					? { ...track, elements: [...track.elements, element] }
+					? {
+							...track,
+							elements: [...track.elements, adjustedElement],
+						}
 					: track,
 			) as TimelineTrack[];
 
@@ -296,6 +315,23 @@ export class InsertElementCommand extends Command {
 			tracks,
 			trackType,
 		});
+	}
+
+	private adjustElementForMainTrack({
+		tracks,
+		targetTrackId,
+		element,
+	}: {
+		tracks: TimelineTrack[];
+		targetTrackId: string;
+		element: TimelineElement;
+	}): TimelineElement {
+		const adjustedStartTime = enforceMainTrackStart({
+			tracks,
+			targetTrackId,
+			requestedStartTime: element.startTime,
+		});
+		return { ...element, startTime: adjustedStartTime };
 	}
 
 	private getTrackTypeForElement({

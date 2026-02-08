@@ -9,6 +9,7 @@ import {
 	buildEmptyTrack,
 	isMainTrack,
 	validateElementTrackCompatibility,
+	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
 
 export class MoveElementCommand extends Command {
@@ -66,9 +67,16 @@ export class MoveElementCommand extends Command {
 			return;
 		}
 
+		const adjustedStartTime = enforceMainTrackStart({
+			tracks: tracksToUpdate,
+			targetTrackId: this.targetTrackId,
+			requestedStartTime: this.newStartTime,
+			excludeElementId: this.elementId,
+		});
+
 		const movedElement: TimelineElement = {
 			...element,
-			startTime: this.newStartTime,
+			startTime: adjustedStartTime,
 		};
 
 		const isSameTrack = this.sourceTrackId === this.targetTrackId;

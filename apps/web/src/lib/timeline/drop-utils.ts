@@ -2,7 +2,7 @@ import type { TimelineTrack, ElementType } from "@/types/timeline";
 import { TRACK_HEIGHTS, TRACK_GAP } from "@/constants/timeline-constants";
 import { wouldElementOverlap } from "./element-utils";
 import type { ComputeDropTargetParams, DropTarget } from "@/types/timeline";
-import { isMainTrack } from "./track-utils";
+import { isMainTrack, enforceMainTrackStart } from "./track-utils";
 
 function getTrackAtY({
 	mouseY,
@@ -185,11 +185,21 @@ export function computeDropTarget({
 	});
 
 	if (isTrackCompatible && !hasOverlap) {
+		const targetTrack = tracks[trackIndex];
+		// safe: snap to 0 only happens when element becomes the new earliest,
+		// meaning the space before the current earliest is empty
+		const adjustedXPosition = enforceMainTrackStart({
+			tracks,
+			targetTrackId: targetTrack.id,
+			requestedStartTime: xPosition,
+			excludeElementId,
+		});
+
 		return {
 			trackIndex,
 			isNewTrack: false,
 			insertPosition: null,
-			xPosition,
+			xPosition: adjustedXPosition,
 		};
 	}
 

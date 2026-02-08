@@ -1,6 +1,7 @@
 import { Command } from "@/lib/commands/base-command";
 import type { TimelineTrack } from "@/types/timeline";
 import { EditorCore } from "@/core";
+import { enforceMainTrackStart } from "@/lib/timeline/track-utils";
 
 export class UpdateElementStartTimeCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
@@ -16,7 +17,8 @@ export class UpdateElementStartTimeCommand extends Command {
 		const editor = EditorCore.getInstance();
 		this.savedState = editor.timeline.getTracks();
 
-		const updatedTracks = this.savedState.map((track) => {
+		const currentTracks = this.savedState;
+		const updatedTracks = currentTracks.map((track) => {
 			const hasElementsToUpdate = this.elements.some(
 				(el) => el.trackId === track.id,
 			);
@@ -29,9 +31,19 @@ export class UpdateElementStartTimeCommand extends Command {
 				const shouldUpdate = this.elements.some(
 					(el) => el.elementId === element.id && el.trackId === track.id,
 				);
-				return shouldUpdate
-					? { ...element, startTime: Math.max(0, this.startTime) }
-					: element;
+				if (!shouldUpdate) {
+					return element;
+				}
+
+				const baseStartTime = Math.max(0, this.startTime);
+				const adjustedStartTime = enforceMainTrackStart({
+					tracks: currentTracks,
+					targetTrackId: track.id,
+					requestedStartTime: baseStartTime,
+					excludeElementId: element.id,
+				});
+
+				return { ...element, startTime: adjustedStartTime };
 			});
 			return { ...track, elements: newElements } as typeof track;
 		});
