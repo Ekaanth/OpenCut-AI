@@ -1,7 +1,7 @@
 import { generateUUID } from "@/utils/id";
 import type { SerializedScene } from "@/services/storage/types";
 import type { MigrationResult, ProjectRecord } from "./types";
-import { getProjectId, isRecord } from "./utils";
+import { isRecord } from "./utils";
 
 export interface TransformV0ToV1Options {
 	now?: Date;
