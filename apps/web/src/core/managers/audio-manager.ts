@@ -86,6 +86,11 @@ export class AudioManager {
 		const detail = (event as CustomEvent<{ time: number }>).detail;
 		if (!detail) return;
 
+		if (this.editor.playback.getIsScrubbing()) {
+			this.stopPlayback();
+			return;
+		}
+
 		if (this.editor.playback.getIsPlaying()) {
 			void this.startPlayback({ time: detail.time });
 			return;
