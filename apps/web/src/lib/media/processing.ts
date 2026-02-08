@@ -186,7 +186,7 @@ export async function processMediaAssets({
 					width = videoInfo.width;
 					height = videoInfo.height;
 					fps = Number.isFinite(videoInfo.fps)
-						? Math.round(videoInfo.fps * 1000) / 1000
+						? Math.round(videoInfo.fps)
 						: undefined;
 
 					thumbnailUrl = await generateThumbnail({
