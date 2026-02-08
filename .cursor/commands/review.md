@@ -91,6 +91,16 @@ Review every point below carefully to ensure files follow consistent code style 
 
 - [ ] Code is scannable — use variables and helper functions to make intent clear at a glance
 - [ ] Complex logic is extracted into well-named variables or helpers
+- [ ] No redundant single/plural function variants — if a function can operate on multiple items, it should accept an array and handle both cases. Don't create `doThing()` + `doThings()`.
+
+  ```tsx
+  // ❌ wrong — redundant variants
+  function updateElement({ element }: { element: Element }) { ... }
+  function updateElements({ elements }: { elements: Element[] }) { ... }
+
+  // ✅ correct — one function, accepts array
+  function updateElements({ elements }: { elements: Element[] }) { ... }
+  ```
 
 ---
 
