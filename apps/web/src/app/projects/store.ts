@@ -60,7 +60,7 @@ export const useProjectsStore = create<ProjectsState>()(
 	persist(
 		(set) => ({
 			searchQuery: "",
-			sortKey: "createdAt",
+			sortKey: "updatedAt",
 			sortOrder: "desc",
 			viewMode: "grid",
 			selectedProjectIds: [],
@@ -86,7 +86,9 @@ export const useProjectsStore = create<ProjectsState>()(
 						projectId,
 						isSelected,
 					}),
-					lastSelectedProjectId: isSelected ? projectId : state.lastSelectedProjectId,
+					lastSelectedProjectId: isSelected
+						? projectId
+						: state.lastSelectedProjectId,
 				})),
 			selectProjectRange: ({ projectId, allProjectIds }) =>
 				set((state) => {
