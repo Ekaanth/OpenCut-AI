@@ -24,13 +24,13 @@ export function useTimelinePlayhead({
 	const currentTime = editor.playback.getCurrentTime();
 	const duration = editor.timeline.getTotalDuration();
 	const isPlaying = editor.playback.getIsPlaying();
+	const isScrubbing = editor.playback.getIsScrubbing();
 
 	const seek = useCallback(
 		({ time }: { time: number }) => editor.playback.seek({ time }),
 		[editor.playback],
 	);
 
-	const [isScrubbing, setIsScrubbing] = useState(false);
 	const [scrubTime, setScrubTime] = useState<number | null>(null);
 
 	const [isDraggingRuler, setIsDraggingRuler] = useState(false);
@@ -81,10 +81,10 @@ export function useTimelinePlayhead({
 		({ event }: { event: React.MouseEvent }) => {
 			event.preventDefault();
 			event.stopPropagation();
-			setIsScrubbing(true);
+			editor.playback.setScrubbing({ isScrubbing: true });
 			handleScrub({ event });
 		},
-		[handleScrub],
+		[handleScrub, editor.playback],
 	);
 
 	const handleRulerMouseDown = useCallback(
@@ -97,10 +97,10 @@ export function useTimelinePlayhead({
 			setIsDraggingRuler(true);
 			setHasDraggedRuler(false);
 
-			setIsScrubbing(true);
+			editor.playback.setScrubbing({ isScrubbing: true });
 			handleScrub({ event });
 		},
-		[handleScrub, playheadRef],
+		[handleScrub, playheadRef, editor.playback],
 	);
 
 	const handlePlayheadMouseDownEvent = useCallback(
@@ -132,7 +132,7 @@ export function useTimelinePlayhead({
 		};
 
 		const handleMouseUp = ({ event }: { event: MouseEvent }) => {
-			setIsScrubbing(false);
+			editor.playback.setScrubbing({ isScrubbing: false });
 			if (scrubTime !== null) {
 				seek({ time: scrubTime });
 				editor.project.setTimelineViewState({

@@ -6,6 +6,7 @@ export class PlaybackManager {
 	private volume = 1;
 	private muted = false;
 	private previousVolume = 1;
+	private isScrubbing = false;
 	private listeners = new Set<() => void>();
 	private playbackTimer: number | null = null;
 	private lastUpdate = 0;
@@ -99,6 +100,15 @@ export class PlaybackManager {
 
 	isMuted(): boolean {
 		return this.muted;
+	}
+
+	setScrubbing({ isScrubbing }: { isScrubbing: boolean }): void {
+		this.isScrubbing = isScrubbing;
+		this.notify();
+	}
+
+	getIsScrubbing(): boolean {
+		return this.isScrubbing;
 	}
 
 	subscribe(listener: () => void): () => void {
