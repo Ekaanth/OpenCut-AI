@@ -199,6 +199,7 @@ export function useEditorActions() {
 			editor.timeline.deleteElements({
 				elements: selectedElements,
 			});
+			editor.selection.clearSelection();
 		},
 		undefined,
 	);
