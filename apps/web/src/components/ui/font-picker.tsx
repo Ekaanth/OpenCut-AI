@@ -6,6 +6,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { FONT_OPTIONS, type FontFamily } from "@/constants/font-constants";
+import { cn } from "@/utils/ui";
 
 interface FontPickerProps {
 	defaultValue?: FontFamily;
@@ -21,16 +22,15 @@ export function FontPicker({
 	return (
 		<Select defaultValue={defaultValue} onValueChange={onValueChange}>
 			<SelectTrigger
-				className={`bg-panel-accent h-9 w-full text-base ${className || ""}`}
+				className={cn("w-full", className)}
 			>
-				<SelectValue placeholder="Select a font" className="text-sm" />
+				<SelectValue placeholder="Select a font" />
 			</SelectTrigger>
 			<SelectContent>
 				{FONT_OPTIONS.map((font) => (
 					<SelectItem
 						key={font.value}
 						value={font.value}
-						className="text-sn"
 						style={{ fontFamily: font.value }}
 					>
 						{font.label}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/utils/ui";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDownIcon } from "@hugeicons/core-free-icons";
+import { MinusSignIcon, PlusSignIcon } from "@hugeicons/core-free-icons";
 
 interface PropertyItemProps {
 	direction?: "row" | "column";
@@ -57,35 +57,76 @@ interface PropertyGroupProps {
 	title: string;
 	children: React.ReactNode;
 	defaultExpanded?: boolean;
+	collapsible?: boolean;
 	className?: string;
-	titleClassName?: string;
+	hasBorderTop?: boolean;
+	hasBorderBottom?: boolean;
 }
 
 export function PropertyGroup({
 	title,
 	children,
 	defaultExpanded = true,
+	collapsible = true,
 	className,
-	titleClassName,
+	hasBorderTop = true,
+	hasBorderBottom = true,
 }: PropertyGroupProps) {
 	const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
 	return (
-		<PropertyItem direction="column" className={cn("gap-3", className)}>
-			<button
-				type="button"
-				className="flex items-center gap-1.5 cursor-pointer"
-				onClick={() => setIsExpanded(!isExpanded)}
-			>
-				<PropertyItemLabel className={cn(titleClassName)}>
-					{title}
-				</PropertyItemLabel>
-				<HugeiconsIcon
-					icon={ArrowDownIcon}
-					className={cn("size-3", !isExpanded && "-rotate-90")}
-				/>
-			</button>
-			{isExpanded && <PropertyItemValue>{children}</PropertyItemValue>}
-		</PropertyItem>
+		<div
+			className={cn(
+				"flex flex-col",
+				hasBorderTop && "border-t",
+				hasBorderBottom && "last:border-b",
+				className,
+			)}
+		>
+			{collapsible ? (
+				<button
+					type="button"
+					className="flex items-center justify-between p-3.5 cursor-pointer"
+					onClick={() => setIsExpanded(!isExpanded)}
+				>
+					<PropertyGroupTitle isExpanded={isExpanded}>
+						{title}
+					</PropertyGroupTitle>
+					<HugeiconsIcon
+						icon={isExpanded ? MinusSignIcon : PlusSignIcon}
+						className={cn(
+							"size-3",
+							isExpanded ? "text-foreground" : "text-muted-foreground",
+						)}
+					/>
+				</button>
+			) : (
+				<div className="flex items-center justify-between p-4">
+					<PropertyGroupTitle isExpanded>{title}</PropertyGroupTitle>
+				</div>
+			)}
+			{(collapsible ? isExpanded : true) && (
+				<div className="p-3 pt-0">{children}</div>
+			)}
+		</div>
+	);
+}
+
+function PropertyGroupTitle({
+	children,
+	isExpanded = false,
+}: {
+	children: React.ReactNode;
+	isExpanded?: boolean;
+}) {
+	return (
+		<span
+			className={cn(
+				"text-xs font-medium",
+				isExpanded ? "text-foreground" : "text-muted-foreground",
+			)}
+		>
+			{children}
+		</span>
 	);
 }

@@ -149,7 +149,7 @@ function CollectionGrid({
 
 function EmptyView({ message }: { message: string }) {
 	return (
-		<div className="bg-panel flex h-full flex-col items-center justify-center gap-3 p-4">
+		<div className="bg-background flex h-full flex-col items-center justify-center gap-3 p-4">
 			<HugeiconsIcon
 				icon={HappyIcon}
 				className="text-muted-foreground size-10"

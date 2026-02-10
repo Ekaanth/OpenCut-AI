@@ -9,7 +9,6 @@ import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { useEdgeAutoScroll } from "@/hooks/timeline/use-edge-auto-scroll";
 import type { ElementDragState } from "@/types/timeline";
 import { useEditor } from "@/hooks/use-editor";
-import { cn } from "@/utils/ui";
 
 interface TimelineTrackContentProps {
 	track: TimelineTrack;
@@ -63,13 +62,9 @@ export function TimelineTrackContent({
 		contentWidth: duration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel,
 	});
 
-	const hasSelectedElements = track.elements.some((element) =>
-		isElementSelected({ trackId: track.id, elementId: element.id }),
-	);
-
 	return (
 		<button
-			className={cn("size-full", hasSelectedElements && "bg-panel-accent/35")}
+			className="size-full"
 			onClick={(event) => {
 				if (shouldIgnoreClick?.()) return;
 				clearElementSelection();

@@ -235,7 +235,7 @@ function SoundEffectsView() {
 			<div className="flex items-center gap-3">
 				<Input
 					placeholder="Search sound effects"
-					className="bg-panel-accent w-full"
+					className="bg-accent w-full"
 					containerClassName="w-full"
 					value={searchQuery}
 					onChange={({ currentTarget }) =>
@@ -406,7 +406,7 @@ function SavedSoundsView() {
 
 	if (savedSounds.length === 0) {
 		return (
-			<div className="bg-panel flex h-full flex-col items-center justify-center gap-3 p-4">
+			<div className="bg-background flex h-full flex-col items-center justify-center gap-3 p-4">
 				<HugeiconsIcon
 					icon={FavouriteIcon}
 					className="text-muted-foreground size-10"

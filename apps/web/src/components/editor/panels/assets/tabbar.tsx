@@ -6,6 +6,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import {
 	TAB_KEYS,
@@ -15,9 +16,9 @@ import {
 
 export function TabBar() {
 	const { activeTab, setActiveTab } = useAssetsPanelStore();
-	const scrollRef = useRef<HTMLDivElement>(null);
 	const [showTopFade, setShowTopFade] = useState(false);
 	const [showBottomFade, setShowBottomFade] = useState(false);
+	const scrollRef = useRef<HTMLDivElement>(null);
 
 	const checkScrollPosition = useCallback(() => {
 		const element = scrollRef.current;
@@ -48,32 +49,24 @@ export function TabBar() {
 		<div className="relative flex">
 			<div
 				ref={scrollRef}
-				className="scrollbar-hidden relative flex size-full flex-col items-center justify-start gap-5 overflow-y-auto px-4 py-4"
+				className="scrollbar-hidden relative flex size-full p-2 flex-col items-center justify-start gap-1.5 overflow-y-auto"
 			>
 				{TAB_KEYS.map((tabKey) => {
 					const tab = tabs[tabKey];
 					return (
 						<Tooltip key={tabKey} delayDuration={10}>
 							<TooltipTrigger asChild>
-								<button
-									type="button"
+								<Button
+									variant={activeTab === tabKey ? "secondary" : "text"}
 									aria-label={tab.label}
 									className={cn(
-										"flex cursor-pointer flex-col items-center gap-0.5 [&>svg]:size-4.5! opacity-100 hover:opacity-75",
-										activeTab === tabKey
-											? "text-primary !opacity-100"
-											: "text-muted-foreground",
+										"flex-col !p-1.5 !rounded-sm !h-auto [&_svg]:size-4.5",
+										activeTab !== tabKey && "border border-transparent text-muted-foreground",
 									)}
 									onClick={() => setActiveTab(tabKey)}
-									onKeyDown={(event) => {
-										if (event.key === "Enter" || event.key === " ") {
-											event.preventDefault();
-											setActiveTab(tabKey);
-										}
-									}}
 								>
-									<tab.icon className=" " />
-								</button>
+									<tab.icon />
+								</Button>
 							</TooltipTrigger>
 							<TooltipContent
 								side="right"
@@ -108,8 +101,8 @@ function FadeOverlay({
 			className={cn(
 				"pointer-events-none absolute right-0 left-0 h-6",
 				direction === "top" && show
-					? "from-panel top-0 bg-gradient-to-b to-transparent"
-					: "from-panel bottom-0 bg-gradient-to-t to-transparent",
+					? "from-background top-0 bg-gradient-to-b to-transparent"
+					: "from-background bottom-0 bg-gradient-to-t to-transparent",
 			)}
 		/>
 	);

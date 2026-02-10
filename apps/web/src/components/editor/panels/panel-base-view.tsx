@@ -26,7 +26,7 @@ function ViewContent({
 	className?: string;
 }) {
 	return (
-		<ScrollArea className="flex-1">
+		<ScrollArea className="flex-1 scrollbar-hidden">
 			<div className={cn("p-5", className)}>{children}</div>
 		</ScrollArea>
 	);
@@ -52,7 +52,7 @@ export function PanelBaseView({
 					onValueChange={onValueChange}
 					className="flex h-full flex-col"
 				>
-					<div className="bg-panel sticky top-0 z-10">
+					<div className="bg-background sticky top-0 z-10">
 						<div className="px-3 pt-3 pb-0">
 							<TabsList>
 								{tabs.map((tab) => (

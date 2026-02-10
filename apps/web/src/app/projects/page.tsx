@@ -71,6 +71,11 @@ const formatProjectDuration = ({
 	return formatTimeCode({ timeInSeconds: duration, format });
 };
 
+const VIEW_MODE_OPTIONS = [
+	{ mode: "grid" as const, icon: GridViewIcon, label: "Grid view" },
+	{ mode: "list" as const, icon: LeftToRightListDashIcon, label: "List view" },
+];
+
 export default function ProjectsPage() {
 	const { searchQuery, sortKey, sortOrder, viewMode } = useProjectsStore();
 	const editor = useEditor();
@@ -147,34 +152,23 @@ function ProjectsHeader() {
 						</BreadcrumbList>
 					</Breadcrumb>
 
-					<div className="hidden md:flex rounded-md border p-1 h-10">
-						<button
-							type="button"
-							className={`p-2 rounded-sm cursor-pointer ${isHydrated && viewMode === "grid" ? "bg-accent/75" : ""}`}
-							onClick={() => setViewMode({ viewMode: "grid" })}
-							onKeyDown={(event) =>
-								event.key === "Enter" && setViewMode({ viewMode: "grid" })
-							}
-							aria-label="Grid view"
-							aria-pressed={isHydrated && viewMode === "grid"}
-						>
-							<HugeiconsIcon icon={GridViewIcon} className="size-4" />
-						</button>
-						<button
-							type="button"
-							className={`p-2 rounded-sm cursor-pointer ${isHydrated && viewMode === "list" ? "bg-accent/75" : ""}`}
-							onClick={() => setViewMode({ viewMode: "list" })}
-							onKeyDown={(event) =>
-								event.key === "Enter" && setViewMode({ viewMode: "list" })
-							}
-							aria-label="List view"
-							aria-pressed={isHydrated && viewMode === "list"}
-						>
-							<HugeiconsIcon
-								icon={LeftToRightListDashIcon}
-								className="size-4"
-							/>
-						</button>
+					<div className="hidden md:flex items-center rounded-md border p-1 px-1.5 h-10">
+						{VIEW_MODE_OPTIONS.map(({ mode, icon, label }) => (
+							<Button
+								key={mode}
+								variant="ghost"
+								size="icon"
+								className={cn(
+									"rounded-sm hover:bg-background",
+									isHydrated && viewMode === mode && "!bg-accent",
+								)}
+								onClick={() => setViewMode({ viewMode: mode })}
+								aria-label={label}
+								aria-pressed={isHydrated && viewMode === mode}
+							>
+								<HugeiconsIcon icon={icon} className="size-4" />
+							</Button>
+						))}
 					</div>
 				</div>
 
@@ -277,28 +271,21 @@ function ProjectsToolbar({ projectIds }: { projectIds: string[] }) {
 				<div className="h-4 w-px bg-border/50 block md:hidden" />
 
 				<div className="flex md:hidden items-center gap-4">
-					<Button
-						variant="text"
-						onClick={() => setViewMode({ viewMode: "grid" })}
-					>
-						<HugeiconsIcon
-							icon={GridViewIcon}
-							className={cn(
-								viewMode === "grid" ? "text-primary" : "text-muted-foreground",
-							)}
-						/>
-					</Button>
-					<Button
-						variant="text"
-						onClick={() => setViewMode({ viewMode: "list" })}
-					>
-						<HugeiconsIcon
-							icon={LeftToRightListDashIcon}
-							className={cn(
-								viewMode === "list" ? "text-primary" : "text-muted-foreground",
-							)}
-						/>
-					</Button>
+					{VIEW_MODE_OPTIONS.map(({ mode, icon, label }) => (
+						<Button
+							key={mode}
+							variant="text"
+							onClick={() => setViewMode({ viewMode: mode })}
+							aria-label={label}
+						>
+							<HugeiconsIcon
+								icon={icon}
+								className={cn(
+									viewMode === mode ? "text-primary" : "text-muted-foreground",
+								)}
+							/>
+						</Button>
+					))}
 				</div>
 			</div>
 			{selectedProjectCount > 0 ? <ProjectActions /> : null}

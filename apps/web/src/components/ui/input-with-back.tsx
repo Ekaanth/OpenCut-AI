@@ -55,7 +55,7 @@ export function InputWithBack({
 			>
 				<Button
 					variant="outline"
-					className="bg-panel-accent !size-9 rounded-full"
+					className="bg-accent !size-9 rounded-full"
 				>
 					<ArrowLeft />
 				</Button>
@@ -77,7 +77,7 @@ export function InputWithBack({
 					<Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
 					<Input
 						placeholder={placeholder}
-						className="bg-panel-accent w-full pl-9"
+						className="bg-accent w-full pl-9"
 						value={value}
 						onChange={(e) => onChange?.(e.target.value)}
 					/>

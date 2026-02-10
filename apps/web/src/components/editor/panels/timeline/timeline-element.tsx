@@ -19,7 +19,7 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 	ContextMenuTrigger,
-} from "../../ui/context-menu";
+} from "../../../ui/context-menu";
 import type {
 	TimelineElement as TimelineElementType,
 	TimelineTrack,
@@ -166,7 +166,10 @@ export function TimelineElement({
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="z-200 w-64">
-				<ActionMenuItem action="split" icon={<HugeiconsIcon icon={ScissorIcon} />}>
+				<ActionMenuItem
+					action="split"
+					icon={<HugeiconsIcon icon={ScissorIcon} />}
+				>
 					Split
 				</ActionMenuItem>
 				<CopyMenuItem />
@@ -185,7 +188,10 @@ export function TimelineElement({
 					/>
 				)}
 				{selectedElements.length === 1 && (
-					<ActionMenuItem action="duplicate-selected" icon={<HugeiconsIcon icon={Copy01Icon} />}>
+					<ActionMenuItem
+						action="duplicate-selected"
+						icon={<HugeiconsIcon icon={Copy01Icon} />}
+					>
 						Duplicate
 					</ActionMenuItem>
 				)}
@@ -446,7 +452,10 @@ function ElementContent({
 
 function CopyMenuItem() {
 	return (
-		<ActionMenuItem action="copy-selected" icon={<HugeiconsIcon icon={Copy01Icon} />}>
+		<ActionMenuItem
+			action="copy-selected"
+			icon={<HugeiconsIcon icon={Copy01Icon} />}
+		>
 			Copy
 		</ActionMenuItem>
 	);
@@ -502,7 +511,10 @@ function VisibilityMenuItem({
 	};
 
 	return (
-		<ActionMenuItem action="toggle-elements-visibility-selected" icon={getIcon()}>
+		<ActionMenuItem
+			action="toggle-elements-visibility-selected"
+			icon={getIcon()}
+		>
 			{isHidden ? "Show" : "Hide"}
 		</ActionMenuItem>
 	);

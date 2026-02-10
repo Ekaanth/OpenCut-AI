@@ -15,12 +15,12 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuTrigger,
-} from "../../ui/context-menu";
+} from "../../../ui/context-menu";
 import { useTimelineZoom } from "@/hooks/timeline/use-timeline-zoom";
 import { useState, useRef, useCallback } from "react";
 import { TimelineTrackContent } from "./timeline-track";
 import { TimelinePlayhead } from "./timeline-playhead";
-import { SelectionBox } from "../selection-box";
+import { SelectionBox } from "../../selection-box";
 import { useSelectionBox } from "@/hooks/timeline/use-selection-box";
 import { SnapIndicator } from "./snap-indicator";
 import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
@@ -201,7 +201,7 @@ export function Timeline() {
 	return (
 		<section
 			className={
-				"bg-panel relative flex h-full flex-col overflow-hidden rounded-sm"
+				"panel bg-background relative flex h-full flex-col overflow-hidden rounded-sm border"
 			}
 			{...dragProps}
 			aria-label="Timeline"
@@ -226,17 +226,17 @@ export function Timeline() {
 					isVisible={showSnapIndicator}
 				/>
 				<div className="flex flex-1 overflow-hidden">
-					<div className="bg-panel flex w-28 shrink-0 flex-col border-r">
-						<div className="bg-panel flex h-4 items-center justify-between px-3">
+					<div className="bg-background flex w-28 shrink-0 flex-col border-r">
+						<div className="bg-background flex h-4 items-center justify-between px-3">
 							<span className="opacity-0">.</span>
 						</div>
-						<div className="bg-panel flex h-4 items-center justify-between px-3">
+						<div className="bg-background flex h-4 items-center justify-between px-3">
 							<span className="opacity-0">.</span>
 						</div>
 						{tracks.length > 0 && (
 							<div
 								ref={trackLabelsRef}
-								className="bg-panel flex-1 overflow-y-auto"
+								className="bg-background flex-1 overflow-y-auto"
 								style={{ paddingTop: TIMELINE_CONSTANTS.PADDING_TOP_PX }}
 							>
 								<ScrollArea className="size-full" ref={trackLabelsScrollRef}>
@@ -351,7 +351,7 @@ export function Timeline() {
 							>
 								<div
 									ref={timelineHeaderRef}
-									className="bg-panel sticky top-0 z-30 flex flex-col"
+									className="bg-background sticky top-0 z-30 flex flex-col"
 								>
 									<TimelineRuler
 										zoomLevel={zoomLevel}

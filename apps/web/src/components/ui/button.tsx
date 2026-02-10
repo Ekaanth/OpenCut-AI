@@ -10,7 +10,7 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				default:
-					"bg-primary text-primary-foreground hover:bg-primary-hover",
+					"bg-primary text-primary-foreground hover:bg-primary/90",
 				background:
 					"bg-background text-foreground hover:bg-background/90",
 				foreground:
@@ -22,13 +22,14 @@ const buttonVariants = cva(
 				outline:
 					"border border-border bg-transparent hover:bg-accent/50",
 				secondary:
-					"bg-secondary text-secondary-foreground hover:bg-foreground/15 border border-input",
+					"bg-secondary text-secondary-foreground border border-secondary-border",
 				text: "bg-transparent rounded-none opacity-100 hover:opacity-75",
+				ghost: "bg-transparent hover:bg-accent",
 				link: "text-primary underline-offset-4 hover:underline !p-0 !h-auto",
 			},
 			size: {
 				default: "h-9.5 px-4 py-2",
-				sm: "h-8 px-3 text-xs",
+				sm: "h-8 p-1 px-2 text-xs rounded-sm",
 				lg: "h-10 p-5 px-6",
 				icon: "size-7",
 				text: "p-0",

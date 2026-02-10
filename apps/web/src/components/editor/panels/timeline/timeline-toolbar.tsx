@@ -6,7 +6,7 @@ import {
 	TooltipContent,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { SkipBack, SplitSquareHorizontal } from "lucide-react";
+import { SplitSquareHorizontal } from "lucide-react";
 import {
 	SplitButton,
 	SplitButtonLeft,
@@ -14,11 +14,9 @@ import {
 	SplitButtonSeparator,
 } from "@/components/ui/split-button";
 import { Slider } from "@/components/ui/slider";
-import { formatTimeCode } from "@/lib/time";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { sliderToZoom, zoomToSlider } from "@/lib/timeline/zoom-utils";
-import { EditableTimecode } from "@/components/editable-timecode";
-import { ScenesView } from "../scenes-view";
+import { ScenesView } from "../../scenes-view";
 import { type TAction, invokeAction } from "@/lib/actions";
 import { cn } from "@/utils/ui";
 import { useTimelineStore } from "@/stores/timeline-store";
@@ -32,8 +30,6 @@ import {
 	Link04Icon,
 	SearchAddIcon,
 	SearchMinusIcon,
-	PauseIcon,
-	PlayIcon,
 	Copy01Icon,
 	AlignLeftIcon,
 	AlignRightIcon,
@@ -82,7 +78,6 @@ export function TimelineToolbar({
 function ToolbarLeftSection() {
 	const editor = useEditor();
 	const currentTime = editor.playback.getCurrentTime();
-	const isPlaying = editor.playback.getIsPlaying();
 	const currentBookmarked = editor.scenes.isBookmarked({ time: currentTime });
 
 	const handleAction = ({
@@ -99,32 +94,6 @@ function ToolbarLeftSection() {
 	return (
 		<div className="flex items-center gap-1">
 			<TooltipProvider delayDuration={500}>
-				<ToolbarButton
-					icon={
-						isPlaying ? (
-							<HugeiconsIcon icon={PauseIcon} />
-						) : (
-							<HugeiconsIcon icon={PlayIcon} />
-						)
-					}
-					tooltip={isPlaying ? "Pause" : "Play"}
-					onClick={({ event }) =>
-						handleAction({ action: "toggle-play", event })
-					}
-				/>
-
-				<ToolbarButton
-					icon={<SkipBack />}
-					tooltip="Go to start"
-					onClick={({ event }) => handleAction({ action: "goto-start", event })}
-				/>
-
-				<div className="bg-border mx-1 h-6 w-px" />
-
-				<TimeDisplay />
-
-				<div className="bg-border mx-1 h-6 w-px" />
-
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
 					tooltip="Split element"
@@ -179,12 +148,8 @@ function ToolbarLeftSection() {
 
 				<Tooltip>
 					<ToolbarButton
-						icon={
-							<HugeiconsIcon
-								icon={Bookmark02Icon}
-								className={currentBookmarked ? "fill-primary text-primary" : ""}
-							/>
-						}
+						icon={<HugeiconsIcon icon={Bookmark02Icon} />}
+						isActive={currentBookmarked}
 						tooltip={currentBookmarked ? "Remove bookmark" : "Add bookmark"}
 						onClick={({ event }) =>
 							handleAction({ action: "toggle-bookmark", event })
@@ -192,34 +157,6 @@ function ToolbarLeftSection() {
 					/>
 				</Tooltip>
 			</TooltipProvider>
-		</div>
-	);
-}
-
-function TimeDisplay() {
-	const editor = useEditor();
-	const currentTime = editor.playback.getCurrentTime();
-	const totalDuration = editor.timeline.getTotalDuration();
-	const fps = editor.project.getActive().settings.fps;
-
-	return (
-		<div className="flex flex-row items-center justify-center px-2">
-			<EditableTimecode
-				time={currentTime}
-				duration={totalDuration}
-				format="HH:MM:SS:FF"
-				fps={fps}
-				onTimeChange={({ time }) => editor.playback.seek({ time })}
-				className="text-center"
-			/>
-			<div className="text-muted-foreground px-2 font-mono text-xs">/</div>
-			<div className="text-muted-foreground text-center font-mono text-xs">
-				{formatTimeCode({
-					timeInSeconds: totalDuration,
-					format: "HH:MM:SS:FF",
-					fps,
-				})}
-			</div>
 		</div>
 	);
 }
@@ -265,26 +202,15 @@ function ToolbarRightSection({
 		<div className="flex items-center gap-1">
 			<TooltipProvider delayDuration={500}>
 				<ToolbarButton
-					icon={
-						<HugeiconsIcon
-							icon={MagnetIcon}
-							className={cn(snappingEnabled ? "text-primary" : "")}
-						/>
-					}
+					icon={<HugeiconsIcon icon={MagnetIcon} />}
+					isActive={snappingEnabled}
 					tooltip="Auto snapping"
 					onClick={() => toggleSnapping()}
 				/>
 
 				<ToolbarButton
-					icon={
-						<HugeiconsIcon
-							icon={Link04Icon}
-							className={cn(
-								rippleEditingEnabled ? "text-primary" : "",
-								"scale-110",
-							)}
-						/>
-					}
+					icon={<HugeiconsIcon icon={Link04Icon} className="scale-110" />}
+					isActive={rippleEditingEnabled}
 					tooltip="Ripple editing"
 					onClick={() => toggleRippleEditing()}
 				/>
@@ -329,21 +255,26 @@ function ToolbarButton({
 	tooltip,
 	onClick,
 	disabled,
+	isActive,
 }: {
 	icon: React.ReactNode;
 	tooltip: string;
 	onClick: ({ event }: { event: React.MouseEvent }) => void;
 	disabled?: boolean;
+	isActive?: boolean;
 }) {
 	return (
 		<Tooltip delayDuration={200}>
 			<TooltipTrigger asChild>
 				<Button
-					variant="text"
+					variant={isActive ? "secondary" : "text"}
 					size="icon"
 					type="button"
 					onClick={(event) => onClick({ event })}
-					className={disabled ? "cursor-not-allowed opacity-50" : ""}
+					className={cn(
+						"rounded-sm",
+						disabled ? "cursor-not-allowed opacity-50" : "",
+					)}
 				>
 					{icon}
 				</Button>

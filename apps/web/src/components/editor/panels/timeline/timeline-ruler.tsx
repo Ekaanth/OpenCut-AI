@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { type JSX, useLayoutEffect, useRef } from "react";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { DEFAULT_FPS } from "@/constants/project-constants";
 import { useEditor } from "@/hooks/use-editor";
@@ -44,7 +44,21 @@ export function TimelineRuler({
 		scrollRef: tracksScrollRef,
 	});
 
-	const bufferPx = 200;
+	/**
+	 * widens the virtualization buffer during zoom transitions.
+	 * useScrollPosition lags one frame behind the scroll adjustment
+	 * that useLayoutEffect applies after a zoom change.
+	 */
+	const prevZoomRef = useRef(zoomLevel);
+	const isZoomTransition = zoomLevel !== prevZoomRef.current;
+	const bufferPx = isZoomTransition
+		? Math.max(200, (scrollLeft + viewportWidth) * 0.15)
+		: 200;
+
+	useLayoutEffect(() => {
+		prevZoomRef.current = zoomLevel;
+	}, [zoomLevel]);
+
 	const visibleStartTime = Math.max(
 		0,
 		(scrollLeft - bufferPx) / pixelsPerSecond,
@@ -62,7 +76,11 @@ export function TimelineRuler({
 	);
 
 	const timelineTicks: Array<JSX.Element> = [];
-	for (let tickIndex = startTickIndex; tickIndex <= endTickIndex; tickIndex += 1) {
+	for (
+		let tickIndex = startTickIndex;
+		tickIndex <= endTickIndex;
+		tickIndex += 1
+	) {
 		const time = tickIndex * tickIntervalSeconds;
 		if (time > effectiveDuration) break;
 

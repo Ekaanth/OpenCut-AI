@@ -110,7 +110,7 @@ export function DraggableItem({
 						<AspectRatio
 							ratio={aspectRatio}
 							className={cn(
-								"bg-panel-accent relative overflow-hidden",
+								"bg-accent relative overflow-hidden",
 								isRounded && "rounded-sm",
 								isDraggable && "[&::-webkit-drag-ghost]:opacity-0",
 							)}
@@ -215,7 +215,7 @@ function PlusButton({
 		<Button
 			size="icon"
 			className={cn(
-				"bg-background hover:bg-panel text-foreground absolute right-2 bottom-2 size-5",
+				"bg-background hover:bg-background text-foreground absolute right-2 bottom-2 size-5",
 				className,
 			)}
 			onClick={(e) => {

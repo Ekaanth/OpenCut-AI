@@ -60,10 +60,7 @@ export function useEdgeAutoScroll({
 				mouseXRelative > viewportWidth - edgeThreshold &&
 				rulerViewport.scrollLeft < scrollMax
 			) {
-				const edgeDistance = Math.max(
-					0,
-					viewportWidth - edgeThreshold - mouseXRelative,
-				);
+				const edgeDistance = Math.max(0, viewportWidth - mouseXRelative);
 				const intensity = 1 - edgeDistance / edgeThreshold;
 				scrollSpeed = maxScrollSpeed * intensity;
 			}

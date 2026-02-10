@@ -6,6 +6,7 @@ import { Input } from "./input";
 interface ColorPickerProps {
 	value?: string;
 	onChange?: (value: string) => void;
+	onChangeEnd?: (value: string) => void;
 	className?: string;
 	containerRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -86,7 +87,7 @@ const hsvToHex = (h: number, s: number, v: number) => {
 };
 
 const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
-	({ className, value = "FFFFFF", onChange, containerRef, ...props }, ref) => {
+	({ className, value = "FFFFFF", onChange, onChangeEnd, containerRef, ...props }, ref) => {
 		const [isOpen, setIsOpen] = useState(false);
 		const [isDragging, setIsDragging] = useState<"saturation" | "hue" | null>(
 			null,
@@ -102,6 +103,7 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 		const saturationRef = useRef<HTMLButtonElement>(null);
 		const hueRef = useRef<HTMLButtonElement>(null);
 		const triggerRef = useRef<HTMLButtonElement>(null);
+		const latestDragColorRef = useRef<string | null>(null);
 
 		const [h, s, v] = hexToHsv(value);
 		const displayHue = s > 0 ? h : internalHue;
@@ -144,6 +146,7 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 					const newS = x;
 					const newV = 1 - y;
 					const newHex = hsvToHex(displayHue, newS, newV);
+					latestDragColorRef.current = newHex;
 					onChange?.(newHex);
 				}
 
@@ -157,12 +160,17 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 					setInternalHue(newH);
 					if (s > 0) {
 						const newHex = hsvToHex(newH, s, v);
+						latestDragColorRef.current = newHex;
 						onChange?.(newHex);
 					}
 				}
 			};
 
 			const handleMouseUp = () => {
+				if (latestDragColorRef.current !== null && onChangeEnd) {
+					onChangeEnd(latestDragColorRef.current);
+					latestDragColorRef.current = null;
+				}
 				setIsDragging(null);
 			};
 
@@ -187,6 +195,7 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 			const newS = x;
 			const newV = 1 - y;
 			const newHex = hsvToHex(displayHue, newS, newV);
+			latestDragColorRef.current = newHex;
 			onChange?.(newHex);
 		};
 
@@ -201,6 +210,7 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 			setInternalHue(newH);
 			if (s > 0) {
 				const newHex = hsvToHex(newH, s, v);
+				latestDragColorRef.current = newHex;
 				onChange?.(newHex);
 			}
 		};
@@ -235,14 +245,14 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 				<div
 					ref={ref}
 					className={cn(
-						"bg-panel-accent flex h-9 items-center gap-2 rounded-full px-[0.45rem]",
+						"bg-accent flex h-8 items-center gap-2 rounded-md px-[0.45rem]",
 						className,
 					)}
 					{...props}
 				>
 					<button
 						ref={triggerRef}
-						className="size-6 cursor-pointer rounded-full hover:ring-2 hover:ring-white/20"
+						className="size-4.5 cursor-pointer border rounded-sm hover:ring-2 hover:ring-white/20"
 						style={{ backgroundColor: `#${value}` }}
 						type="button"
 						onClick={() => {
@@ -259,7 +269,8 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 					/>
 					<div className="flex flex-1 items-center">
 						<Input
-							className="!border-0 bg-transparent p-0 !ring-0 !ring-offset-0"
+							className="!border-0 bg-transparent p-0 !ring-0 !ring-offset-0 uppercase"
+							size="sm"
 							containerClassName="w-full"
 							value={inputValue}
 							onChange={handleInputChange}

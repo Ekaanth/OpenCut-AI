@@ -137,6 +137,16 @@ export function usePreviewInteraction({
 			const deltaX = currentPos.x - dragStateRef.current.startX;
 			const deltaY = currentPos.y - dragStateRef.current.startY;
 
+			const hasMovement = Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5;
+
+
+			if (!hasMovement) {
+				dragStateRef.current = null;
+				setIsDragging(false);
+				event.currentTarget.releasePointerCapture(event.pointerId);
+				return;
+			}
+
 			// revert to pre-drag state so the command captures the correct undo snapshot
 			editor.timeline.updateTracks(dragStateRef.current.tracksSnapshot);
 

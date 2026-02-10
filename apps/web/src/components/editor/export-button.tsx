@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/utils/ui";
 import { getExportMimeType, getExportFileExtension } from "@/lib/export";
-import { Check, Copy, Download, RotateCcw, X } from "lucide-react";
+import { Check, Copy, Download, RotateCcw } from "lucide-react";
 import {
 	EXPORT_FORMAT_VALUES,
 	EXPORT_QUALITY_VALUES,
@@ -44,9 +44,7 @@ export function ExportButton() {
 					type="button"
 					className={cn(
 						"flex items-center gap-1.5 rounded-md bg-[#38BDF8] px-[0.12rem] py-[0.12rem] text-white",
-						hasProject
-							? "cursor-pointer"
-							: "cursor-not-allowed opacity-50",
+						hasProject ? "cursor-pointer" : "cursor-not-allowed opacity-50",
 					)}
 					onClick={hasProject ? handleExport : undefined}
 					disabled={!hasProject}
@@ -141,20 +139,12 @@ function ExportPopover({
 		}
 	};
 
-	const handleClose = () => {
-		if (!isExporting) {
-			onOpenChange(false);
-			setExportResult(null);
-			setProgress(0);
-		}
-	};
-
 	const handleCancel = () => {
 		cancelRequestedRef.current = true;
 	};
 
 	return (
-		<PopoverContent className="bg-background mr-4 flex w-80 flex-col gap-3">
+		<PopoverContent className="bg-background mr-4 flex w-80 flex-col p-0">
 			{exportResult && !exportResult.success ? (
 				<ExportError
 					error={exportResult.error || "Unknown error occurred"}
@@ -162,23 +152,20 @@ function ExportPopover({
 				/>
 			) : (
 				<>
-					<div className="flex items-center justify-between">
-						<h3 className="font-medium">
+					<div className="flex items-center justify-between p-3 border-b">
+						<h3 className="font-medium text-sm">
 							{isExporting ? "Exporting project" : "Export project"}
 						</h3>
-						<Button variant="text" size="icon" onClick={handleClose}>
-							<X className="text-foreground/85 !size-5" />
-						</Button>
 					</div>
 
 					<div className="flex flex-col gap-4">
 						{!isExporting && (
 							<>
-								<div className="flex flex-col gap-3">
+								<div className="flex flex-col">
 									<PropertyGroup
 										title="Format"
-										titleClassName="text-sm"
 										defaultExpanded={false}
+										hasBorderTop={false}
 									>
 										<RadioGroup
 											value={format}
@@ -203,11 +190,7 @@ function ExportPopover({
 										</RadioGroup>
 									</PropertyGroup>
 
-									<PropertyGroup
-										title="Quality"
-										titleClassName="text-sm"
-										defaultExpanded={false}
-									>
+									<PropertyGroup title="Quality" defaultExpanded={false}>
 										<RadioGroup
 											value={quality}
 											onValueChange={(value) => {
@@ -237,11 +220,7 @@ function ExportPopover({
 										</RadioGroup>
 									</PropertyGroup>
 
-									<PropertyGroup
-										title="Audio"
-										titleClassName="text-sm"
-										defaultExpanded={false}
-									>
+									<PropertyGroup title="Audio" defaultExpanded={false}>
 										<div className="flex items-center space-x-2">
 											<Checkbox
 												id="include-audio"
@@ -257,15 +236,17 @@ function ExportPopover({
 									</PropertyGroup>
 								</div>
 
-								<Button onClick={handleExport} className="w-full gap-2">
-									<Download className="size-4" />
-									Export
-								</Button>
+								<div className="p-3 pt-0">
+									<Button onClick={handleExport} className="w-full gap-2">
+										<Download className="size-4" />
+										Export
+									</Button>
+								</div>
 							</>
 						)}
 
 						{isExporting && (
-							<div className="space-y-4">
+							<div className="space-y-4 p-3">
 								<div className="flex flex-col">
 									<div className="flex items-center justify-between text-center">
 										<p className="text-muted-foreground mb-2 text-sm">

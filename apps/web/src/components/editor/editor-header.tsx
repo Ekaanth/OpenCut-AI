@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "../ui/button";
-import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -17,23 +16,21 @@ import { useRouter } from "next/navigation";
 import { FaDiscord } from "react-icons/fa6";
 import { ExportButton } from "./export-button";
 import { ThemeToggle } from "../theme-toggle";
-import { SOCIAL_LINKS } from "@/constants/site-constants";
+import { DEFAULT_LOGO_URL, SOCIAL_LINKS } from "@/constants/site-constants";
 import { toast } from "sonner";
 import { useEditor } from "@/hooks/use-editor";
-import {
-	ArrowLeft02Icon,
-	Edit03Icon,
-	Delete02Icon,
-	CommandIcon,
-} from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, CommandIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShortcutsDialog } from "./dialogs/shortcuts-dialog";
+import Image from "next/image";
+import { cn } from "@/utils/ui";
 
 export function EditorHeader() {
 	return (
-		<header className="bg-background flex h-[3.2rem] items-center justify-between px-3 pt-0.5">
-			<div className="flex items-center gap-2">
+		<header className="bg-background flex h-[3.4rem] items-center justify-between px-3 pt-0.5">
+			<div className="flex items-center gap-1">
 				<ProjectDropdown />
+				<EditableProjectName />
 			</div>
 			<nav className="flex items-center gap-2">
 				<ExportButton />
@@ -111,14 +108,14 @@ function ProjectDropdown() {
 		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button
-						variant="secondary"
-						className="flex h-auto items-center justify-center px-2.5 py-1.5"
-					>
-						<ChevronDown className="text-muted-foreground" />
-						<span className="mr-2 text-[0.85rem]">
-							{activeProject?.metadata.name}
-						</span>
+					<Button variant="ghost" size="icon" className="p-1 rounded-sm size-8">
+						<Image
+							src={DEFAULT_LOGO_URL}
+							alt="Project thumbnail"
+							width={32}
+							height={32}
+							className="invert dark:invert-0 size-5"
+						/>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="start" className="z-100 w-52">
@@ -130,21 +127,7 @@ function ProjectDropdown() {
 						<HugeiconsIcon icon={ArrowLeft02Icon} className="size-4" />
 						Exit project
 					</DropdownMenuItem>
-					<DropdownMenuItem
-						className="flex items-center gap-1.5"
-						onClick={() => setOpenDialog("rename")}
-					>
-						<HugeiconsIcon icon={Edit03Icon} className="size-4" />
-						Rename project
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						variant="destructive"
-						className="flex items-center gap-1.5"
-						onClick={() => setOpenDialog("delete")}
-					>
-						<HugeiconsIcon icon={Delete02Icon} className="size-4" />
-						Delete project
-					</DropdownMenuItem>
+
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="flex items-center gap-1.5"
@@ -183,5 +166,81 @@ function ProjectDropdown() {
 				onOpenChange={(isOpen) => setOpenDialog(isOpen ? "shortcuts" : null)}
 			/>
 		</>
+	);
+}
+
+function EditableProjectName() {
+	const editor = useEditor();
+	const activeProject = editor.project.getActive();
+	const [isEditing, setIsEditing] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const originalNameRef = useRef("");
+
+	const projectName = activeProject?.metadata.name || "";
+
+	const startEditing = () => {
+		if (isEditing) return;
+		originalNameRef.current = projectName;
+		setIsEditing(true);
+
+		requestAnimationFrame(() => {
+			inputRef.current?.select();
+		});
+	};
+
+	const saveEdit = async () => {
+		if (!inputRef.current || !activeProject) return;
+		const newName = inputRef.current.value.trim();
+		setIsEditing(false);
+
+		if (!newName) {
+			inputRef.current.value = originalNameRef.current;
+			return;
+		}
+
+		if (newName !== originalNameRef.current) {
+			try {
+				await editor.project.renameProject({
+					id: activeProject.metadata.id,
+					name: newName,
+				});
+			} catch (error) {
+				toast.error("Failed to rename project", {
+					description:
+						error instanceof Error ? error.message : "Please try again",
+				});
+			}
+		}
+	};
+
+	const handleKeyDown = (event: React.KeyboardEvent) => {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			inputRef.current?.blur();
+		} else if (event.key === "Escape") {
+			event.preventDefault();
+			if (inputRef.current) {
+				inputRef.current.value = originalNameRef.current;
+			}
+			setIsEditing(false);
+			inputRef.current?.blur();
+		}
+	};
+
+	return (
+		<input
+			ref={inputRef}
+			type="text"
+			defaultValue={projectName}
+			readOnly={!isEditing}
+			onClick={startEditing}
+			onBlur={saveEdit}
+			onKeyDown={handleKeyDown}
+			style={{ fieldSizing: "content" }}
+			className={cn(
+				"text-[0.9rem] h-8 px-2 py-1 rounded-sm bg-transparent outline-none cursor-pointer hover:bg-accent hover:text-accent-foreground",
+				isEditing && "ring-1 ring-ring cursor-text hover:bg-transparent",
+			)}
+		/>
 	);
 }

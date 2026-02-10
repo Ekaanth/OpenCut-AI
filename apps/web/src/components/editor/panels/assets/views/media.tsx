@@ -202,7 +202,7 @@ export function MediaView() {
 				className={`relative flex h-full flex-col gap-1 ${isDragOver ? "bg-accent/30" : ""}`}
 				{...dragProps}
 			>
-				<div className="bg-panel py-2 px-4 flex items-center justify-between border-b">
+				<div className="bg-background h-12 px-4 pr-2 flex items-center justify-between border-b">
 					<span className="text-muted-foreground text-sm">Assets</span>
 					<div className="flex items-center gap-0">
 						<TooltipProvider>
@@ -320,10 +320,10 @@ export function MediaView() {
 							onClick={openFilePicker}
 							disabled={isProcessing}
 							size="sm"
-							className="items-center justify-center gap-1.5 ml-1.5"
+							className="items-center justify-center gap-1.5 ml-1.5 hover:bg-accent px-3"
 						>
 							<HugeiconsIcon icon={CloudUploadIcon} />
-							Upload
+							Import
 						</Button>
 					</div>
 				</div>

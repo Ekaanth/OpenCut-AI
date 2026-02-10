@@ -5,29 +5,17 @@ import type { TextElement } from "@/types/timeline";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState, useRef } from "react";
+import { useReducer, useRef } from "react";
 import { PanelBaseView } from "@/components/editor/panels/panel-base-view";
 import {
-	TEXT_PROPERTIES_TABS,
-	isTextPropertiesTab,
-	useTextPropertiesStore,
-} from "@/stores/text-properties-store";
-import {
+	PropertyGroup,
 	PropertyItem,
 	PropertyItemLabel,
 	PropertyItemValue,
 } from "./property-item";
 import { ColorPicker } from "@/components/ui/color-picker";
-import { cn } from "@/utils/ui";
-import { capitalizeFirstLetter, uppercase } from "@/utils/string";
+import { uppercase } from "@/utils/string";
 import { clamp } from "@/utils/math";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { LayoutGridIcon } from "@hugeicons/core-free-icons";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useEditor } from "@/hooks/use-editor";
 import { DEFAULT_COLOR } from "@/constants/project-constants";
 import { MIN_FONT_SIZE, MAX_FONT_SIZE } from "@/constants/text-constants";
@@ -40,48 +28,86 @@ export function TextProperties({
 	trackId: string;
 }) {
 	const editor = useEditor();
-	const { activeTab, setActiveTab } = useTextPropertiesStore();
 	const containerRef = useRef<HTMLDivElement>(null);
-	const [fontSizeInput, setFontSizeInput] = useState(
-		element.fontSize.toString(),
-	);
-	const [opacityInput, setOpacityInput] = useState(
-		Math.round(element.opacity * 100).toString(),
-	);
+	const [, forceRender] = useReducer((x: number) => x + 1, 0);
+	const isEditingFontSize = useRef(false);
+	const isEditingOpacity = useRef(false);
+	const isEditingContent = useRef(false);
+	const fontSizeDraft = useRef("");
+	const opacityDraft = useRef("");
+	const contentDraft = useRef("");
+
+	const fontSizeDisplay = isEditingFontSize.current
+		? fontSizeDraft.current
+		: element.fontSize.toString();
+	const opacityDisplay = isEditingOpacity.current
+		? opacityDraft.current
+		: Math.round(element.opacity * 100).toString();
+	const contentDisplay = isEditingContent.current
+		? contentDraft.current
+		: element.content;
 
 	const lastSelectedColor = useRef(DEFAULT_COLOR);
 	const initialFontSizeRef = useRef<number | null>(null);
 	const initialOpacityRef = useRef<number | null>(null);
+	const initialContentRef = useRef<string | null>(null);
+	const initialColorRef = useRef<string | null>(null);
+	const initialBgColorRef = useRef<string | null>(null);
 
 	const handleFontSizeChange = ({ value }: { value: string }) => {
-		setFontSizeInput(value);
+		fontSizeDraft.current = value;
+		forceRender();
 
 		if (value.trim() !== "") {
+			if (initialFontSizeRef.current === null) {
+				initialFontSizeRef.current = element.fontSize;
+			}
 			const parsed = parseInt(value, 10);
 			const fontSize = Number.isNaN(parsed)
 				? element.fontSize
 				: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
 			editor.timeline.updateElements({
 				updates: [{ trackId, elementId: element.id, updates: { fontSize } }],
+				pushHistory: false,
 			});
 		}
 	};
 
 	const handleFontSizeBlur = () => {
-		const parsed = parseInt(fontSizeInput, 10);
-		const fontSize = Number.isNaN(parsed)
-			? element.fontSize
-			: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
-		setFontSizeInput(fontSize.toString());
-		editor.timeline.updateElements({
-			updates: [{ trackId, elementId: element.id, updates: { fontSize } }],
-		});
+		if (initialFontSizeRef.current !== null) {
+			const parsed = parseInt(fontSizeDraft.current, 10);
+			const fontSize = Number.isNaN(parsed)
+				? element.fontSize
+				: clamp({ value: parsed, min: MIN_FONT_SIZE, max: MAX_FONT_SIZE });
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { fontSize: initialFontSizeRef.current },
+					},
+				],
+				pushHistory: false,
+			});
+			editor.timeline.updateElements({
+				updates: [{ trackId, elementId: element.id, updates: { fontSize } }],
+				pushHistory: true,
+			});
+			initialFontSizeRef.current = null;
+		}
+		isEditingFontSize.current = false;
+		fontSizeDraft.current = "";
+		forceRender();
 	};
 
 	const handleOpacityChange = ({ value }: { value: string }) => {
-		setOpacityInput(value);
+		opacityDraft.current = value;
+		forceRender();
 
 		if (value.trim() !== "") {
+			if (initialOpacityRef.current === null) {
+				initialOpacityRef.current = element.opacity;
+			}
 			const parsed = parseInt(value, 10);
 			const opacityPercent = Number.isNaN(parsed)
 				? Math.round(element.opacity * 100)
@@ -94,234 +120,333 @@ export function TextProperties({
 						updates: { opacity: opacityPercent / 100 },
 					},
 				],
+				pushHistory: false,
 			});
 		}
 	};
 
 	const handleOpacityBlur = () => {
-		const parsed = parseInt(opacityInput, 10);
-		const opacityPercent = Number.isNaN(parsed)
-			? Math.round(element.opacity * 100)
-			: clamp({ value: parsed, min: 0, max: 100 });
-		setOpacityInput(opacityPercent.toString());
-		editor.timeline.updateElements({
-			updates: [
-				{
-					trackId,
-					elementId: element.id,
-					updates: { opacity: opacityPercent / 100 },
-				},
-			],
-		});
+		if (initialOpacityRef.current !== null) {
+			const parsed = parseInt(opacityDraft.current, 10);
+			const opacityPercent = Number.isNaN(parsed)
+				? Math.round(element.opacity * 100)
+				: clamp({ value: parsed, min: 0, max: 100 });
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { opacity: initialOpacityRef.current },
+					},
+				],
+				pushHistory: false,
+			});
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { opacity: opacityPercent / 100 },
+					},
+				],
+				pushHistory: true,
+			});
+			initialOpacityRef.current = null;
+		}
+		isEditingOpacity.current = false;
+		opacityDraft.current = "";
+		forceRender();
 	};
 
 	const handleColorChange = ({ color }: { color: string }) => {
 		if (color !== "transparent") {
 			lastSelectedColor.current = color;
 		}
-		editor.timeline.updateElements({
-			updates: [
-				{
-					trackId,
-					elementId: element.id,
-					updates: { backgroundColor: color },
-				},
-			],
-		});
+		if (initialBgColorRef.current === null) {
+			initialBgColorRef.current = element.backgroundColor;
+		}
+		if (initialBgColorRef.current !== null) {
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { backgroundColor: color },
+					},
+				],
+				pushHistory: false,
+			});
+		} else {
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { backgroundColor: color },
+					},
+				],
+			});
+		}
 	};
 
-	const handleTransparentToggle = ({
-		isTransparent,
-	}: {
-		isTransparent: boolean;
-	}) => {
-		const newColor = isTransparent ? "transparent" : lastSelectedColor.current;
-		editor.timeline.updateElements({
-			updates: [
-				{
-					trackId,
-					elementId: element.id,
-					updates: { backgroundColor: newColor },
-				},
-			],
-		});
+	const handleColorChangeEnd = ({ color }: { color: string }) => {
+		if (initialBgColorRef.current !== null) {
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { backgroundColor: initialBgColorRef.current },
+					},
+				],
+				pushHistory: false,
+			});
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId,
+						elementId: element.id,
+						updates: { backgroundColor: `#${color}` },
+					},
+				],
+				pushHistory: true,
+			});
+			initialBgColorRef.current = null;
+		}
 	};
 
 	return (
-		<PanelBaseView
-			defaultTab="transform"
-			value={activeTab}
-			onValueChange={(v) => {
-				if (isTextPropertiesTab(v)) setActiveTab(v);
-			}}
-			ref={containerRef}
-			tabs={TEXT_PROPERTIES_TABS.map((t) => ({
-				value: t.value,
-				label: t.label,
-				content:
-					t.value === "transform" ? (
-						<div className="space-y-6"></div>
-					) : (
-						<div className="space-y-6">
-							<Textarea
-								placeholder="Name"
-								defaultValue={element.content}
-								className="bg-panel-accent min-h-20"
-								onChange={(e) =>
-									editor.timeline.updateElements({
-										updates: [
-											{
-												trackId,
-												elementId: element.id,
-												updates: { content: e.target.value },
-											},
-										],
-									})
-								}
-							/>
-							<PropertyItem direction="column">
-								<PropertyItemLabel>Font</PropertyItemLabel>
-								<PropertyItemValue>
-									<FontPicker
-										defaultValue={element.fontFamily}
-										onValueChange={(value: FontFamily) =>
+		<div className="flex h-full flex-col" ref={containerRef}>
+			<PanelBaseView className="p-0">
+				<PropertyGroup title="Content" hasBorderTop={false} collapsible={false}>
+					<Textarea
+						placeholder="Name"
+						value={contentDisplay}
+						className="bg-accent min-h-20"
+						onFocus={() => {
+							isEditingContent.current = true;
+							contentDraft.current = element.content;
+							initialContentRef.current = element.content;
+							forceRender();
+						}}
+						onChange={(event) => {
+							contentDraft.current = event.target.value;
+							forceRender();
+							if (initialContentRef.current === null) {
+								initialContentRef.current = element.content;
+							}
+							editor.timeline.updateElements({
+								updates: [
+									{
+										trackId,
+										elementId: element.id,
+										updates: { content: event.target.value },
+									},
+								],
+								pushHistory: false,
+							});
+						}}
+						onBlur={() => {
+							if (initialContentRef.current !== null) {
+								const finalContent = contentDraft.current;
+								editor.timeline.updateElements({
+									updates: [
+										{
+											trackId,
+											elementId: element.id,
+											updates: { content: initialContentRef.current },
+										},
+									],
+									pushHistory: false,
+								});
+								editor.timeline.updateElements({
+									updates: [
+										{
+											trackId,
+											elementId: element.id,
+											updates: { content: finalContent },
+										},
+									],
+									pushHistory: true,
+								});
+								initialContentRef.current = null;
+							}
+							isEditingContent.current = false;
+							contentDraft.current = "";
+							forceRender();
+						}}
+					/>
+				</PropertyGroup>
+				<PropertyGroup title="Typography" collapsible={false}>
+					<div className="space-y-6">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Font</PropertyItemLabel>
+							<PropertyItemValue>
+								<FontPicker
+									defaultValue={element.fontFamily}
+									onValueChange={(value: FontFamily) =>
+										editor.timeline.updateElements({
+											updates: [
+												{
+													trackId,
+													elementId: element.id,
+													updates: { fontFamily: value },
+												},
+											],
+										})
+									}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Style</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="flex items-center gap-2">
+									<Button
+										variant={
+											element.fontWeight === "bold" ? "default" : "outline"
+										}
+										size="sm"
+										onClick={() =>
 											editor.timeline.updateElements({
 												updates: [
 													{
 														trackId,
 														elementId: element.id,
-														updates: { fontFamily: value },
+														updates: {
+															fontWeight:
+																element.fontWeight === "bold"
+																	? "normal"
+																	: "bold",
+														},
 													},
 												],
 											})
 										}
-									/>
-								</PropertyItemValue>
-							</PropertyItem>
-							<PropertyItem direction="column">
-								<PropertyItemLabel>Style</PropertyItemLabel>
-								<PropertyItemValue>
-									<div className="flex items-center gap-2">
-										<Button
-											variant={
-												element.fontWeight === "bold" ? "default" : "outline"
+										className="h-8 px-3 font-bold"
+									>
+										B
+									</Button>
+									<Button
+										variant={
+											element.fontStyle === "italic" ? "default" : "outline"
+										}
+										size="sm"
+										onClick={() =>
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: {
+															fontStyle:
+																element.fontStyle === "italic"
+																	? "normal"
+																	: "italic",
+														},
+													},
+												],
+											})
+										}
+										className="h-8 px-3 italic"
+									>
+										I
+									</Button>
+									<Button
+										variant={
+											element.textDecoration === "underline"
+												? "default"
+												: "outline"
+										}
+										size="sm"
+										onClick={() =>
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: {
+															textDecoration:
+																element.textDecoration === "underline"
+																	? "none"
+																	: "underline",
+														},
+													},
+												],
+											})
+										}
+										className="h-8 px-3 underline"
+									>
+										U
+									</Button>
+									<Button
+										variant={
+											element.textDecoration === "line-through"
+												? "default"
+												: "outline"
+										}
+										size="sm"
+										onClick={() =>
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: {
+															textDecoration:
+																element.textDecoration === "line-through"
+																	? "none"
+																	: "line-through",
+														},
+													},
+												],
+											})
+										}
+										className="h-8 px-3 line-through"
+									>
+										S
+									</Button>
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Font size</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="flex items-center gap-2">
+									<Slider
+										value={[element.fontSize]}
+										min={MIN_FONT_SIZE}
+										max={MAX_FONT_SIZE}
+										step={1}
+										onValueChange={([value]) => {
+											if (initialFontSizeRef.current === null) {
+												initialFontSizeRef.current = element.fontSize;
 											}
-											size="sm"
-											onClick={() =>
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { fontSize: value },
+													},
+												],
+												pushHistory: false,
+											});
+										}}
+										onValueCommit={([value]) => {
+											if (initialFontSizeRef.current !== null) {
 												editor.timeline.updateElements({
 													updates: [
 														{
 															trackId,
 															elementId: element.id,
 															updates: {
-																fontWeight:
-																	element.fontWeight === "bold"
-																		? "normal"
-																		: "bold",
+																fontSize: initialFontSizeRef.current,
 															},
 														},
 													],
-												})
-											}
-											className="h-8 px-3 font-bold"
-										>
-											B
-										</Button>
-										<Button
-											variant={
-												element.fontStyle === "italic" ? "default" : "outline"
-											}
-											size="sm"
-											onClick={() =>
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: {
-																fontStyle:
-																	element.fontStyle === "italic"
-																		? "normal"
-																		: "italic",
-															},
-														},
-													],
-												})
-											}
-											className="h-8 px-3 italic"
-										>
-											I
-										</Button>
-										<Button
-											variant={
-												element.textDecoration === "underline"
-													? "default"
-													: "outline"
-											}
-											size="sm"
-											onClick={() =>
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: {
-																textDecoration:
-																	element.textDecoration === "underline"
-																		? "none"
-																		: "underline",
-															},
-														},
-													],
-												})
-											}
-											className="h-8 px-3 underline"
-										>
-											U
-										</Button>
-										<Button
-											variant={
-												element.textDecoration === "line-through"
-													? "default"
-													: "outline"
-											}
-											size="sm"
-											onClick={() =>
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: {
-																textDecoration:
-																	element.textDecoration === "line-through"
-																		? "none"
-																		: "line-through",
-															},
-														},
-													],
-												})
-											}
-											className="h-8 px-3 line-through"
-										>
-											S
-										</Button>
-									</div>
-								</PropertyItemValue>
-							</PropertyItem>
-							<PropertyItem direction="column">
-								<PropertyItemLabel>Font size</PropertyItemLabel>
-								<PropertyItemValue>
-									<div className="flex items-center gap-2">
-										<Slider
-											value={[element.fontSize]}
-											min={MIN_FONT_SIZE}
-											max={MAX_FONT_SIZE}
-											step={1}
-											onValueChange={([value]) => {
-												if (initialFontSizeRef.current === null) {
-													initialFontSizeRef.current = element.fontSize;
-												}
+													pushHistory: false,
+												});
 												editor.timeline.updateElements({
 													updates: [
 														{
@@ -330,61 +455,59 @@ export function TextProperties({
 															updates: { fontSize: value },
 														},
 													],
-													pushHistory: false,
+													pushHistory: true,
 												});
-												setFontSizeInput(value.toString());
-											}}
-											onValueCommit={([value]) => {
-												if (initialFontSizeRef.current !== null) {
-													editor.timeline.updateElements({
-														updates: [
-															{
-																trackId,
-																elementId: element.id,
-																updates: {
-																	fontSize: initialFontSizeRef.current,
-																},
-															},
-														],
-														pushHistory: false,
-													});
-													editor.timeline.updateElements({
-														updates: [
-															{
-																trackId,
-																elementId: element.id,
-																updates: { fontSize: value },
-															},
-														],
-														pushHistory: true,
-													});
-													initialFontSizeRef.current = null;
-												}
-											}}
-											className="w-full"
-										/>
-										<Input
-											type="number"
-											value={fontSizeInput}
-											min={MIN_FONT_SIZE}
-											max={MAX_FONT_SIZE}
-											onChange={(e) =>
-												handleFontSizeChange({ value: e.target.value })
+												initialFontSizeRef.current = null;
 											}
-											onBlur={handleFontSizeBlur}
-											className="bg-panel-accent h-7 w-12 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-										/>
-									</div>
-								</PropertyItemValue>
-							</PropertyItem>
-							<PropertyItem direction="column">
-								<PropertyItemLabel>Color</PropertyItemLabel>
-								<PropertyItemValue>
-									<ColorPicker
-										value={uppercase({
-											string: (element.color || "FFFFFF").replace("#", ""),
-										})}
-										onChange={(color) => {
+										}}
+										className="w-full"
+									/>
+									<Input
+										type="number"
+										value={fontSizeDisplay}
+										min={MIN_FONT_SIZE}
+										max={MAX_FONT_SIZE}
+										onFocus={() => {
+											isEditingFontSize.current = true;
+											fontSizeDraft.current = element.fontSize.toString();
+											forceRender();
+										}}
+										onChange={(e) =>
+											handleFontSizeChange({ value: e.target.value })
+										}
+										onBlur={handleFontSizeBlur}
+										className="bg-accent h-7 w-12 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+									/>
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+					</div>
+				</PropertyGroup>
+				<PropertyGroup title="Appearance" collapsible={false}>
+					<div className="space-y-6">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Color</PropertyItemLabel>
+							<PropertyItemValue>
+								<ColorPicker
+									value={uppercase({
+										string: (element.color || "FFFFFF").replace("#", ""),
+									})}
+									onChange={(color) => {
+										if (initialColorRef.current === null) {
+											initialColorRef.current = element.color || "#FFFFFF";
+										}
+										if (initialColorRef.current !== null) {
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { color: `#${color}` },
+													},
+												],
+												pushHistory: false,
+											});
+										} else {
 											editor.timeline.updateElements({
 												updates: [
 													{
@@ -394,24 +517,73 @@ export function TextProperties({
 													},
 												],
 											});
+										}
+									}}
+									onChangeEnd={(color) => {
+										if (initialColorRef.current !== null) {
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { color: initialColorRef.current },
+													},
+												],
+												pushHistory: false,
+											});
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { color: `#${color}` },
+													},
+												],
+												pushHistory: true,
+											});
+											initialColorRef.current = null;
+										}
+									}}
+									containerRef={containerRef}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Opacity</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="flex items-center gap-2">
+									<Slider
+										value={[element.opacity * 100]}
+										min={0}
+										max={100}
+										step={1}
+										onValueChange={([value]) => {
+											if (initialOpacityRef.current === null) {
+												initialOpacityRef.current = element.opacity;
+											}
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: { opacity: value / 100 },
+													},
+												],
+												pushHistory: false,
+											});
 										}}
-										containerRef={containerRef}
-									/>
-								</PropertyItemValue>
-							</PropertyItem>
-							<PropertyItem direction="column">
-								<PropertyItemLabel>Opacity</PropertyItemLabel>
-								<PropertyItemValue>
-									<div className="flex items-center gap-2">
-										<Slider
-											value={[element.opacity * 100]}
-											min={0}
-											max={100}
-											step={1}
-											onValueChange={([value]) => {
-												if (initialOpacityRef.current === null) {
-													initialOpacityRef.current = element.opacity;
-												}
+										onValueCommit={([value]) => {
+											if (initialOpacityRef.current !== null) {
+												editor.timeline.updateElements({
+													updates: [
+														{
+															trackId,
+															elementId: element.id,
+															updates: { opacity: initialOpacityRef.current },
+														},
+													],
+													pushHistory: false,
+												});
 												editor.timeline.updateElements({
 													updates: [
 														{
@@ -420,104 +592,59 @@ export function TextProperties({
 															updates: { opacity: value / 100 },
 														},
 													],
-													pushHistory: false,
+													pushHistory: true,
 												});
-												setOpacityInput(value.toString());
-											}}
-											onValueCommit={([value]) => {
-												if (initialOpacityRef.current !== null) {
-													editor.timeline.updateElements({
-														updates: [
-															{
-																trackId,
-																elementId: element.id,
-																updates: { opacity: initialOpacityRef.current },
-															},
-														],
-														pushHistory: false,
-													});
-													editor.timeline.updateElements({
-														updates: [
-															{
-																trackId,
-																elementId: element.id,
-																updates: { opacity: value / 100 },
-															},
-														],
-														pushHistory: true,
-													});
-													initialOpacityRef.current = null;
-												}
-											}}
-											className="w-full"
-										/>
-										<Input
-											type="number"
-											value={opacityInput}
-											min={0}
-											max={100}
-											onChange={(e) =>
-												handleOpacityChange({ value: e.target.value })
+												initialOpacityRef.current = null;
 											}
-											onBlur={handleOpacityBlur}
-											className="bg-panel-accent h-7 w-12 [appearance:textfield] rounded-sm text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-										/>
-									</div>
-								</PropertyItemValue>
-							</PropertyItem>
-							<PropertyItem direction="column">
-								<PropertyItemLabel>Background</PropertyItemLabel>
-								<PropertyItemValue>
-									<div className="flex items-center gap-2">
-										<ColorPicker
-											value={capitalizeFirstLetter({
-												string:
-													element.backgroundColor === "transparent"
-														? lastSelectedColor.current.replace("#", "")
-														: element.backgroundColor.replace("#", ""),
-											})}
-											onChange={(color) =>
-												handleColorChange({ color: `#${color}` })
-											}
-											containerRef={containerRef}
-											className={
-												element.backgroundColor === "transparent"
-													? "pointer-events-none opacity-50"
-													: ""
-											}
-										/>
-
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<Button
-													variant="outline"
-													size="icon"
-													onClick={() =>
-														handleTransparentToggle({
-															isTransparent:
-																element.backgroundColor !== "transparent",
-														})
-													}
-													className="bg-panel-accent size-9 overflow-hidden rounded-full p-0"
-												>
-													<HugeiconsIcon
-														icon={LayoutGridIcon}
-														className={cn(
-															"text-foreground",
-															element.backgroundColor === "transparent" &&
-																"text-primary",
-														)}
-													/>
-												</Button>
-											</TooltipTrigger>
-											<TooltipContent>Transparent background</TooltipContent>
-										</Tooltip>
-									</div>
-								</PropertyItemValue>
-							</PropertyItem>
-						</div>
-					),
-			}))}
-		/>
+										}}
+										className="w-full"
+									/>
+									<Input
+										type="number"
+										value={opacityDisplay}
+										min={0}
+										max={100}
+										onFocus={() => {
+											isEditingOpacity.current = true;
+											opacityDraft.current = Math.round(
+												element.opacity * 100,
+											).toString();
+											forceRender();
+										}}
+										onChange={(e) =>
+											handleOpacityChange({ value: e.target.value })
+										}
+										onBlur={handleOpacityBlur}
+										className="bg-accent h-7 w-12 [appearance:textfield] rounded-sm text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+									/>
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Background</PropertyItemLabel>
+							<PropertyItemValue>
+								<ColorPicker
+									value={
+										element.backgroundColor === "transparent"
+											? lastSelectedColor.current.replace("#", "")
+											: element.backgroundColor.replace("#", "")
+									}
+									onChange={(color) =>
+										handleColorChange({ color: `#${color}` })
+									}
+									onChangeEnd={(color) => handleColorChangeEnd({ color })}
+									containerRef={containerRef}
+									className={
+										element.backgroundColor === "transparent"
+											? "pointer-events-none opacity-50"
+											: ""
+									}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+					</div>
+				</PropertyGroup>
+			</PanelBaseView>
+		</div>
 	);
 }

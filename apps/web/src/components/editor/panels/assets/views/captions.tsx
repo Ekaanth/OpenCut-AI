@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { PropertyGroup } from "@/components/editor/panels/properties/property-item";
 import { PanelBaseView as BaseView } from "@/components/editor/panels/panel-base-view";
 import {
 	Select,
@@ -21,6 +20,7 @@ import { transcriptionService } from "@/services/transcription/service";
 import { decodeAudioToFloat32 } from "@/lib/media/audio";
 import { buildCaptionChunks } from "@/lib/transcription/caption";
 import { Spinner } from "@/components/ui/spinner";
+import { Label } from "@/components/ui/label";
 
 export function Captions() {
 	const [selectedLanguage, setSelectedLanguage] =
@@ -112,12 +112,13 @@ export function Captions() {
 			ref={containerRef}
 			className="flex h-full flex-col justify-between"
 		>
-			<PropertyGroup title="Language">
+			<div className="flex flex-col gap-3">
+				<Label>Language</Label>
 				<Select
 					value={selectedLanguage}
 					onValueChange={(value) => handleLanguageChange({ value })}
 				>
-					<SelectTrigger className="bg-panel-accent h-8 w-full text-xs">
+					<SelectTrigger>
 						<SelectValue placeholder="Select a language" />
 					</SelectTrigger>
 					<SelectContent>
@@ -129,7 +130,7 @@ export function Captions() {
 						))}
 					</SelectContent>
 				</Select>
-			</PropertyGroup>
+			</div>
 
 			<div className="flex flex-col gap-4">
 				{error && (

@@ -21,7 +21,6 @@ import { colors } from "@/data/colors/solid";
 import { syntaxUIGradients } from "@/data/colors/syntax-ui";
 import { useEditor } from "@/hooks/use-editor";
 import { useEditorStore } from "@/stores/editor-store";
-import type { TProject } from "@/types/project";
 import { dimensionToAspectRatio } from "@/utils/geometry";
 import { cn } from "@/utils/ui";
 import {
@@ -30,8 +29,7 @@ import {
 	PropertyItemLabel,
 	PropertyItemValue,
 } from "@/components/editor/panels/properties/property-item";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { DropperIcon } from "@hugeicons/core-free-icons";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 export function SettingsView() {
 	return <ProjectSettingsTabs />;
@@ -56,24 +54,9 @@ function ProjectSettingsTabs() {
 					label: "Background",
 					content: (
 						<div className="flex h-full flex-col justify-between">
-							<div className="flex-1 p-5">
+							<div className="flex-1">
 								<BackgroundView />
 							</div>
-							{/* <div className="bg-panel/85 sticky -bottom-0 flex flex-col backdrop-blur-lg">
-                <Separator />
-                <Button className="text-muted-foreground hover:text-foreground/85 h-auto w-fit !bg-transparent p-5 py-4 text-xs shadow-none">
-                  Custom background
-                  <PlusIcon />
-                </Button>
-              </div> */}
-
-							{/* another ui */}
-							{/* <div className="flex flex-col justify-center items-center pb-5 sticky bottom-0">
-                <Button className="w-fit h-auto gap-1.5 px-3.5 py-1.5 bg-foreground hover:bg-foreground/85 text-background rounded-full">
-                  <span className="text-sm">Custom</span>
-                  <PlusIcon className="" />
-                </Button>
-              </div> */}
 						</div>
 					),
 				},
@@ -81,15 +64,6 @@ function ProjectSettingsTabs() {
 			className="flex h-full flex-col justify-between p-0"
 		/>
 	);
-}
-
-function getCurrentCanvasSize({ activeProject }: { activeProject: TProject }) {
-	const { canvasSize } = activeProject.settings;
-
-	return {
-		width: canvasSize.width,
-		height: canvasSize.height,
-	};
 }
 
 function ProjectInfoView() {
@@ -117,7 +91,7 @@ function ProjectInfoView() {
 		return -1;
 	};
 
-	const currentCanvasSize = getCurrentCanvasSize({ activeProject });
+	const currentCanvasSize = activeProject.settings.canvasSize;
 	const currentAspectRatio = dimensionToAspectRatio(currentCanvasSize);
 	const originalCanvasSize = activeProject.settings.originalCanvasSize ?? null;
 	const presetIndex = findPresetIndexByAspectRatio({
@@ -162,7 +136,7 @@ function ProjectInfoView() {
 						value={selectedPresetValue}
 						onValueChange={(value) => handleAspectRatioChange({ value })}
 					>
-						<SelectTrigger className="bg-panel-accent">
+						<SelectTrigger>
 							<SelectValue placeholder="Select an aspect ratio" />
 						</SelectTrigger>
 						<SelectContent>
@@ -190,7 +164,7 @@ function ProjectInfoView() {
 						value={activeProject.settings.fps.toString()}
 						onValueChange={handleFpsChange}
 					>
-						<SelectTrigger className="bg-panel-accent">
+						<SelectTrigger>
 							<SelectValue placeholder="Select a frame rate" />
 						</SelectTrigger>
 						<SelectContent>
@@ -219,7 +193,7 @@ const BlurPreview = memo(
 	}) => (
 		<button
 			className={cn(
-				"border-foreground/15 hover:border-primary relative aspect-square w-full cursor-pointer overflow-hidden rounded-sm border",
+				"border-foreground/15 hover:border-primary relative aspect-square size-20 cursor-pointer overflow-hidden rounded-sm border",
 				isSelected && "border-primary border-2",
 			)}
 			onClick={onSelect}
@@ -265,7 +239,7 @@ const BackgroundPreviews = memo(
 					<button
 						key={`${index}-${bg}`}
 						className={cn(
-							"border-foreground/15 hover:border-primary aspect-square w-full cursor-pointer rounded-sm border",
+							"border-foreground/15 hover:border-primary aspect-square size-20 cursor-pointer rounded-sm border",
 							isColorBackground &&
 								bg === currentBackgroundColor &&
 								"border-primary border-2",
@@ -347,48 +321,35 @@ function BackgroundView() {
 		[blurLevels, isBlurBackground, currentBlurIntensity, handleBlurSelect],
 	);
 
+	const backgroundSections = [
+		{ title: "Colors", backgrounds: colors, useBackgroundColor: true },
+		{ title: "Pattern craft", backgrounds: patternCraftGradients },
+		{ title: "Syntax UI", backgrounds: syntaxUIGradients },
+	];
+
 	return (
-		<div className="flex h-full flex-col gap-4">
-			<PropertyGroup title="Blur" defaultExpanded={false}>
-				<div className="grid w-full grid-cols-4 gap-2">{blurPreviews}</div>
+		<div className="flex h-full flex-col">
+			<PropertyGroup title="Blur" hasBorderTop={false} defaultExpanded={false}>
+				<div className="flex flex-wrap gap-2">{blurPreviews}</div>
 			</PropertyGroup>
 
-			<PropertyGroup title="Colors" defaultExpanded={false}>
-				<div className="grid w-full grid-cols-4 gap-2">
-					<div className="border-foreground/15 hover:border-primary flex aspect-square w-full cursor-pointer items-center justify-center rounded-sm border">
-						<HugeiconsIcon icon={DropperIcon} className="size-4" />
+			{backgroundSections.map((section) => (
+				<PropertyGroup
+					key={section.title}
+					title={section.title}
+					defaultExpanded={false}
+				>
+					<div className="flex flex-wrap gap-2">
+						<BackgroundPreviews
+							backgrounds={section.backgrounds}
+							currentBackgroundColor={currentBackgroundColor}
+							isColorBackground={isColorBackground}
+							handleColorSelect={({ bg }) => handleColorSelect({ color: bg })}
+							useBackgroundColor={section.useBackgroundColor}
+						/>
 					</div>
-					<BackgroundPreviews
-						backgrounds={colors}
-						currentBackgroundColor={currentBackgroundColor}
-						isColorBackground={isColorBackground}
-						handleColorSelect={({ bg }) => handleColorSelect({ color: bg })}
-						useBackgroundColor={true}
-					/>
-				</div>
-			</PropertyGroup>
-
-			<PropertyGroup title="Pattern craft" defaultExpanded={false}>
-				<div className="grid w-full grid-cols-4 gap-2">
-					<BackgroundPreviews
-						backgrounds={patternCraftGradients}
-						currentBackgroundColor={currentBackgroundColor}
-						isColorBackground={isColorBackground}
-						handleColorSelect={({ bg }) => handleColorSelect({ color: bg })}
-					/>
-				</div>
-			</PropertyGroup>
-
-			<PropertyGroup title="Syntax UI" defaultExpanded={false}>
-				<div className="grid w-full grid-cols-4 gap-2">
-					<BackgroundPreviews
-						backgrounds={syntaxUIGradients}
-						currentBackgroundColor={currentBackgroundColor}
-						isColorBackground={isColorBackground}
-						handleColorSelect={({ bg }) => handleColorSelect({ color: bg })}
-					/>
-				</div>
-			</PropertyGroup>
+				</PropertyGroup>
+			))}
 		</div>
 	);
 }

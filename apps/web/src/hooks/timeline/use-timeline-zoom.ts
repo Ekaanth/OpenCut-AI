@@ -44,7 +44,7 @@ export function useTimelineZoom({
 		null,
 	);
 
-	const [zoomLevel, setZoomLevel] = useState(() => {
+	const [zoomLevel, setZoomLevelRaw] = useState(() => {
 		if (initialZoom !== undefined) {
 			hasInitializedRef.current = true;
 			return Math.max(
@@ -56,6 +56,18 @@ export function useTimelineZoom({
 	});
 	const previousZoomRef = useRef(zoomLevel);
 	const hasRestoredScrollRef = useRef(false);
+	const preZoomScrollLeftRef = useRef(0);
+
+	const setZoomLevel = useCallback(
+		(updater: number | ((prev: number) => number)) => {
+			const scrollElement = tracksScrollRef.current;
+			if (scrollElement) {
+				preZoomScrollLeftRef.current = scrollElement.scrollLeft;
+			}
+			setZoomLevelRaw(updater);
+		},
+		[tracksScrollRef],
+	);
 
 	const handleWheel = useCallback(
 		(event: ReactWheelEvent) => {
@@ -82,7 +94,7 @@ export function useTimelineZoom({
 				return;
 			}
 		},
-		[minZoom],
+		[minZoom, setZoomLevel],
 	);
 
 	useEffect(() => {
@@ -99,7 +111,7 @@ export function useTimelineZoom({
 			}
 			return prev;
 		});
-	}, [minZoom, initialZoom]);
+	}, [minZoom, initialZoom, setZoomLevel]);
 
 	const wrappedSetZoomLevel = useCallback(
 		(zoomLevelOrUpdater: number | ((prev: number) => number)) => {
@@ -115,7 +127,7 @@ export function useTimelineZoom({
 				return clampedZoom;
 			});
 		},
-		[minZoom],
+		[minZoom, setZoomLevel],
 	);
 
 	useLayoutEffect(() => {
@@ -128,7 +140,7 @@ export function useTimelineZoom({
 			return;
 		}
 
-		const currentScrollLeft = scrollElement.scrollLeft;
+		const currentScrollLeft = preZoomScrollLeftRef.current;
 		const playheadTime = editor.playback.getCurrentTime();
 		const sliderPercent = zoomToSlider({ zoomLevel, minZoom });
 

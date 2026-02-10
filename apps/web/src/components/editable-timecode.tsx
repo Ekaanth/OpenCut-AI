@@ -122,8 +122,8 @@ export function EditableTimecode({
 				onKeyDown={handleKeyDown}
 				onBlur={handleBlur}
 				className={cn(
-					"border-none bg-transparent font-mono text-xs outline-none",
-					"focus:bg-background focus:border-primary focus:rounded focus:border focus:px-1",
+					"-mx-1 border border-transparent bg-transparent px-1 font-mono text-xs outline-none",
+					"focus:bg-background focus:border-primary focus:rounded",
 					"text-primary tabular-nums",
 					hasError && "text-destructive focus:border-destructive",
 					className,

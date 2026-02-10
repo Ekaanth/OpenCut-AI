@@ -14,7 +14,7 @@ const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 const selectItemVariants = cva(
-	"relative flex cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-foreground/85 outline-hidden data-[highlighted]:bg-accent/35 data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
+	"relative flex cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-foreground/85 outline-hidden data-[highlighted]:bg-popover-hover data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
 	{
 		variants: {
 			variant: {
@@ -35,7 +35,7 @@ const SelectTrigger = React.forwardRef<
 	<SelectPrimitive.Trigger
 		ref={ref}
 		className={cn(
-			"bg-accent ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-7 w-auto cursor-pointer items-center justify-between gap-1 rounded-md px-3 py-2 text-sm whitespace-nowrap focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+			"bg-accent ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-8 w-auto cursor-pointer items-center justify-between gap-1 rounded-md px-3 py-2 text-sm whitespace-nowrap focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
 			"focus:border-primary focus:ring-4 focus:ring-primary/10 border-transparent transition-none",
 			className,
 		)}
@@ -159,7 +159,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<SelectPrimitive.Separator
 		ref={ref}
-		className={cn("bg-border/60 mx-1 my-2 h-px", className)}
+		className={cn("bg-border mx-1 my-2 h-px", className)}
 		{...props}
 	/>
 ));
