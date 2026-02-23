@@ -6,29 +6,46 @@ export interface StickerNodeParams extends VisualNodeParams {
 	stickerId: string;
 }
 
-export class StickerNode extends VisualNode<StickerNodeParams> {
-	private image?: HTMLImageElement;
-	private readyPromise: Promise<void>;
+interface CachedStickerSource {
+	source: HTMLImageElement;
+	width: number;
+	height: number;
+}
 
-	constructor(params: StickerNodeParams) {
-		super(params);
-		this.readyPromise = this.load();
-	}
+const stickerSourceCache = new Map<string, Promise<CachedStickerSource>>();
 
-	private async load() {
-		const image = new Image();
-		this.image = image;
+function loadStickerSource(stickerId: string): Promise<CachedStickerSource> {
+	const cached = stickerSourceCache.get(stickerId);
+	if (cached) return cached;
+
+	const promise = (async (): Promise<CachedStickerSource> => {
 		const url = resolveStickerId({
-			stickerId: this.params.stickerId,
+			stickerId,
 			options: { width: 200, height: 200 },
 		});
+
+		const image = new Image();
 
 		await new Promise<void>((resolve, reject) => {
 			image.onload = () => resolve();
 			image.onerror = () =>
-				reject(new Error(`Failed to load sticker: ${this.params.stickerId}`));
+				reject(new Error(`Failed to load sticker: ${stickerId}`));
 			image.src = url;
 		});
+
+		return { source: image, width: 200, height: 200 };
+	})();
+
+	stickerSourceCache.set(stickerId, promise);
+	return promise;
+}
+
+export class StickerNode extends VisualNode<StickerNodeParams> {
+	private cachedSource: Promise<CachedStickerSource>;
+
+	constructor(params: StickerNodeParams) {
+		super(params);
+		this.cachedSource = loadStickerSource(params.stickerId);
 	}
 
 	async render({ renderer, time }: { renderer: CanvasRenderer; time: number }) {
@@ -38,17 +55,13 @@ export class StickerNode extends VisualNode<StickerNodeParams> {
 			return;
 		}
 
-		await this.readyPromise;
-
-		if (!this.image) {
-			return;
-		}
+		const { source, width, height } = await this.cachedSource;
 
 		this.renderVisual({
 			renderer,
-			source: this.image,
-			sourceWidth: 200,
-			sourceHeight: 200,
+			source,
+			sourceWidth: width,
+			sourceHeight: height,
 		});
 	}
 }

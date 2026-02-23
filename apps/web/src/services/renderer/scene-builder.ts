@@ -11,12 +11,15 @@ import type { TBackground, TCanvasSize } from "@/types/project";
 import { DEFAULT_BLUR_INTENSITY } from "@/constants/project-constants";
 import { isMainTrack } from "@/lib/timeline";
 
+const PREVIEW_MAX_IMAGE_SIZE = 2048;
+
 export type BuildSceneParams = {
 	canvasSize: TCanvasSize;
 	tracks: TimelineTrack[];
 	mediaAssets: MediaAsset[];
 	duration: number;
 	background: TBackground;
+	isPreview?: boolean;
 };
 
 export function buildScene(params: BuildSceneParams) {
@@ -81,6 +84,9 @@ export function buildScene(params: BuildSceneParams) {
 							transform: element.transform,
 							opacity: element.opacity,
 							blendMode: element.blendMode,
+							...(params.isPreview && {
+								maxSourceSize: PREVIEW_MAX_IMAGE_SIZE,
+							}),
 						}),
 					);
 				}

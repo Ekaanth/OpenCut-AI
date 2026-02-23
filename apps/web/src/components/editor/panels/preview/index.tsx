@@ -69,6 +69,7 @@ function RenderTreeController() {
 			duration,
 			canvasSize: { width, height },
 			background: activeProject.settings.background,
+			isPreview: true,
 		});
 
 		editor.renderer.setRenderTree({ renderTree });
