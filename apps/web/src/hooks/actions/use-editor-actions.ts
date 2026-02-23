@@ -10,7 +10,13 @@ export function useEditorActions() {
 	const editor = useEditor();
 	const activeProject = editor.project.getActive();
 	const { selectedElements, setElementSelection } = useElementSelection();
-	const { clipboard, setClipboard, toggleSnapping } = useTimelineStore();
+	const {
+		clipboard,
+		setClipboard,
+		toggleSnapping,
+		rippleEditingEnabled,
+		toggleRippleEditing,
+	} = useTimelineStore();
 
 	useActionHandler(
 		"toggle-play",
@@ -158,11 +164,21 @@ export function useEditorActions() {
 
 			if (elementsToSplit.length === 0) return;
 
-			editor.timeline.splitElements({
+			const rightSideElements = editor.timeline.splitElements({
 				elements: elementsToSplit,
 				splitTime: currentTime,
 				retainSide: "right",
+				rippleEnabled: rippleEditingEnabled,
 			});
+
+			if (rippleEditingEnabled && rightSideElements.length > 0) {
+				const firstRightElement = editor.timeline.getElementsWithTracks({
+					elements: [rightSideElements[0]],
+				})[0];
+				if (firstRightElement) {
+					editor.playback.seek({ time: firstRightElement.element.startTime });
+				}
+			}
 		},
 		undefined,
 	);
@@ -198,6 +214,7 @@ export function useEditorActions() {
 			}
 			editor.timeline.deleteElements({
 				elements: selectedElements,
+				rippleEnabled: rippleEditingEnabled,
 			});
 			editor.selection.clearSelection();
 		},
@@ -291,6 +308,14 @@ export function useEditorActions() {
 		"toggle-snapping",
 		() => {
 			toggleSnapping();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"toggle-ripple-editing",
+		() => {
+			toggleRippleEditing();
 		},
 		undefined,
 	);

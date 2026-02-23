@@ -140,12 +140,19 @@ export class TimelineManager {
 		elements,
 		splitTime,
 		retainSide = "both",
+		rippleEnabled = false,
 	}: {
 		elements: { trackId: string; elementId: string }[];
 		splitTime: number;
 		retainSide?: "both" | "left" | "right";
+		rippleEnabled?: boolean;
 	}): { trackId: string; elementId: string }[] {
-		const command = new SplitElementsCommand(elements, splitTime, retainSide);
+		const command = new SplitElementsCommand(
+			elements,
+			splitTime,
+			retainSide,
+			rippleEnabled,
+		);
 		this.editor.command.execute({ command });
 		return command.getRightSideElements();
 	}
@@ -194,10 +201,12 @@ export class TimelineManager {
 
 	deleteElements({
 		elements,
+		rippleEnabled = false,
 	}: {
 		elements: { trackId: string; elementId: string }[];
+		rippleEnabled?: boolean;
 	}): void {
-		const command = new DeleteElementsCommand(elements);
+		const command = new DeleteElementsCommand(elements, rippleEnabled);
 		this.editor.command.execute({ command });
 	}
 

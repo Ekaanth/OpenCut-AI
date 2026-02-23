@@ -105,6 +105,10 @@ export const ACTIONS = {
 		category: "editing",
 		defaultShortcuts: ["n"],
 	},
+	"toggle-ripple-editing": {
+		description: "Toggle ripple editing",
+		category: "editing",
+	},
 	"select-all": {
 		description: "Select all elements",
 		category: "selection",
