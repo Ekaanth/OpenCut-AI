@@ -71,27 +71,54 @@ export async function collectAudioElements({
 		if (canTracktHaveAudio(track) && track.muted) continue;
 
 		for (const element of track.elements) {
-			if (element.type !== "audio") continue;
+			if (!canElementHaveAudio(element)) continue;
 			if (element.duration <= 0) continue;
 
 			const isTrackMuted = canTracktHaveAudio(track) && track.muted;
-			pendingElements.push(
-				resolveAudioBufferForElement({
-					element,
-					mediaMap,
-					audioContext,
-				}).then((audioBuffer) => {
-					if (!audioBuffer) return null;
-					return {
-						buffer: audioBuffer,
-						startTime: element.startTime,
-						duration: element.duration,
-						trimStart: element.trimStart,
-						trimEnd: element.trimEnd,
-						muted: element.muted || isTrackMuted,
-					};
-				}),
-			);
+
+			if (element.type === "audio") {
+				pendingElements.push(
+					resolveAudioBufferForElement({
+						element,
+						mediaMap,
+						audioContext,
+					}).then((audioBuffer) => {
+						if (!audioBuffer) return null;
+						return {
+							buffer: audioBuffer,
+							startTime: element.startTime,
+							duration: element.duration,
+							trimStart: element.trimStart,
+							trimEnd: element.trimEnd,
+							muted: element.muted || isTrackMuted,
+						};
+					}),
+				);
+				continue;
+			}
+
+			if (element.type === "video") {
+				const mediaAsset = mediaMap.get(element.mediaId);
+				if (!mediaAsset || !mediaSupportsAudio({ media: mediaAsset })) continue;
+
+				pendingElements.push(
+					resolveAudioBufferForVideoElement({
+						mediaAsset,
+						audioContext,
+					}).then((audioBuffer) => {
+						if (!audioBuffer) return null;
+						const elementMuted = element.muted ?? false;
+						return {
+							buffer: audioBuffer,
+							startTime: element.startTime,
+							duration: element.duration,
+							trimStart: element.trimStart,
+							trimEnd: element.trimEnd,
+							muted: elementMuted || isTrackMuted,
+						};
+					}),
+				);
+			}
 		}
 	}
 
@@ -132,6 +159,22 @@ async function resolveAudioBufferForElement({
 		return await audioContext.decodeAudioData(arrayBuffer.slice(0));
 	} catch (error) {
 		console.warn("Failed to decode audio:", error);
+		return null;
+	}
+}
+
+async function resolveAudioBufferForVideoElement({
+	mediaAsset,
+	audioContext,
+}: {
+	mediaAsset: MediaAsset;
+	audioContext: AudioContext;
+}): Promise<AudioBuffer | null> {
+	try {
+		const arrayBuffer = await mediaAsset.file.arrayBuffer();
+		return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+	} catch (error) {
+		console.warn("Failed to decode video audio:", error);
 		return null;
 	}
 }
