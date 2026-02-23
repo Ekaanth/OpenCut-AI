@@ -38,109 +38,51 @@
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
-
-- [Node.js](https://nodejs.org/en/) (v18 or later)
 - [Bun](https://bun.sh/docs/installation)
-  (for `npm` alternative)
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
-> **Note:** Docker is optional, but it's essential for running the local database and Redis services. If you're planning to run the frontend or want to contribute to frontend features, you can skip the Docker setup. If you have followed the steps below in [Setup](#setup), you're all set to go!
+> **Note:** Docker is optional but recommended for running the local database and Redis. If you only want to work on frontend features, you can skip it.
 
 ### Setup
 
-1. Fork the repository
-2. Clone your fork locally
-3. Navigate to the web app directory: `cd apps/web`
-4. Copy `.env.example` to `.env.local`:
+1. Fork and clone the repository
+
+2. Copy the environment file:
 
    ```bash
    # Unix/Linux/Mac
-   cp .env.example .env.local
-
-   # Windows Command Prompt
-   copy .env.example .env.local
+   cp apps/web/.env.example apps/web/.env.local
 
    # Windows PowerShell
-   Copy-Item .env.example .env.local
+   Copy-Item apps/web/.env.example apps/web/.env.local
    ```
 
-5. Install dependencies: `bun install`
-6. Start the development server: `bun dev`
-
-## Development Setup
-
-### Local Development
-
-1. Start the database and Redis services:
+3. Start the database and Redis:
 
    ```bash
-   # From project root
-   docker-compose up -d
+   docker compose up -d db redis serverless-redis-http
    ```
 
-2. Navigate to the web app directory:
+4. Install dependencies and start the dev server:
 
    ```bash
-   cd apps/web
+   bun install
+   bun dev:web
    ```
-
-3. Copy `.env.example` to `.env.local`:
-
-   ```bash
-   # Unix/Linux/Mac
-   cp .env.example .env.local
-
-   # Windows Command Prompt
-   copy .env.example .env.local
-
-   # Windows PowerShell
-   Copy-Item .env.example .env.local
-   ```
-
-4. Configure required environment variables in `.env.local`:
-
-   **Required Variables:**
-
-   ```bash
-   # Database (matches docker-compose.yaml)
-   DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut"
-
-   # Generate a secure secret for Better Auth
-   BETTER_AUTH_SECRET="your-generated-secret-here"
-   BETTER_AUTH_URL="http://localhost:3000"
-
-   # Redis (matches docker-compose.yaml)
-   UPSTASH_REDIS_REST_URL="http://localhost:8079"
-   UPSTASH_REDIS_REST_TOKEN="example_token"
-
-   # Marble Blog
-   MARBLE_WORKSPACE_KEY=cm6ytuq9x0000i803v0isidst # example organization key
-   NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com
-
-   # Development
-   NODE_ENV="development"
-   ```
-
-   **Generate BETTER_AUTH_SECRET:**
-
-   ```bash
-   # Unix/Linux/Mac
-   openssl rand -base64 32
-
-   # Windows PowerShell (simple method)
-   [System.Web.Security.Membership]::GeneratePassword(32, 0)
-
-   # Cross-platform (using Node.js)
-   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-
-   # Or use an online generator: https://generate-secret.vercel.app/32
-   ```
-
-5. Run database migrations: `bun run db:migrate` from (inside apps/web)
-6. Start the development server: `bun run dev` from (inside apps/web)
 
 The application will be available at [http://localhost:3000](http://localhost:3000).
+
+The `.env.example` has sensible defaults that match the Docker Compose config — it should work out of the box.
+
+### Self-Hosting with Docker
+
+To run everything (including a production build of the app) in Docker:
+
+```bash
+docker compose up -d
+```
+
+The app will be available at [http://localhost:3100](http://localhost:3100).
 
 ## Contributing
 

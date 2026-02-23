@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env*
+!.env.example
+.cursor
+.vscode
+diffs
+docs
+agent-transcripts
+mcps
+terminals
+apps/web/.font-cache
