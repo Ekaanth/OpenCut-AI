@@ -74,3 +74,17 @@ export function getDisplayScale({
 		y: canvasRect.height / canvasSize.height,
 	};
 }
+
+export function screenPixelsToLogicalThreshold({
+	canvas,
+	screenPixels,
+}: {
+	canvas: HTMLCanvasElement;
+	screenPixels: number;
+}): { x: number; y: number } {
+	const canvasRect = canvas.getBoundingClientRect();
+	return {
+		x: screenPixels * (canvas.width / canvasRect.width),
+		y: screenPixels * (canvas.height / canvasRect.height),
+	};
+}

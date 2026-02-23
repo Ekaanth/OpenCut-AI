@@ -4,9 +4,16 @@ import { useShiftKey } from "@/hooks/use-shift-key";
 import type { TextElement, Transform } from "@/types/timeline";
 import { getVisibleElementsWithBounds } from "@/lib/preview/element-bounds";
 import { hitTest } from "@/lib/preview/hit-test";
-import { screenToCanvas } from "@/lib/preview/preview-coords";
+import {
+	screenPixelsToLogicalThreshold,
+	screenToCanvas,
+} from "@/lib/preview/preview-coords";
 import { isVisualElement } from "@/lib/timeline/element-utils";
-import { snapPosition, type SnapLine } from "@/lib/preview/preview-snap";
+import {
+	SNAP_THRESHOLD_SCREEN_PIXELS,
+	snapPosition,
+	type SnapLine,
+} from "@/lib/preview/preview-snap";
 
 const MIN_DRAG_DISTANCE = 0.5;
 
@@ -230,11 +237,16 @@ export function usePreviewInteraction({
 			};
 
 			const shouldSnap = !isShiftHeldRef.current;
+			const snapThreshold = screenPixelsToLogicalThreshold({
+				canvas: canvasRef.current,
+				screenPixels: SNAP_THRESHOLD_SCREEN_PIXELS,
+			});
 			const { snappedPosition, activeLines } = shouldSnap
 				? snapPosition({
 						proposedPosition,
 						canvasSize,
 						elementSize: dragStateRef.current.bounds,
+						snapThreshold,
 					})
 				: {
 						snappedPosition: proposedPosition,
