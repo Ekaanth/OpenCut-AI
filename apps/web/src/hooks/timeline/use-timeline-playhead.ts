@@ -3,10 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useEdgeAutoScroll } from "@/hooks/timeline/use-edge-auto-scroll";
 import { useEditor } from "../use-editor";
 import { useShiftKey } from "@/hooks/use-shift-key";
-import {
-	useTimelineSnapping,
-	type SnapPoint,
-} from "@/hooks/timeline/use-timeline-snapping";
+import { useTimelineSnapping } from "@/hooks/timeline/use-timeline-snapping";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 
 interface UseTimelinePlayheadProps {
@@ -31,8 +28,8 @@ export function useTimelinePlayhead({
 	const isPlaying = editor.playback.getIsPlaying();
 	const isScrubbing = editor.playback.getIsScrubbing();
 	const isShiftHeldRef = useShiftKey();
-	const { snapToNearestPoint } = useTimelineSnapping({
-		enableElementSnapping: false,
+	const { snapToNearestPoint, findSnapPoints } = useTimelineSnapping({
+		enableElementSnapping: true,
 		enablePlayheadSnapping: false,
 	});
 
@@ -80,21 +77,24 @@ export function useTimelinePlayhead({
 				fps: framesPerSecond,
 			});
 
-			const bookmarks = editor.scenes.getActiveScene()?.bookmarks ?? [];
-			const bookmarkSnapPoints: SnapPoint[] = bookmarks.map((bookmark) => ({
-				time: bookmark.time,
-				type: "bookmark",
-			}));
-			const shouldSnapToBookmark =
-				!isShiftHeldRef.current && bookmarkSnapPoints.length > 0;
-			const snapResult = shouldSnapToBookmark
-				? snapToNearestPoint({
-						targetTime: frameTime,
-						snapPoints: bookmarkSnapPoints,
-						zoomLevel,
-					})
-				: null;
-			const time = snapResult?.snapPoint ? snapResult.snappedTime : frameTime;
+			const shouldSnap = !isShiftHeldRef.current;
+			const time = (() => {
+				if (!shouldSnap) return frameTime;
+				const tracks = editor.timeline.getTracks();
+				const bookmarks =
+					editor.scenes.getActiveScene()?.bookmarks ?? [];
+				const snapPoints = findSnapPoints({
+					tracks,
+					playheadTime: frameTime,
+					bookmarks,
+				});
+				const snapResult = snapToNearestPoint({
+					targetTime: frameTime,
+					snapPoints,
+					zoomLevel,
+				});
+				return snapResult.snapPoint ? snapResult.snappedTime : frameTime;
+			})();
 
 			setScrubTime(time);
 			seek({ time });
@@ -109,6 +109,8 @@ export function useTimelinePlayhead({
 			activeProject.settings.fps,
 			isShiftHeldRef,
 			editor.scenes,
+			editor.timeline,
+			findSnapPoints,
 			snapToNearestPoint,
 		],
 	);
