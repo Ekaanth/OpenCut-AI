@@ -10,9 +10,12 @@ import { useShiftKey } from "@/hooks/use-shift-key";
 import { DRAG_THRESHOLD_PX } from "@/constants/timeline-constants";
 import { snapTimeToFrame } from "@/lib/time";
 import { getMouseTimeFromClientX } from "@/lib/timeline/drag-utils";
-import { useTimelineSnapping } from "@/hooks/timeline/use-timeline-snapping";
+import {
+	findSnapPoints,
+	snapToNearestPoint,
+	type SnapPoint,
+} from "@/lib/timeline/snap-utils";
 import type { Bookmark } from "@/types/timeline";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
 
 export interface BookmarkDragState {
 	isDragging: boolean;
@@ -46,8 +49,6 @@ export function useBookmarkDrag({
 	const bookmarks = activeScene?.bookmarks ?? [];
 	const playheadTime = editor.playback.getCurrentTime();
 	const duration = editor.timeline.getTotalDuration();
-
-	const { findSnapPoints, snapToNearestPoint } = useTimelineSnapping();
 
 	const [dragState, setDragState] = useState<BookmarkDragState>({
 		isDragging: false,
@@ -112,16 +113,7 @@ export function useBookmarkDrag({
 				snapPoint: result.snapPoint,
 			};
 		},
-		[
-			snappingEnabled,
-			findSnapPoints,
-			snapToNearestPoint,
-			tracks,
-			playheadTime,
-			bookmarks,
-			zoomLevel,
-			isShiftHeldRef,
-		],
+		[snappingEnabled, tracks, playheadTime, bookmarks, zoomLevel, isShiftHeldRef],
 	);
 
 	useEffect(() => {

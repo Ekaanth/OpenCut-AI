@@ -17,14 +17,16 @@ import { snapTimeToFrame } from "@/lib/time";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
 import { getMouseTimeFromClientX } from "@/lib/timeline/drag-utils";
 import { generateUUID } from "@/utils/id";
-import { useTimelineSnapping } from "@/hooks/timeline/use-timeline-snapping";
+import {
+	snapElementEdge,
+	type SnapPoint,
+} from "@/lib/timeline/snap-utils";
 import type {
 	DropTarget,
 	ElementDragState,
 	TimelineElement,
 	TimelineTrack,
 } from "@/types/timeline";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
 
 interface UseElementInteractionProps {
 	zoomLevel: number;
@@ -162,7 +164,6 @@ export function useElementInteraction({
 	const editor = useEditor();
 	const isShiftHeldRef = useShiftKey();
 	const tracks = editor.timeline.getTracks();
-	const { snapElementEdge } = useTimelineSnapping();
 	const {
 		isElementSelected,
 		selectElement,
@@ -255,14 +256,7 @@ export function useElementInteraction({
 				snapPoint: snapResult.snapPoint,
 			};
 		},
-		[
-			snappingEnabled,
-			editor.playback,
-			snapElementEdge,
-			tracks,
-			zoomLevel,
-			isShiftHeldRef,
-		],
+		[snappingEnabled, editor.playback, tracks, zoomLevel, isShiftHeldRef],
 	);
 
 	useEffect(() => {

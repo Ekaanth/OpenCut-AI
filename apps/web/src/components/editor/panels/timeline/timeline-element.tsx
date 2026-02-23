@@ -4,7 +4,7 @@ import { useEditor } from "@/hooks/use-editor";
 import { useAssetsPanelStore } from "@/stores/assets-panel-store";
 import AudioWaveform from "./audio-waveform";
 import { useTimelineElementResize } from "@/hooks/timeline/element/use-element-resize";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
+import type { SnapPoint } from "@/lib/timeline/snap-utils";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import {
 	getTrackClasses,

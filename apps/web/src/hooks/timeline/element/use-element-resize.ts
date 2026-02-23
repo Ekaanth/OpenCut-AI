@@ -5,9 +5,10 @@ import type { TimelineElement, TimelineTrack } from "@/types/timeline";
 import { useEditor } from "@/hooks/use-editor";
 import { useShiftKey } from "@/hooks/use-shift-key";
 import {
-	useTimelineSnapping,
+	findSnapPoints,
+	snapToNearestPoint,
 	type SnapPoint,
-} from "@/hooks/timeline/use-timeline-snapping";
+} from "@/lib/timeline/snap-utils";
 import { useTimelineStore } from "@/stores/timeline-store";
 
 export interface ResizeState {
@@ -39,7 +40,7 @@ export function useTimelineElementResize({
 	const activeProject = editor.project.getActive();
 	const isShiftHeldRef = useShiftKey();
 	const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
-	const { findSnapPoints, snapToNearestPoint } = useTimelineSnapping();
+
 
 	const [resizing, setResizing] = useState<ResizeState | null>(null);
 	const [currentTrimStart, setCurrentTrimStart] = useState(element.trimStart);
@@ -269,8 +270,6 @@ export function useTimelineElementResize({
 			activeProject.settings.fps,
 			snappingEnabled,
 			editor,
-			findSnapPoints,
-			snapToNearestPoint,
 			element.id,
 			onSnapPointChange,
 			canExtendElementDuration,

@@ -23,7 +23,7 @@ import { TimelinePlayhead } from "./timeline-playhead";
 import { SelectionBox } from "../../selection-box";
 import { useSelectionBox } from "@/hooks/timeline/use-selection-box";
 import { SnapIndicator } from "./snap-indicator";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
+import type { SnapPoint } from "@/lib/timeline/snap-utils";
 import type { TimelineTrack } from "@/types/timeline";
 import {
 	TIMELINE_CONSTANTS,

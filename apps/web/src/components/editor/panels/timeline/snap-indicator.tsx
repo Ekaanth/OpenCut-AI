@@ -1,7 +1,7 @@
 "use client";
 
 import { useSnapIndicatorPosition } from "@/hooks/timeline/use-snap-indicator-position";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
+import type { SnapPoint } from "@/lib/timeline/snap-utils";
 import type { TimelineTrack } from "@/types/timeline";
 
 interface SnapIndicatorProps {
