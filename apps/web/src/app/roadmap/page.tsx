@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { ReactMarkdownWrapper } from "@/components/ui/react-markdown-wrapper";
 import { cn } from "@/utils/ui";
 
+const LAST_UPDATED = "February 25, 2026";
+
 type StatusType = "complete" | "pending" | "default" | "info";
 
 interface Status {
@@ -47,9 +49,9 @@ const roadmapItems: RoadmapItem[] = [
 		},
 	},
 	{
-		title: "Badge (potentially)",
+		title: "Native app (mobile/desktop)",
 		description:
-			'An "Edit with OpenCut" badge web apps can integrate. Shows on video players.',
+			"Native OpenCut apps for Mac, Windows, Linux, and iOS/Android.",
 		status: {
 			text: "Not started",
 			type: "default",
@@ -88,7 +90,7 @@ export default function RoadmapPage() {
 	return (
 		<BasePage
 			title="Roadmap"
-			description="What's coming next for OpenCut (last updated: February 2026)"
+			description={`What's coming next for OpenCut (last updated: ${LAST_UPDATED})`}
 		>
 			<div className="mx-auto flex max-w-4xl flex-col gap-16">
 				<div className="flex flex-col gap-6">
