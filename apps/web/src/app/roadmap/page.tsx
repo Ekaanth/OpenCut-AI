@@ -88,7 +88,7 @@ export default function RoadmapPage() {
 	return (
 		<BasePage
 			title="Roadmap"
-			description="What's coming next for OpenCut (last updated: July 14, 2025)"
+			description="What's coming next for OpenCut (last updated: February 2026)"
 		>
 			<div className="mx-auto flex max-w-4xl flex-col gap-16">
 				<div className="flex flex-col gap-6">

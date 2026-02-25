@@ -166,7 +166,7 @@ export default function PrivacyPage() {
 					<a
 						href="https://www.databuddy.cc"
 						target="_blank"
-						rel="noopener"
+						rel="noopener noreferrer"
 						className="text-primary hover:underline"
 					>
 						Databuddy
