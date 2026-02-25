@@ -17,7 +17,7 @@ export function PropertiesPanel() {
 	});
 
 	return (
-		<div className="panel bg-background h-full rounded-sm border overflow-hidden">
+		<div className="panel bg-background h-full rounded-sm border border-t-0 overflow-hidden">
 			{selectedElements.length > 0 ? (
 				<ScrollArea className="h-full scrollbar-hidden">
 					{elementsWithTracks.map(({ track, element }) => {
@@ -31,10 +31,14 @@ export function PropertiesPanel() {
 						if (element.type === "audio") {
 							return <AudioProperties key={element.id} _element={element} />;
 						}
-						if (element.type === "video" || element.type === "image") {
+						if (
+							element.type === "video" ||
+							element.type === "image" ||
+							element.type === "sticker"
+						) {
 							return (
 								<div key={element.id}>
-									<VideoProperties _element={element} />
+									<VideoProperties element={element} trackId={track.id} />
 								</div>
 							);
 						}
