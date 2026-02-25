@@ -1,4 +1,4 @@
-import type { BlendMode } from "./rendering";
+import type { BlendMode, Transform } from "./rendering";
 
 export interface Bookmark {
 	time: number;
@@ -52,14 +52,7 @@ export interface StickerTrack extends BaseTrack {
 
 export type TimelineTrack = VideoTrack | TextTrack | AudioTrack | StickerTrack;
 
-export interface Transform {
-	scale: number;
-	position: {
-		x: number;
-		y: number;
-	};
-	rotate: number;
-}
+export type { Transform } from "./rendering";
 
 interface BaseAudioElement extends BaseTimelineElement {
 	type: "audio";
