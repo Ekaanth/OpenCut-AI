@@ -99,9 +99,9 @@ export function TextEditOverlay({
 	const fontStyle = element.fontStyle === "italic" ? "italic" : "normal";
 	const letterSpacing = element.letterSpacing ?? 0;
 	const backgroundColor =
-		element.backgroundColor === "transparent"
+		element.background.color === "transparent"
 			? "transparent"
-			: element.backgroundColor;
+			: element.background.color;
 
 	return (
 		<div

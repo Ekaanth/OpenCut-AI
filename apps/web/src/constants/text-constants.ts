@@ -17,6 +17,15 @@ export const FONT_SIZE_SCALE_REFERENCE = 90;
 export const DEFAULT_LETTER_SPACING = 0;
 export const DEFAULT_LINE_HEIGHT = 1.2;
 
+export const DEFAULT_TEXT_BACKGROUND = {
+	color: "#000000",
+	cornerRadius: 0,
+	paddingX: 30,
+	paddingY: 42,
+	offsetX: 0,
+	offsetY: 0,
+};
+
 export const DEFAULT_TEXT_ELEMENT: Omit<TextElement, "id"> = {
 	type: "text",
 	name: "Text",
@@ -24,7 +33,7 @@ export const DEFAULT_TEXT_ELEMENT: Omit<TextElement, "id"> = {
 	fontSize: 15,
 	fontFamily: "Arial",
 	color: "#ffffff",
-	backgroundColor: "#000000",
+	background: DEFAULT_TEXT_BACKGROUND,
 	textAlign: "center",
 	fontWeight: "normal",
 	fontStyle: "normal",

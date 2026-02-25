@@ -47,7 +47,13 @@ export function useTimelinePlayhead({
 		isScrubbing && scrubTime !== null ? scrubTime : currentTime;
 
 	const handleScrub = useCallback(
-		({ event }: { event: MouseEvent | React.MouseEvent }) => {
+		({
+			event,
+			snappingEnabled = true,
+		}: {
+			event: MouseEvent | React.MouseEvent;
+			snappingEnabled?: boolean;
+		}) => {
 			const ruler = rulerRef.current;
 			if (!ruler) return;
 			const rulerRect = ruler.getBoundingClientRect();
@@ -76,7 +82,7 @@ export function useTimelinePlayhead({
 				fps: framesPerSecond,
 			});
 
-			const shouldSnap = !isShiftHeldRef.current;
+			const shouldSnap = snappingEnabled && !isShiftHeldRef.current;
 			const time = (() => {
 				if (!shouldSnap) return frameTime;
 				const tracks = editor.timeline.getTracks();
@@ -133,10 +139,10 @@ export function useTimelinePlayhead({
 			setIsDraggingRuler(true);
 			setHasDraggedRuler(false);
 
-			editor.playback.setScrubbing({ isScrubbing: true });
-			handleScrub({ event });
-		},
-		[handleScrub, playheadRef, editor.playback],
+		editor.playback.setScrubbing({ isScrubbing: true });
+		handleScrub({ event, snappingEnabled: false });
+	},
+	[handleScrub, playheadRef, editor.playback],
 	);
 
 	const handlePlayheadMouseDownEvent = useCallback(
@@ -184,7 +190,7 @@ export function useTimelinePlayhead({
 			if (isDraggingRuler) {
 				setIsDraggingRuler(false);
 				if (!hasDraggedRuler) {
-					handleScrub({ event });
+					handleScrub({ event, snappingEnabled: false });
 				}
 				setHasDraggedRuler(false);
 			}

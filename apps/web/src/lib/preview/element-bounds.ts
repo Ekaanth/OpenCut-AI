@@ -2,9 +2,11 @@ import type { TimelineTrack, TimelineElement } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { isMainTrack } from "@/lib/timeline";
 import {
+	DEFAULT_TEXT_ELEMENT,
 	DEFAULT_LINE_HEIGHT,
 	FONT_SIZE_SCALE_REFERENCE,
 } from "@/constants/text-constants";
+import { getTextVisualRect, measureTextBlock } from "@/lib/text/layout";
 
 export interface ElementBounds {
 	cx: number;
@@ -121,27 +123,36 @@ export function getElementBounds({
 
 			const lines = element.content.split("\n");
 			const lineMetrics = lines.map((line) => ctx.measureText(line));
-
-			let top = Number.POSITIVE_INFINITY;
-			let bottom = Number.NEGATIVE_INFINITY;
-			let maxWidth = 0;
-
-			for (let i = 0; i < lineMetrics.length; i++) {
-				const metrics = lineMetrics[i];
-				const y = i * lineHeightPx;
-				top = Math.min(
-					top,
-					y - (metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8),
-				);
-				bottom = Math.max(
-					bottom,
-					y + (metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2),
-				);
-				maxWidth = Math.max(maxWidth, metrics.width);
-			}
-
-			measuredWidth = maxWidth;
-			measuredHeight = bottom - top;
+			const block = measureTextBlock({
+				lineMetrics,
+				lineHeightPx,
+				fallbackFontSize: scaledFontSize,
+			});
+			const fontSizeRatio = element.fontSize / DEFAULT_TEXT_ELEMENT.fontSize;
+			const visualRect = getTextVisualRect({
+				textAlign: element.textAlign,
+				block,
+				background: element.background,
+				fontSizeRatio,
+			});
+			measuredWidth = visualRect.width;
+			measuredHeight = visualRect.height;
+			const localCenterX = visualRect.left + visualRect.width / 2;
+			const localCenterY = visualRect.top + visualRect.height / 2;
+			const scaledCenterX = localCenterX * element.transform.scale;
+			const scaledCenterY = localCenterY * element.transform.scale;
+			const rotationRad = (element.transform.rotate * Math.PI) / 180;
+			const cos = Math.cos(rotationRad);
+			const sin = Math.sin(rotationRad);
+			const rotatedCenterX = scaledCenterX * cos - scaledCenterY * sin;
+			const rotatedCenterY = scaledCenterX * sin + scaledCenterY * cos;
+			return {
+				cx: canvasWidth / 2 + element.transform.position.x + rotatedCenterX,
+				cy: canvasHeight / 2 + element.transform.position.y + rotatedCenterY,
+				width: measuredWidth * element.transform.scale,
+				height: measuredHeight * element.transform.scale,
+				rotation: element.transform.rotate,
+			};
 		}
 
 		const width = measuredWidth * element.transform.scale;

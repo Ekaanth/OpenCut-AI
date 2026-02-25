@@ -3,7 +3,7 @@ import { useEditor } from "@/hooks/use-editor";
 import { usePropertyDraft } from "../hooks/use-property-draft";
 import { clamp } from "@/utils/math";
 import type { ElementType, Transform } from "@/types/timeline";
-import { Section, SectionContent, SectionHeader } from "../section";
+import { Section, SectionContent, SectionField, SectionFields, SectionHeader } from "../section";
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -120,8 +120,9 @@ export function TransformSection({
 	return (
 		<Section collapsible sectionKey={`${element.type}:transform`}>
 			<SectionHeader title="Transform" />
-			<SectionContent>
-				<div className="flex flex-col gap-2">
+		<SectionContent>
+			<SectionFields>
+				<SectionField label="Scale">
 					<div className="flex items-center gap-2">
 						{isScaleLocked ? (
 							<>
@@ -144,105 +145,108 @@ export function TransformSection({
 							<HugeiconsIcon icon={Link05Icon} />
 						</Button>
 					</div>
+				</SectionField>
+				<SectionField label="Position">
 					<div className="flex items-center gap-2">
-						<NumberField
-							icon="X"
-							className="flex-1"
-							value={positionX.displayValue}
-							onFocus={positionX.onFocus}
-							onChange={positionX.onChange}
-							onBlur={positionX.onBlur}
-							onScrub={positionX.scrubTo}
-							onScrubEnd={positionX.commitScrub}
-							onReset={() =>
-								editor.timeline.updateElements({
-									updates: [
-										{
-											trackId,
-											elementId: element.id,
-											updates: {
-												transform: {
-													...element.transform,
-													position: {
-														...element.transform.position,
-														x: DEFAULT_TRANSFORM.position.x,
+							<NumberField
+								icon="X"
+								className="flex-1"
+								value={positionX.displayValue}
+								onFocus={positionX.onFocus}
+								onChange={positionX.onChange}
+								onBlur={positionX.onBlur}
+								onScrub={positionX.scrubTo}
+								onScrubEnd={positionX.commitScrub}
+								onReset={() =>
+									editor.timeline.updateElements({
+										updates: [
+											{
+												trackId,
+												elementId: element.id,
+												updates: {
+													transform: {
+														...element.transform,
+														position: {
+															...element.transform.position,
+															x: DEFAULT_TRANSFORM.position.x,
+														},
 													},
 												},
 											},
-										},
-									],
-								})
-							}
-							isDefault={
-								element.transform.position.x === DEFAULT_TRANSFORM.position.x
-							}
-						/>
-						<NumberField
-							icon="Y"
-							className="flex-1"
-							value={positionY.displayValue}
-							onFocus={positionY.onFocus}
-							onChange={positionY.onChange}
-							onBlur={positionY.onBlur}
-							onScrub={positionY.scrubTo}
-							onScrubEnd={positionY.commitScrub}
-							onReset={() =>
-								editor.timeline.updateElements({
-									updates: [
-										{
-											trackId,
-											elementId: element.id,
-											updates: {
-												transform: {
-													...element.transform,
-													position: {
-														...element.transform.position,
-														y: DEFAULT_TRANSFORM.position.y,
+										],
+									})
+								}
+								isDefault={
+									element.transform.position.x === DEFAULT_TRANSFORM.position.x
+								}
+							/>
+							<NumberField
+								icon="Y"
+								className="flex-1"
+								value={positionY.displayValue}
+								onFocus={positionY.onFocus}
+								onChange={positionY.onChange}
+								onBlur={positionY.onBlur}
+								onScrub={positionY.scrubTo}
+								onScrubEnd={positionY.commitScrub}
+								onReset={() =>
+									editor.timeline.updateElements({
+										updates: [
+											{
+												trackId,
+												elementId: element.id,
+												updates: {
+													transform: {
+														...element.transform,
+														position: {
+															...element.transform.position,
+															y: DEFAULT_TRANSFORM.position.y,
+														},
 													},
 												},
 											},
-										},
-									],
-								})
-							}
-							isDefault={
-								element.transform.position.y === DEFAULT_TRANSFORM.position.y
-							}
-						/>
+										],
+									})
+								}
+								isDefault={
+									element.transform.position.y === DEFAULT_TRANSFORM.position.y
+								}
+							/>
 					</div>
+				</SectionField>
 
-					<div className="flex items-center gap-2">
-						<NumberField
-							icon={<HugeiconsIcon icon={RotateClockwiseIcon} />}
-							className="flex-1"
-							value={rotation.displayValue}
-							onFocus={rotation.onFocus}
-							onChange={rotation.onChange}
-							onBlur={rotation.onBlur}
-							dragSensitivity="slow"
-							onScrub={rotation.scrubTo}
-							onScrubEnd={rotation.commitScrub}
-							onReset={() =>
-								editor.timeline.updateElements({
-									updates: [
-										{
-											trackId,
-											elementId: element.id,
-											updates: {
-												transform: {
-													...element.transform,
-													rotate: DEFAULT_TRANSFORM.rotate,
-												},
+				<SectionField label="Rotation">
+					<NumberField
+						icon={<HugeiconsIcon icon={RotateClockwiseIcon} />}
+						className="flex-none"
+						value={rotation.displayValue}
+						onFocus={rotation.onFocus}
+						onChange={rotation.onChange}
+						onBlur={rotation.onBlur}
+						dragSensitivity="slow"
+						onScrub={rotation.scrubTo}
+						onScrubEnd={rotation.commitScrub}
+						onReset={() =>
+							editor.timeline.updateElements({
+								updates: [
+									{
+										trackId,
+										elementId: element.id,
+										updates: {
+											transform: {
+												...element.transform,
+												rotate: DEFAULT_TRANSFORM.rotate,
 											},
 										},
-									],
-								})
-							}
-							isDefault={element.transform.rotate === DEFAULT_TRANSFORM.rotate}
-						/>
-					</div>
-				</div>
-			</SectionContent>
+									},
+								],
+							})
+						}
+						isDefault={element.transform.rotate === DEFAULT_TRANSFORM.rotate}
+					/>
+				</SectionField>
+			</SectionFields>
+		</SectionContent>
 		</Section>
 	);
 }

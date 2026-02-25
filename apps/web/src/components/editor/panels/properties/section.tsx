@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { cn } from "@/utils/ui";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowDownIcon } from "@hugeicons/core-free-icons";
+import { Label } from "@/components/ui/label";
 
 const sectionExpandedCache = new Map<string, boolean>();
 
@@ -129,6 +130,33 @@ export function SectionHeader({
 	}
 
 	return <div className={baseClassName}>{content}</div>;
+}
+
+export function SectionFields({
+	children,
+	className,
+}: {
+	children: React.ReactNode;
+	className?: string;
+}) {
+	return <div className={cn("flex flex-col gap-3.5", className)}>{children}</div>;
+}
+
+export function SectionField({
+	label,
+	children,
+	className,
+}: {
+	label: string;
+	children: React.ReactNode;
+	className?: string;
+}) {
+	return (
+		<div className={cn("flex flex-col gap-2", className)}>
+			<Label>{label}</Label>
+			{children}
+		</div>
+	);
 }
 
 export function SectionContent({

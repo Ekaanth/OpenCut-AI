@@ -8,7 +8,7 @@ import {
 } from "@/constants/timeline-constants";
 import { OcCheckerboardIcon } from "@opencut/ui/icons";
 import { Fragment, useRef } from "react";
-import { Section, SectionContent, SectionHeader } from "../section";
+import { Section, SectionContent, SectionField, SectionHeader } from "../section";
 import {
 	Select,
 	SelectContent,
@@ -124,73 +124,73 @@ export function BlendingSection({
 	return (
 		<Section collapsible sectionKey={`${element.type}:blending`}>
 			<SectionHeader title="Blending" />
-			<SectionContent>
-				<div className="flex items-start gap-2">
-					<div className="w-1/2 space-y-1.5">
-						<NumberField
+		<SectionContent>
+			<div className="flex items-start gap-2">
+				<SectionField label="Opacity" className="w-1/2">
+					<NumberField
+						className="w-full"
+						icon={
+							<OcCheckerboardIcon className="size-3.5 text-muted-foreground" />
+						}
+						value={opacity.displayValue}
+						min={0}
+						max={100}
+						onFocus={opacity.onFocus}
+						onChange={opacity.onChange}
+						onBlur={opacity.onBlur}
+						onScrub={opacity.scrubTo}
+						onScrubEnd={opacity.commitScrub}
+						onReset={() =>
+							editor.timeline.updateElements({
+								updates: [
+									{
+										trackId,
+										elementId: element.id,
+										updates: { opacity: DEFAULT_OPACITY },
+									},
+								],
+							})
+						}
+						isDefault={element.opacity === DEFAULT_OPACITY}
+						dragSensitivity="slow"
+					/>
+				</SectionField>
+				<SectionField label="Blend mode" className="w-1/2">
+					<Select
+						value={committedBlendModeRef.current}
+						onOpenChange={handleBlendModeOpenChange}
+						onValueChange={commitBlendMode}
+					>
+						<SelectTrigger
+							icon={<HugeiconsIcon icon={RainDropIcon} />}
 							className="w-full"
-							icon={
-								<OcCheckerboardIcon className="size-3.5 text-muted-foreground" />
-							}
-							value={opacity.displayValue}
-							min={0}
-							max={100}
-							onFocus={opacity.onFocus}
-							onChange={opacity.onChange}
-							onBlur={opacity.onBlur}
-							onScrub={opacity.scrubTo}
-							onScrubEnd={opacity.commitScrub}
-							onReset={() =>
-								editor.timeline.updateElements({
-									updates: [
-										{
-											trackId,
-											elementId: element.id,
-											updates: { opacity: DEFAULT_OPACITY },
-										},
-									],
-								})
-							}
-							isDefault={element.opacity === DEFAULT_OPACITY}
-							dragSensitivity="slow"
-						/>
-					</div>
-					<div className="w-1/2 space-y-1.5">
-						<Select
-							value={committedBlendModeRef.current}
-							onOpenChange={handleBlendModeOpenChange}
-							onValueChange={commitBlendMode}
 						>
-							<SelectTrigger
-								icon={<HugeiconsIcon icon={RainDropIcon} />}
-								className="w-full"
-							>
-								<SelectValue placeholder="Select blend mode" />
-							</SelectTrigger>
-							<SelectContent className="w-36">
-								{BLEND_MODE_GROUPS.map((group, groupIndex) => (
-									<Fragment key={group[0]?.value ?? `group-${groupIndex}`}>
-										{group.map((option) => (
-											<SelectItem
-												key={option.value}
-												value={option.value}
-												onPointerEnter={() =>
-													previewBlendMode(option.value as BlendMode)
-												}
-											>
-												{option.label}
-											</SelectItem>
-										))}
-										{groupIndex < BLEND_MODE_GROUPS.length - 1 ? (
-											<SelectSeparator />
-										) : null}
-									</Fragment>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-			</SectionContent>
+							<SelectValue placeholder="Select blend mode" />
+						</SelectTrigger>
+						<SelectContent className="w-36">
+							{BLEND_MODE_GROUPS.map((group, groupIndex) => (
+								<Fragment key={group[0]?.value ?? `group-${groupIndex}`}>
+									{group.map((option) => (
+										<SelectItem
+											key={option.value}
+											value={option.value}
+											onPointerEnter={() =>
+												previewBlendMode(option.value as BlendMode)
+											}
+										>
+											{option.label}
+										</SelectItem>
+									))}
+									{groupIndex < BLEND_MODE_GROUPS.length - 1 ? (
+										<SelectSeparator />
+									) : null}
+								</Fragment>
+							))}
+						</SelectContent>
+					</Select>
+				</SectionField>
+			</div>
+		</SectionContent>
 		</Section>
 	);
 }
