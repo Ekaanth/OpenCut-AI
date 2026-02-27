@@ -32,7 +32,7 @@ export class UpdateElementCommand extends Command {
 			tracks: this.savedState,
 			trackId: this.trackId,
 			elementId: this.elementId,
-			update: (element) => ({ ...element, ...this.updates }),
+			update: (element) => ({ ...element, ...this.updates }) as TimelineElement,
 		});
 
 		editor.timeline.updateTracks(updatedTracks);
