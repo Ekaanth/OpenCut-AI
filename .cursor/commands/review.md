@@ -134,7 +134,7 @@ Do NOT review by reading the file top-to-bottom and noting what jumps out. Inste
 3. Only move to the next section after you've exhausted the current one
 4. After all sections are checked, do a final pass: re-read every checklist item and confirm you didn't skip it
 
-Before outputting the table, list each checklist section and confirm you checked it:
+Before outputting the review, list each checklist section and confirm you checked it:
 `Signatures ✓ | TypeScript ✓ | JSX ✓ | Organization ✓ | File Names ✓ | Comments ✓ | Naming ✓ | Tailwind ✓ | State ✓ | Quality ✓ | Keywords ✓`
 
 ---
@@ -143,7 +143,7 @@ Before outputting the table, list each checklist section and confirm you checked
 
 - **ONLY** flag issues that are explicitly covered by a checklist item above.
 - Do **NOT** invent your own rules, suggestions, or "nice to haves" as primary issues.
-- The review output must be a table of issues, each one mapping to a specific checklist item.
+- The review output must be a list of issues, each one mapping to a specific checklist item.
 - If something looks off but isn't covered by the checklist, you can mention it as a brief side note at the end — but keep it clearly separate from the actual review. Always default to fixing the issues covered by the checklist above, unless the user says otherwise.
 
 > You WILL miss things if you try to review the whole file in one pass. Iterate rule by rule.
