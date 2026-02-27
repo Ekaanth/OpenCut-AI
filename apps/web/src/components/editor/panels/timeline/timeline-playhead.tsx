@@ -1,7 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
+import {
+	getCenteredLineLeft,
+	TIMELINE_INDICATOR_LINE_WIDTH_PX,
+	timelineTimeToSnappedPixels,
+} from "@/lib/timeline";
 import { useTimelinePlayhead } from "@/hooks/timeline/use-timeline-playhead";
 import { useEditor } from "@/hooks/use-editor";
 
@@ -43,9 +47,11 @@ export function TimelinePlayhead({
 		400;
 	const totalHeight = Math.max(0, timelineContainerHeight - 4);
 
-	const timelinePosition =
-		playheadPosition * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
-	const leftPosition = timelinePosition;
+	const centerPosition = timelineTimeToSnappedPixels({
+		time: playheadPosition,
+		zoomLevel,
+	});
+	const leftPosition = getCenteredLineLeft({ centerPixel: centerPosition });
 
 	const handlePlayheadKeyDown = (
 		event: React.KeyboardEvent<HTMLDivElement>,
@@ -77,7 +83,7 @@ export function TimelinePlayhead({
 				left: `${leftPosition}px`,
 				top: 0,
 				height: `${totalHeight}px`,
-				width: "2px",
+				width: `${TIMELINE_INDICATOR_LINE_WIDTH_PX}px`,
 			}}
 			onKeyDown={handlePlayheadKeyDown}
 		>

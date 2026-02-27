@@ -5,12 +5,19 @@ import { enforceMainTrackStart } from "@/lib/timeline/track-utils";
 
 export class UpdateElementStartTimeCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
+	private readonly elements: { trackId: string; elementId: string }[];
+	private readonly startTime: number;
 
-	constructor(
-		private elements: { trackId: string; elementId: string }[],
-		private startTime: number,
-	) {
+	constructor({
+		elements,
+		startTime,
+	}: {
+		elements: { trackId: string; elementId: string }[];
+		startTime: number;
+	}) {
 		super();
+		this.elements = elements;
+		this.startTime = startTime;
 	}
 
 	execute(): void {
@@ -20,7 +27,7 @@ export class UpdateElementStartTimeCommand extends Command {
 		const currentTracks = this.savedState;
 		const updatedTracks = currentTracks.map((track) => {
 			const hasElementsToUpdate = this.elements.some(
-				(el) => el.trackId === track.id,
+				(elementEntry) => elementEntry.trackId === track.id,
 			);
 
 			if (!hasElementsToUpdate) {
@@ -29,7 +36,9 @@ export class UpdateElementStartTimeCommand extends Command {
 
 			const newElements = track.elements.map((element) => {
 				const shouldUpdate = this.elements.some(
-					(el) => el.elementId === element.id && el.trackId === track.id,
+					(elementEntry) =>
+						elementEntry.elementId === element.id &&
+						elementEntry.trackId === track.id,
 				);
 				if (!shouldUpdate) {
 					return element;

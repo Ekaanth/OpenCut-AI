@@ -5,9 +5,15 @@ import { isMainTrack } from "@/lib/timeline";
 
 export class DeleteElementsCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
+	private readonly elements: { trackId: string; elementId: string }[];
 
-	constructor(private elements: { trackId: string; elementId: string }[]) {
+	constructor({
+		elements,
+	}: {
+		elements: { trackId: string; elementId: string }[];
+	}) {
 		super();
+		this.elements = elements;
 	}
 
 	execute(): void {
@@ -17,7 +23,7 @@ export class DeleteElementsCommand extends Command {
 		const updatedTracks = this.savedState
 			.map((track) => {
 				const hasElementsToDelete = this.elements.some(
-					(el) => el.trackId === track.id,
+					(elementEntry) => elementEntry.trackId === track.id,
 				);
 
 				if (!hasElementsToDelete) {
@@ -29,7 +35,9 @@ export class DeleteElementsCommand extends Command {
 					elements: track.elements.filter(
 						(element) =>
 							!this.elements.some(
-								(el) => el.trackId === track.id && el.elementId === element.id,
+								(elementEntry) =>
+									elementEntry.trackId === track.id &&
+									elementEntry.elementId === element.id,
 							),
 					),
 				} as typeof track;

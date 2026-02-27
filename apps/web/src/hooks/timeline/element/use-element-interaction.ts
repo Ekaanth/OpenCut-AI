@@ -592,9 +592,12 @@ export function useElementInteraction({
 			});
 			if (!alreadySelected) {
 				selectElement({ trackId: track.id, elementId: element.id });
+				return;
 			}
+
+			editor.selection.clearKeyframeSelection();
 		},
-		[isElementSelected, selectElement],
+		[editor.selection, isElementSelected, selectElement],
 	);
 
 	return {

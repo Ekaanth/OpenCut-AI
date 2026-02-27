@@ -12,6 +12,11 @@ import {
 	getTextBackgroundRect,
 	measureTextBlock,
 } from "@/lib/text/layout";
+import {
+	getElementLocalTime,
+	resolveOpacityAtTime,
+	resolveTransformAtTime,
+} from "@/lib/animation";
 
 function scaleFontSize({
 	fontSize,
@@ -86,16 +91,28 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		renderer.context.save();
 
-		const x = this.params.transform.position.x + this.params.canvasCenter.x;
-		const y = this.params.transform.position.y + this.params.canvasCenter.y;
+		const localTime = getElementLocalTime({
+			timelineTime: time,
+			elementStartTime: this.params.startTime,
+			elementDuration: this.params.duration,
+		});
+		const transform = resolveTransformAtTime({
+			baseTransform: this.params.transform,
+			animations: this.params.animations,
+			localTime,
+		});
+		const opacity = resolveOpacityAtTime({
+			baseOpacity: this.params.opacity,
+			animations: this.params.animations,
+			localTime,
+		});
+		const x = transform.position.x + this.params.canvasCenter.x;
+		const y = transform.position.y + this.params.canvasCenter.y;
 
 		renderer.context.translate(x, y);
-		renderer.context.scale(
-			this.params.transform.scale,
-			this.params.transform.scale,
-		);
-		if (this.params.transform.rotate) {
-			renderer.context.rotate((this.params.transform.rotate * Math.PI) / 180);
+		renderer.context.scale(transform.scale, transform.scale);
+		if (transform.rotate) {
+			renderer.context.rotate((transform.rotate * Math.PI) / 180);
 		}
 
 		const fontWeight = this.params.fontWeight === "bold" ? "bold" : "normal";
@@ -138,7 +155,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				? this.params.blendMode
 				: "source-over"
 		) as GlobalCompositeOperation;
-		renderer.context.globalAlpha = this.params.opacity;
+		renderer.context.globalAlpha = opacity;
 
 		if (
 			this.params.background.color &&

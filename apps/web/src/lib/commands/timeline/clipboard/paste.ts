@@ -13,6 +13,7 @@ import {
 	isMainTrack,
 	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
+import { cloneAnimations } from "@/lib/animation";
 
 export class PasteCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
@@ -176,6 +177,10 @@ function buildPastedElements({
 			...item.element,
 			id: newElementId,
 			startTime,
+			animations: cloneAnimations({
+				animations: item.element.animations,
+				shouldRegenerateKeyframeIds: true,
+			}),
 		} as TimelineElement);
 	}
 

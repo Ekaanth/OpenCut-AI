@@ -2,18 +2,29 @@ import { Command } from "@/lib/commands/base-command";
 import type { TimelineTrack } from "@/types/timeline";
 import { generateUUID } from "@/utils/id";
 import { EditorCore } from "@/core";
+import { splitAnimationsAtTime } from "@/lib/animation";
 
 export class SplitElementsCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
 	private rightSideElements: { trackId: string; elementId: string }[] = [];
 	private previousSelection: { trackId: string; elementId: string }[] = [];
+	private readonly elements: { trackId: string; elementId: string }[];
+	private readonly splitTime: number;
+	private readonly retainSide: "both" | "left" | "right";
 
-	constructor(
-		private elements: { trackId: string; elementId: string }[],
-		private splitTime: number,
-		private retainSide: "both" | "left" | "right" = "both",
-	) {
+	constructor({
+		elements,
+		splitTime,
+		retainSide = "both",
+	}: {
+		elements: { trackId: string; elementId: string }[];
+		splitTime: number;
+		retainSide?: "both" | "left" | "right";
+	}) {
 		super();
+		this.elements = elements;
+		this.splitTime = splitTime;
+		this.retainSide = retainSide;
 	}
 
 	getRightSideElements(): { trackId: string; elementId: string }[] {
@@ -28,7 +39,7 @@ export class SplitElementsCommand extends Command {
 
 		const updatedTracks = this.savedState.map((track) => {
 			const elementsToSplit = this.elements.filter(
-				(el) => el.trackId === track.id,
+				(elementEntry) => elementEntry.trackId === track.id,
 			);
 
 			if (elementsToSplit.length === 0) {
@@ -39,7 +50,7 @@ export class SplitElementsCommand extends Command {
 				...track,
 				elements: track.elements.flatMap((element) => {
 					const shouldSplit = elementsToSplit.some(
-						(el) => el.elementId === element.id,
+						(elementEntry) => elementEntry.elementId === element.id,
 					);
 
 					if (!shouldSplit) {
@@ -59,6 +70,11 @@ export class SplitElementsCommand extends Command {
 					const relativeTime = this.splitTime - element.startTime;
 					const leftVisibleDuration = relativeTime;
 					const rightVisibleDuration = element.duration - relativeTime;
+					const { leftAnimations, rightAnimations } = splitAnimationsAtTime({
+						animations: element.animations,
+						splitTime: relativeTime,
+						shouldIncludeSplitBoundary: true,
+					});
 
 					if (this.retainSide === "left") {
 						return [
@@ -67,6 +83,7 @@ export class SplitElementsCommand extends Command {
 								duration: leftVisibleDuration,
 								trimEnd: element.trimEnd + rightVisibleDuration,
 								name: `${element.name} (left)`,
+								animations: leftAnimations,
 							},
 						];
 					}
@@ -85,6 +102,7 @@ export class SplitElementsCommand extends Command {
 								duration: rightVisibleDuration,
 								trimStart: element.trimStart + leftVisibleDuration,
 								name: `${element.name} (right)`,
+								animations: rightAnimations,
 							},
 						];
 					}
@@ -102,6 +120,7 @@ export class SplitElementsCommand extends Command {
 							duration: leftVisibleDuration,
 							trimEnd: element.trimEnd + rightVisibleDuration,
 							name: `${element.name} (left)`,
+							animations: leftAnimations,
 						},
 						{
 							...element,
@@ -110,6 +129,7 @@ export class SplitElementsCommand extends Command {
 							duration: rightVisibleDuration,
 							trimStart: element.trimStart + leftVisibleDuration,
 							name: `${element.name} (right)`,
+							animations: rightAnimations,
 						},
 					];
 				}),

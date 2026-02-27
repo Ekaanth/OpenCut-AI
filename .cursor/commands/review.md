@@ -37,6 +37,7 @@ Review every point below carefully to ensure files follow consistent code style 
 - [ ] Each file has one single purpose/responsibility
   - Example: `timeline/index.tsx` should not define `validateElementTrackCompatibility` — that belongs in a lib file
   - Example: `lib/timeline-utils.ts` should not declare `TRACK_COLORS` — that belongs in `constants/`
+- [ ] File name accurately reflects what the file contains — a misleading name is a bug waiting to happen
 - [ ] Business logic lives in either `src/lib`, `src/core` or `src/services` folder
 
 ## Comments
@@ -134,7 +135,7 @@ Do NOT review by reading the file top-to-bottom and noting what jumps out. Inste
 4. After all sections are checked, do a final pass: re-read every checklist item and confirm you didn't skip it
 
 Before outputting the table, list each checklist section and confirm you checked it:
-`Signatures ✓ | TypeScript ✓ | JSX ✓ | Organization ✓ | Comments ✓ | Naming ✓ | Tailwind ✓ | State ✓ | Quality ✓ | Keywords ✓`
+`Signatures ✓ | TypeScript ✓ | JSX ✓ | Organization ✓ | File Names ✓ | Comments ✓ | Naming ✓ | Tailwind ✓ | State ✓ | Quality ✓ | Keywords ✓`
 
 ---
 

@@ -7,6 +7,7 @@ import {
 	FONT_SIZE_SCALE_REFERENCE,
 } from "@/constants/text-constants";
 import { getTextVisualRect, measureTextBlock } from "@/lib/text/layout";
+import { getElementLocalTime, resolveTransformAtTime } from "@/lib/animation";
 
 export interface ElementBounds {
 	cx: number;
@@ -62,10 +63,12 @@ export function getElementBounds({
 	element,
 	canvasSize,
 	mediaAsset,
+	localTime,
 }: {
 	element: TimelineElement;
 	canvasSize: { width: number; height: number };
 	mediaAsset?: MediaAsset | null;
+	localTime: number;
 }): ElementBounds | null {
 	if (element.type === "audio") return null;
 	if ("hidden" in element && element.hidden) return null;
@@ -73,6 +76,11 @@ export function getElementBounds({
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;
 
 	if (element.type === "video" || element.type === "image") {
+		const transform = resolveTransformAtTime({
+			baseTransform: element.transform,
+			animations: element.animations,
+			localTime,
+		});
 		const sourceWidth = mediaAsset?.width ?? canvasWidth;
 		const sourceHeight = mediaAsset?.height ?? canvasHeight;
 		return getVisualElementBounds({
@@ -80,21 +88,31 @@ export function getElementBounds({
 			canvasHeight,
 			sourceWidth,
 			sourceHeight,
-			transform: element.transform,
+			transform,
 		});
 	}
 
 	if (element.type === "sticker") {
+		const transform = resolveTransformAtTime({
+			baseTransform: element.transform,
+			animations: element.animations,
+			localTime,
+		});
 		return getVisualElementBounds({
 			canvasWidth,
 			canvasHeight,
 			sourceWidth: 200,
 			sourceHeight: 200,
-			transform: element.transform,
+			transform,
 		});
 	}
 
 	if (element.type === "text") {
+		const transform = resolveTransformAtTime({
+			baseTransform: element.transform,
+			animations: element.animations,
+			localTime,
+		});
 		const scaledFontSize =
 			element.fontSize * (canvasHeight / FONT_SIZE_SCALE_REFERENCE);
 		const letterSpacing = element.letterSpacing ?? 0;
@@ -139,30 +157,30 @@ export function getElementBounds({
 			measuredHeight = visualRect.height;
 			const localCenterX = visualRect.left + visualRect.width / 2;
 			const localCenterY = visualRect.top + visualRect.height / 2;
-			const scaledCenterX = localCenterX * element.transform.scale;
-			const scaledCenterY = localCenterY * element.transform.scale;
-			const rotationRad = (element.transform.rotate * Math.PI) / 180;
+			const scaledCenterX = localCenterX * transform.scale;
+			const scaledCenterY = localCenterY * transform.scale;
+			const rotationRad = (transform.rotate * Math.PI) / 180;
 			const cos = Math.cos(rotationRad);
 			const sin = Math.sin(rotationRad);
 			const rotatedCenterX = scaledCenterX * cos - scaledCenterY * sin;
 			const rotatedCenterY = scaledCenterX * sin + scaledCenterY * cos;
 			return {
-				cx: canvasWidth / 2 + element.transform.position.x + rotatedCenterX,
-				cy: canvasHeight / 2 + element.transform.position.y + rotatedCenterY,
-				width: measuredWidth * element.transform.scale,
-				height: measuredHeight * element.transform.scale,
-				rotation: element.transform.rotate,
+				cx: canvasWidth / 2 + transform.position.x + rotatedCenterX,
+				cy: canvasHeight / 2 + transform.position.y + rotatedCenterY,
+				width: measuredWidth * transform.scale,
+				height: measuredHeight * transform.scale,
+				rotation: transform.rotate,
 			};
 		}
 
-		const width = measuredWidth * element.transform.scale;
-		const height = measuredHeight * element.transform.scale;
+		const width = measuredWidth * transform.scale;
+		const height = measuredHeight * transform.scale;
 		return {
-			cx: canvasWidth / 2 + element.transform.position.x,
-			cy: canvasHeight / 2 + element.transform.position.y,
+			cx: canvasWidth / 2 + transform.position.x,
+			cy: canvasHeight / 2 + transform.position.y,
 			width,
 			height,
-			rotation: element.transform.rotate,
+			rotation: transform.rotate,
 		};
 	}
 
@@ -206,6 +224,11 @@ export function getVisibleElementsWithBounds({
 			});
 
 		for (const element of elements) {
+			const localTime = getElementLocalTime({
+				timelineTime: currentTime,
+				elementStartTime: element.startTime,
+				elementDuration: element.duration,
+			});
 			const mediaAsset =
 				element.type === "video" || element.type === "image"
 					? mediaMap.get(element.mediaId)
@@ -214,6 +237,7 @@ export function getVisibleElementsWithBounds({
 				element,
 				canvasSize,
 				mediaAsset,
+				localTime,
 			});
 			if (bounds) {
 				result.push({

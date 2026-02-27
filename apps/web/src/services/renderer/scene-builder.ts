@@ -68,6 +68,7 @@ export function buildScene(params: BuildSceneParams) {
 							trimStart: element.trimStart,
 							trimEnd: element.trimEnd,
 							transform: element.transform,
+							animations: element.animations,
 							opacity: element.opacity,
 							blendMode: element.blendMode,
 						}),
@@ -82,6 +83,7 @@ export function buildScene(params: BuildSceneParams) {
 							trimStart: element.trimStart,
 							trimEnd: element.trimEnd,
 							transform: element.transform,
+							animations: element.animations,
 							opacity: element.opacity,
 							blendMode: element.blendMode,
 							...(params.isPreview && {
@@ -112,6 +114,7 @@ export function buildScene(params: BuildSceneParams) {
 						trimStart: element.trimStart,
 						trimEnd: element.trimEnd,
 						transform: element.transform,
+						animations: element.animations,
 						opacity: element.opacity,
 						blendMode: element.blendMode,
 					}),

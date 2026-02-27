@@ -18,7 +18,7 @@ import type {
 	AudioElement,
 	VideoElement,
 	ImageElement,
-	StickerElement,
+	VisualElement,
 	UploadAudioElement,
 } from "@/types/timeline";
 import type { MediaType } from "@/types/assets";
@@ -31,7 +31,7 @@ export function canElementHaveAudio(
 
 export function isVisualElement(
 	element: TimelineElement,
-): element is VideoElement | ImageElement | TextElement | StickerElement {
+): element is VisualElement {
 	return (
 		element.type === "video" ||
 		element.type === "image" ||
@@ -42,7 +42,7 @@ export function isVisualElement(
 
 export function canElementBeHidden(
 	element: TimelineElement,
-): element is VideoElement | ImageElement | TextElement | StickerElement {
+): element is VisualElement {
 	return element.type !== "audio";
 }
 

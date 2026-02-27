@@ -139,21 +139,28 @@ export function SectionFields({
 	children: React.ReactNode;
 	className?: string;
 }) {
-	return <div className={cn("flex flex-col gap-3.5", className)}>{children}</div>;
+	return (
+		<div className={cn("flex flex-col gap-3.5", className)}>{children}</div>
+	);
 }
 
 export function SectionField({
 	label,
+	beforeLabel,
 	children,
 	className,
 }: {
 	label: string;
+	beforeLabel?: React.ReactNode;
 	children: React.ReactNode;
 	className?: string;
 }) {
 	return (
 		<div className={cn("flex flex-col gap-2", className)}>
-			<Label>{label}</Label>
+			<div className="flex items-center gap-1.5">
+				{beforeLabel}
+				<Label>{label}</Label>
+			</div>
 			{children}
 		</div>
 	);

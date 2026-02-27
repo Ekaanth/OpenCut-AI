@@ -5,10 +5,7 @@ import type { EditorCore } from "@/core";
 import { useEditor } from "@/hooks/use-editor";
 import type { BookmarkDragState } from "@/hooks/timeline/use-bookmark-drag";
 import { BOOKMARK_TIME_EPSILON } from "@/lib/timeline/bookmarks";
-import {
-	DEFAULT_BOOKMARK_COLOR,
-	TIMELINE_CONSTANTS,
-} from "@/constants/timeline-constants";
+import { DEFAULT_BOOKMARK_COLOR } from "@/constants/timeline-constants";
 import { DEFAULT_FPS } from "@/constants/project-constants";
 import { getSnappedSeekTime } from "@/lib/time";
 import {
@@ -28,8 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { uppercase } from "@/utils/string";
 import { clamp } from "@/utils/math";
+import { timelineTimeToPixels, timelineTimeToSnappedPixels } from "@/lib/timeline";
 
-const PIXELS_PER_SECOND = TIMELINE_CONSTANTS.PIXELS_PER_SECOND;
 const MIN_BOOKMARK_WIDTH_PX = 2;
 const BOOKMARK_MARKER_WIDTH_PX = 12;
 const BOOKMARK_MARKER_HEIGHT_PX = 15;
@@ -139,10 +136,12 @@ function TimelineBookmark({
 	const time = bookmark.time;
 	const bookmarkDuration = bookmark.duration ?? 0;
 	const durationWidth =
-		bookmarkDuration > 0 ? bookmarkDuration * PIXELS_PER_SECOND * zoomLevel : 0;
+		bookmarkDuration > 0
+			? timelineTimeToPixels({ time: bookmarkDuration, zoomLevel })
+			: 0;
 	const hasDurationRange = durationWidth > MIN_BOOKMARK_WIDTH_PX;
 	const bookmarkWidth = BOOKMARK_MARKER_WIDTH_PX + Math.max(durationWidth, 0);
-	const left = displayTime * PIXELS_PER_SECOND * zoomLevel;
+	const left = timelineTimeToSnappedPixels({ time: displayTime, zoomLevel });
 	const bookmarkLeft = left - BOOKMARK_HALF_WIDTH_PX;
 	const rightHalfLeft = BOOKMARK_HALF_WIDTH_PX + Math.max(durationWidth, 0);
 	const iconColor = bookmark.color ?? DEFAULT_BOOKMARK_COLOR;

@@ -10,6 +10,18 @@ export function clamp({
 	return Math.max(min, Math.min(max, value));
 }
 
+export function isNearlyEqual({
+	leftValue,
+	rightValue,
+	epsilon = 0.0001,
+}: {
+	leftValue: number;
+	rightValue: number;
+	epsilon?: number;
+}): boolean {
+	return Math.abs(leftValue - rightValue) <= epsilon;
+}
+
 export function evaluateMathExpression({
 	input,
 }: {

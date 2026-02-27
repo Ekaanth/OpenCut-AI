@@ -1,10 +1,11 @@
 import type { Bookmark, TimelineTrack } from "@/types/timeline";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { BOOKMARK_TIME_EPSILON } from "@/lib/timeline/bookmarks";
+import { getElementKeyframes } from "@/lib/animation";
 
 export interface SnapPoint {
 	time: number;
-	type: "element-start" | "element-end" | "playhead" | "bookmark";
+	type: "element-start" | "element-end" | "playhead" | "bookmark" | "keyframe";
 	elementId?: string;
 	trackId?: string;
 }
@@ -26,6 +27,7 @@ export function findSnapPoints({
 	enableElementSnapping = true,
 	enablePlayheadSnapping = true,
 	enableBookmarkSnapping = true,
+	enableKeyframeSnapping = true,
 }: {
 	tracks: Array<TimelineTrack>;
 	playheadTime: number;
@@ -35,13 +37,15 @@ export function findSnapPoints({
 	enableElementSnapping?: boolean;
 	enablePlayheadSnapping?: boolean;
 	enableBookmarkSnapping?: boolean;
+	enableKeyframeSnapping?: boolean;
 }): SnapPoint[] {
 	const snapPoints: SnapPoint[] = [];
 
-	if (enableElementSnapping) {
-		for (const track of tracks) {
-			for (const element of track.elements) {
-				if (element.id === excludeElementId) continue;
+	for (const track of tracks) {
+		for (const element of track.elements) {
+			if (element.id === excludeElementId) continue;
+
+			if (enableElementSnapping) {
 				snapPoints.push(
 					{
 						time: element.startTime,
@@ -56,6 +60,19 @@ export function findSnapPoints({
 						trackId: track.id,
 					},
 				);
+			}
+
+			if (enableKeyframeSnapping) {
+				for (const keyframe of getElementKeyframes({
+					animations: element.animations,
+				})) {
+					snapPoints.push({
+						time: element.startTime + keyframe.time,
+						type: "keyframe",
+						elementId: element.id,
+						trackId: track.id,
+					});
+				}
 			}
 		}
 	}

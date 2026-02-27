@@ -84,6 +84,7 @@ export class ImageNode extends VisualNode<ImageNodeParams> {
 			source,
 			sourceWidth: width || renderer.width,
 			sourceHeight: height || renderer.height,
+			timelineTime: time,
 		});
 	}
 }

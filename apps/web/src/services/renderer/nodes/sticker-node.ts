@@ -62,6 +62,7 @@ export class StickerNode extends VisualNode<StickerNodeParams> {
 			source,
 			sourceWidth: width,
 			sourceHeight: height,
+			timelineTime: time,
 		});
 	}
 }
