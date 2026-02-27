@@ -272,7 +272,7 @@ export class TimelineManager {
 				propertyPath,
 				time,
 				value,
-				interpolation = "linear",
+				interpolation,
 				keyframeId,
 			}) =>
 				new UpsertKeyframeCommand({

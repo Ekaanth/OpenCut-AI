@@ -54,7 +54,7 @@ export function getKeyframeAtTime({
 	const channel = animations?.channels[propertyPath];
 	if (!channel || channel.keyframes.length === 0) return null;
 	const keyframe = channel.keyframes.find(
-		(kf) => Math.abs(kf.time - time) <= TIME_EPSILON_SECONDS,
+		(keyframe) => Math.abs(keyframe.time - time) <= TIME_EPSILON_SECONDS,
 	);
 	if (!keyframe) return null;
 	return {

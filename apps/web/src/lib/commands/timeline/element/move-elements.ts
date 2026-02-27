@@ -98,7 +98,7 @@ export class MoveElementCommand extends Command {
 
 		const isSameTrack = this.sourceTrackId === this.targetTrackId;
 
-		let updatedTracks = tracksToUpdate.map((track) => {
+		let updatedTracks = tracksToUpdate.map((track): TimelineTrack => {
 			if (isSameTrack && track.id === this.sourceTrackId) {
 				return {
 					...track,
@@ -124,8 +124,8 @@ export class MoveElementCommand extends Command {
 				};
 			}
 
-			return track;
-		}) as TimelineTrack[];
+		return track;
+	});
 
 		if (!isSameTrack) {
 			const sourceTrackAfterMove = updatedTracks.find(
