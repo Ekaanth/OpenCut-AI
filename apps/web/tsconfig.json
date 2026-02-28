@@ -19,7 +19,8 @@
 			}
 		],
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"content-collections": ["./.content-collections/generated"]
 		},
 		"forceConsistentCasingInFileNames": true
 	},

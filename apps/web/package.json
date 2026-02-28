@@ -87,6 +87,8 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@content-collections/core": "^0.14.1",
+    "@content-collections/next": "^0.2.11",
     "@napi-rs/canvas": "^0.1.92",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
