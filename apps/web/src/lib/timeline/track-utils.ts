@@ -6,11 +6,11 @@ import type {
 	AudioTrack,
 	StickerTrack,
 	TextTrack,
+	EffectTrack,
 	TimelineElement,
 } from "@/types/timeline";
 import {
-	TRACK_COLORS,
-	TRACK_HEIGHTS,
+	TRACK_CONFIG,
 	TRACK_GAP,
 } from "@/constants/timeline-constants";
 import { generateUUID } from "@/utils/id";
@@ -23,21 +23,20 @@ export function canTracktHaveAudio(
 
 export function canTrackBeHidden(
 	track: TimelineTrack,
-): track is VideoTrack | TextTrack | StickerTrack {
+): track is VideoTrack | TextTrack | StickerTrack | EffectTrack {
 	return track.type !== "audio";
 }
 
 export function getTrackColor({ type }: { type: TrackType }) {
-	return TRACK_COLORS[type];
+	return TRACK_CONFIG[type];
 }
 
 export function getTrackClasses({ type }: { type: TrackType }) {
-	const colors = TRACK_COLORS[type];
-	return `${colors.background}`.trim();
+	return TRACK_CONFIG[type].background.trim();
 }
 
 export function getTrackHeight({ type }: { type: TrackType }): number {
-	return TRACK_HEIGHTS[type];
+	return TRACK_CONFIG[type].height;
 }
 
 export function getCumulativeHeightBefore({
@@ -77,17 +76,7 @@ export function buildEmptyTrack({
 	type: TrackType;
 	name?: string;
 }): TimelineTrack {
-	const trackName =
-		name ??
-		(type === "video"
-			? "Video track"
-			: type === "text"
-				? "Text track"
-				: type === "audio"
-					? "Audio track"
-					: type === "sticker"
-						? "Sticker track"
-						: "Track");
+	const trackName = name ?? TRACK_CONFIG[type].defaultName;
 
 	switch (type) {
 		case "video":
@@ -124,6 +113,14 @@ export function buildEmptyTrack({
 				elements: [],
 				muted: false,
 			};
+		case "effect":
+			return {
+				id,
+				name: trackName,
+				type: "effect",
+				elements: [],
+				hidden: false,
+			};
 		default:
 			throw new Error(`Unsupported track type: ${type}`);
 	}
@@ -138,6 +135,10 @@ export function getDefaultInsertIndexForTrack({
 }): number {
 	if (trackType === "audio") {
 		return tracks.length;
+	}
+
+	if (trackType === "effect") {
+		return 0;
 	}
 
 	const mainTrackIndex = tracks.findIndex((track) => isMainTrack(track));
@@ -216,6 +217,7 @@ export function canElementGoOnTrack({
 	if (elementType === "text") return trackType === "text";
 	if (elementType === "audio") return trackType === "audio";
 	if (elementType === "sticker") return trackType === "sticker";
+	if (elementType === "effect") return trackType === "effect";
 	if (elementType === "video" || elementType === "image") {
 		return trackType === "video";
 	}

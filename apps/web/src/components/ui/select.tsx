@@ -40,7 +40,7 @@ const selectTriggerVariants = cva(
 			},
 			size: {
 				default: "",
-				sm: "",
+				sm: "rounded-sm",
 			},
 		},
 		defaultVariants: {

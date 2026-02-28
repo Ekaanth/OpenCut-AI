@@ -426,6 +426,9 @@ function GridView({
 								type: "media",
 								mediaType: item.type,
 								name: item.name,
+								...(item.type !== "audio" && {
+									targetElementTypes: ["video", "image"] as const,
+								}),
 							}}
 							shouldShowPlusOnDrag={false}
 							onAddToTimeline={({ currentTime }) =>
@@ -476,6 +479,9 @@ function ListView({
 								type: "media",
 								mediaType: item.type,
 								name: item.name,
+								...(item.type !== "audio" && {
+									targetElementTypes: ["video", "image"] as const,
+								}),
 							}}
 							shouldShowPlusOnDrag={false}
 							onAddToTimeline={({ currentTime }) =>

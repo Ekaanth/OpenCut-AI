@@ -70,7 +70,7 @@ export function getElementBounds({
 	mediaAsset?: MediaAsset | null;
 	localTime: number;
 }): ElementBounds | null {
-	if (element.type === "audio") return null;
+	if (element.type === "audio" || element.type === "effect") return null;
 	if ("hidden" in element && element.hidden) return null;
 
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;

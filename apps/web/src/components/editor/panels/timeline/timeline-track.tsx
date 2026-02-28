@@ -32,6 +32,7 @@ interface TimelineTrackContentProps {
 	onTrackMouseDown?: (event: React.MouseEvent) => void;
 	onTrackClick?: (event: React.MouseEvent) => void;
 	shouldIgnoreClick?: () => boolean;
+	targetElementId?: string | null;
 }
 
 export function TimelineTrackContent({
@@ -48,6 +49,7 @@ export function TimelineTrackContent({
 	onTrackMouseDown,
 	onTrackClick,
 	shouldIgnoreClick,
+	targetElementId = null,
 }: TimelineTrackContentProps) {
 	const editor = useEditor();
 	const { isElementSelected, clearElementSelection } = useElementSelection();
@@ -102,6 +104,7 @@ export function TimelineTrackContent({
 									onElementClick({ event, element, track })
 								}
 								dragState={dragState}
+								isDropTarget={element.id === targetElementId}
 							/>
 						);
 					})

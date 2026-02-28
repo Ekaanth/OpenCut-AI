@@ -51,7 +51,7 @@ export class StickerNode extends VisualNode<StickerNodeParams> {
 	async render({ renderer, time }: { renderer: CanvasRenderer; time: number }) {
 		await super.render({ renderer, time });
 
-		if (!this.isInRange(time)) {
+		if (!this.isInRange({ time })) {
 			return;
 		}
 

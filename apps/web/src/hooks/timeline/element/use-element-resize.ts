@@ -86,12 +86,8 @@ export function useTimelineElementResize({
 	};
 
 	const canExtendElementDuration = useCallback(() => {
-		if (element.type === "text" || element.type === "image") {
-			return true;
-		}
-
-		return false;
-	}, [element.type]);
+		return element.sourceDuration == null;
+	}, [element.sourceDuration]);
 
 	const updateTrimFromMouseMove = useCallback(
 		({ clientX }: { clientX: number }) => {

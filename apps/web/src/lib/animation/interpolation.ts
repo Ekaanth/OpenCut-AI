@@ -217,6 +217,11 @@ function evaluateChannelValueAtTime<TKeyframe extends { time: number; value: TVa
 	for (let keyframeIndex = 0; keyframeIndex < keyframes.length - 1; keyframeIndex++) {
 		const leftKeyframe = keyframes[keyframeIndex];
 		const rightKeyframe = keyframes[keyframeIndex + 1];
+
+		if (Math.abs(time - rightKeyframe.time) <= TIME_EPSILON_SECONDS) {
+			return rightKeyframe.value;
+		}
+
 		const isBetweenPair = isWithinTimePair({
 			time,
 			leftTime: leftKeyframe.time,

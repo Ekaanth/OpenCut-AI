@@ -49,6 +49,7 @@ export class RetimeKeyframeCommand extends Command {
 				}),
 			update: (element) => {
 				const boundedTime = Math.max(0, Math.min(this.nextTime, element.duration));
+				if (!Number.isFinite(boundedTime)) return element;
 				return {
 					...element,
 					animations: retimeElementKeyframe({
