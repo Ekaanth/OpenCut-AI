@@ -147,3 +147,18 @@ Before outputting the review, list each checklist section and confirm you checke
 - If something looks off but isn't covered by the checklist, you can mention it as a brief side note at the end — but keep it clearly separate from the actual review. Always default to fixing the issues covered by the checklist above, unless the user says otherwise.
 
 > You WILL miss things if you try to review the whole file in one pass. Iterate rule by rule.
+
+---
+
+## Think Bigger
+
+After the checklist review, step back and ask the hard questions. The biggest architectural problems get solved by the biggest questions.
+
+- Does this abstraction actually need to exist? Could it be deleted entirely?
+- Is this the right layer for this logic? (wrong layer = future pain)
+- Is this solving a real problem, or a problem we invented?
+- Would a simpler data model make this whole file unnecessary?
+- Are we adding complexity to work around a bad decision made earlier?
+- Could this field be derived from other existing fields? Redundant data in a model is a source of bugs.
+
+Don't be shy about flagging these. A "why does this exist?" question is often worth more than 10 style fixes.
