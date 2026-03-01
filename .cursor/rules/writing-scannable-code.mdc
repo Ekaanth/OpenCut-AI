@@ -1,7 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Scannable Code Guidelines/Separating Concerns.
 
 ## Core Principle

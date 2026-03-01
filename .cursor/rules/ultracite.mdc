@@ -1,9 +1,6 @@
 ---
-description: Ultracite Rules - AI-Ready Formatter and Linter
-globs: "**/*.{ts,tsx,js,jsx}"
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Project Context
 
 Ultracite enforces strict type safety, accessibility standards, and consistent code quality for JavaScript/TypeScript projects using Biome's formatter.

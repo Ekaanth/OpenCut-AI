@@ -1,5 +1,5 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 
 # video-editor-oss Codebase Index
@@ -11,6 +11,7 @@ Updated in real-time by Twiggy. Use this to discover existing utilities and avoi
 ## How to Use
 
 When implementing new features:
+
 1. Check if similar functionality already exists
 2. Reuse existing types and utilities
 3. Understand the API surface of your codebase
@@ -212,10 +213,14 @@ use-sound-search.ts
   })
 
 use-transform-handles.ts
-  export function useTransformHandles({
-  	canvasRef,
-  }: {
-  	canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  export function useTransformHandles({
+
+  	canvasRef,
+
+  }: {
+
+  	canvasRef: React.RefObject<HTMLCanvasElement | null>;
+
   })
 
 ## apps/web/src/hooks/actions
@@ -253,11 +258,16 @@ use-bookmark-drag.ts
     bookmarkTime: number | null
     currentTime: number
   }
-  export function useBookmarkDrag({
-  	zoomLevel,
-  	scrollRef,
-  	snappingEnabled,
-  	onSnapPointChange,
+  export function useBookmarkDrag({
+
+  	zoomLevel,
+
+  	scrollRef,
+
+  	snappingEnabled,
+
+  	onSnapPointChange,
+
   }: UseBookmarkDragProps)
 
 use-edge-auto-scroll.ts
@@ -928,58 +938,104 @@ element-bounds.ts
   }): ElementWithBounds[]
 
 hit-test.ts
-  export function hitTest({
-  	canvasX,
-  	canvasY,
-  	elementsWithBounds,
-  }: {
-  	canvasX: number;
-  	canvasY: number;
-  	elementsWithBounds: ElementWithBounds[];
+  export function hitTest({
+
+  	canvasX,
+
+  	canvasY,
+
+  	elementsWithBounds,
+
+  }: {
+
+  	canvasX: number;
+
+  	canvasY: number;
+
+  	elementsWithBounds: ElementWithBounds[];
+
   }): ElementWithBounds | null
 
 preview-coords.ts
-  export function screenToCanvas({
-  	clientX,
-  	clientY,
-  	canvas,
-  }: {
-  	clientX: number;
-  	clientY: number;
-  	canvas: HTMLCanvasElement;
+  export function screenToCanvas({
+
+  	clientX,
+
+  	clientY,
+
+  	canvas,
+
+  }: {
+
+  	clientX: number;
+
+  	clientY: number;
+
+  	canvas: HTMLCanvasElement;
+
   }): { x: number; y: number }
-  export function canvasToOverlay({
-  	canvasX,
-  	canvasY,
-  	canvasRect,
-  	containerRect,
-  	canvasSize,
-  }: {
-  	canvasX: number;
-  	canvasY: number;
-  	canvasRect: DOMRect;
-  	containerRect: DOMRect;
-  	canvasSize: { width: number; height: number };
+  export function canvasToOverlay({
+
+  	canvasX,
+
+  	canvasY,
+
+  	canvasRect,
+
+  	containerRect,
+
+  	canvasSize,
+
+  }: {
+
+  	canvasX: number;
+
+  	canvasY: number;
+
+  	canvasRect: DOMRect;
+
+  	containerRect: DOMRect;
+
+  	canvasSize: { width: number; height: number };
+
   }): { x: number; y: number }
-  export function positionToOverlay({
-  	positionX,
-  	positionY,
-  	canvasRect,
-  	containerRect,
-  	canvasSize,
-  }: {
-  	positionX: number;
-  	positionY: number;
-  	canvasRect: DOMRect;
-  	containerRect: DOMRect;
-  	canvasSize: { width: number; height: number };
+  export function positionToOverlay({
+
+  	positionX,
+
+  	positionY,
+
+  	canvasRect,
+
+  	containerRect,
+
+  	canvasSize,
+
+  }: {
+
+  	positionX: number;
+
+  	positionY: number;
+
+  	canvasRect: DOMRect;
+
+  	containerRect: DOMRect;
+
+  	canvasSize: { width: number; height: number };
+
   }): { x: number; y: number }
-  export function getDisplayScale({
-  	canvasRect,
-  	canvasSize,
-  }: {
-  	canvasRect: DOMRect;
-  	canvasSize: { width: number; height: number };
+  export function getDisplayScale({
+
+  	canvasRect,
+
+  	canvasSize,
+
+  }: {
+
+  	canvasRect: DOMRect;
+
+  	canvasSize: { width: number; height: number };
+
   }): { x: number; y: number }
 
 preview-snap.ts
@@ -992,40 +1048,64 @@ preview-snap.ts
     snappedPosition: { x: number; y: number }
     activeLines: SnapLine[]
   }
-  export function snapPosition({
-  	proposedPosition,
-  	canvasSize,
-  	elementSize,
-  }: {
-  	proposedPosition: { x: number; y: number };
-  	canvasSize: { width: number; height: number };
-  	elementSize: { width: number; height: number };
+  export function snapPosition({
+
+  	proposedPosition,
+
+  	canvasSize,
+
+  	elementSize,
+
+  }: {
+
+  	proposedPosition: { x: number; y: number };
+
+  	canvasSize: { width: number; height: number };
+
+  	elementSize: { width: number; height: number };
+
   }): SnapResult
   export interface ScaleSnapResult {
     snappedScale: number
     activeLines: SnapLine[]
   }
-  export function snapScale({
-  	proposedScale,
-  	position,
-  	baseWidth,
-  	baseHeight,
-  	canvasSize,
-  }: {
-  	proposedScale: number;
-  	position: { x: number; y: number };
-  	baseWidth: number;
-  	baseHeight: number;
-  	canvasSize: { width: number; height: number };
+  export function snapScale({
+
+  	proposedScale,
+
+  	position,
+
+  	baseWidth,
+
+  	baseHeight,
+
+  	canvasSize,
+
+  }: {
+
+  	proposedScale: number;
+
+  	position: { x: number; y: number };
+
+  	baseWidth: number;
+
+  	baseHeight: number;
+
+  	canvasSize: { width: number; height: number };
+
   }): ScaleSnapResult
   export interface RotationSnapResult {
     snappedRotation: number
     isSnapped: boolean
   }
-  export function snapRotation({
-  	proposedRotation,
-  }: {
-  	proposedRotation: number;
+  export function snapRotation({
+
+  	proposedRotation,
+
+  }: {
+
+  	proposedRotation: number;
+
   }): RotationSnapResult
 
 ## apps/web/src/lib/stickers
@@ -1180,16 +1260,26 @@ bookmarks.ts
   }): Bookmark[]
 
 drag-utils.ts
-  export function getMouseTimeFromClientX({
-  	clientX,
-  	containerRect,
-  	zoomLevel,
-  	scrollLeft,
-  }: {
-  	clientX: number;
-  	containerRect: DOMRect;
-  	zoomLevel: number;
-  	scrollLeft: number;
+  export function getMouseTimeFromClientX({
+
+  	clientX,
+
+  	containerRect,
+
+  	zoomLevel,
+
+  	scrollLeft,
+
+  }: {
+
+  	clientX: number;
+
+  	containerRect: DOMRect;
+
+  	zoomLevel: number;
+
+  	scrollLeft: number;
+
   }): number
 
 drop-utils.ts
@@ -1954,12 +2044,18 @@ project.ts
   export type TProjectSortOption = `${TProjectSortKey}-${TSortOrder}`
 
 rendering.ts
-  export type BlendMode = | "normal"
-  	| "darken"
-  	| "multiply"
-  	| "color-burn"
-  	| "lighten"
-  	| "screen"
+  export type BlendMode = | "normal"
+
+  	| "darken"
+
+  	| "multiply"
+
+  	| "color-burn"
+
+  	| "lighten"
+
+  	| "screen"
+
   	| "plus-ligh...
 
 sounds.ts
@@ -2258,35 +2354,59 @@ browser.ts
 color.ts
   export type ColorFormat = "hex" | "rgb" | "hsl" | "hsv"
   export function hexToHsv({ hex }: { hex: string }): [number, number, number]
-  export function hsvToHex({
-  	h,
-  	s,
-  	v,
+  export function hsvToHex({
+
+  	h,
+
+  	s,
+
+  	v,
+
   }: { h: number; s: number; v: number }): string
-  export function parseHexAlpha({ hex }: { hex: string }): {
-  	rgb: string;
-  	alpha: number;
+  export function parseHexAlpha({ hex }: { hex: string }): {
+
+  	rgb: string;
+
+  	alpha: number;
+
   }
-  export function appendAlpha({
-  	rgbHex,
-  	alpha,
+  export function appendAlpha({
+
+  	rgbHex,
+
+  	alpha,
+
   }: { rgbHex: string; alpha: number }): string
-  export function extractColorFromText({
-  	text,
+  export function extractColorFromText({
+
+  	text,
+
   }: { text: string }): string | null
-  export function formatColorValue({
-  	hex,
-  	format,
-  }: {
-  	hex: string;
-  	format: ColorFormat;
+  export function formatColorValue({
+
+  	hex,
+
+  	format,
+
+  }: {
+
+  	hex: string;
+
+  	format: ColorFormat;
+
   }): string
-  export function parseColorInput({
-  	input,
-  	format,
-  }: {
-  	input: string;
-  	format: ColorFormat;
+  export function parseColorInput({
+
+  	input,
+
+  	format,
+
+  }: {
+
+  	input: string;
+
+  	format: ColorFormat;
+
   }): string | null
 
 date.ts
@@ -2392,4 +2512,4 @@ ui.tsx
 
 ---
 
-*Generated and maintained by [Twiggy](https://github.com/twiggy-tools/Twiggy)*
+_Generated and maintained by [Twiggy](https://github.com/twiggy-tools/Twiggy)_

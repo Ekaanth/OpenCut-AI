@@ -1,7 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Comment Guidelines
 
 ## Good Comments (Human-style)

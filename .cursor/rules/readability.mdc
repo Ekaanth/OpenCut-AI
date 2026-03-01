@@ -1,7 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Readability First
 
 Optimize code for AI agents to understand and modify.
