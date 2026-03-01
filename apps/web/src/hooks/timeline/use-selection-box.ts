@@ -5,6 +5,7 @@ import { useEditor } from "../use-editor";
 
 interface UseSelectionBoxProps {
 	containerRef: React.RefObject<HTMLElement | null>;
+	headerRef: React.RefObject<HTMLElement | null>;
 	onSelectionComplete: (
 		elements: { trackId: string; elementId: string }[],
 	) => void;
@@ -88,6 +89,7 @@ function isRectangleIntersecting({
 
 export function useSelectionBox({
 	containerRef,
+	headerRef,
 	onSelectionComplete,
 	isEnabled = true,
 	tracksScrollRef,
@@ -131,6 +133,8 @@ export function useSelectionBox({
 				endPos,
 			});
 			const pixelsPerSecond = TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+			const timelineHeaderHeight =
+				headerRef.current?.getBoundingClientRect().height ?? 0;
 			const selectedElements: { trackId: string; elementId: string }[] = [];
 
 			for (const [trackIndex, track] of tracks.entries()) {
@@ -139,8 +143,9 @@ export function useSelectionBox({
 					trackIndex,
 				});
 				const trackHeight = getTrackHeight({ type: track.type });
-				const elementTop = trackTop;
-				const elementBottom = trackTop + trackHeight;
+				const elementTop =
+					timelineHeaderHeight + TIMELINE_CONSTANTS.PADDING_TOP_PX + trackTop;
+				const elementBottom = elementTop + trackHeight;
 
 				for (const element of track.elements) {
 					const elementLeft = element.startTime * pixelsPerSecond;
@@ -168,7 +173,14 @@ export function useSelectionBox({
 			}
 			onSelectionComplete(selectedElements);
 		},
-		[containerRef, onSelectionComplete, tracks, tracksScrollRef, zoomLevel],
+		[
+			containerRef,
+			headerRef,
+			onSelectionComplete,
+			tracks,
+			tracksScrollRef,
+			zoomLevel,
+		],
 	);
 
 	useEffect(() => {

@@ -3,19 +3,33 @@ import type { TimelineTrack } from "@/types/timeline";
 import { generateUUID } from "@/utils/id";
 import { EditorCore } from "@/core";
 import { rippleShiftElements } from "@/lib/timeline";
+import { splitAnimationsAtTime } from "@/lib/animation";
 
 export class SplitElementsCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
 	private rightSideElements: { trackId: string; elementId: string }[] = [];
 	private previousSelection: { trackId: string; elementId: string }[] = [];
+	private readonly elements: { trackId: string; elementId: string }[];
+	private readonly splitTime: number;
+	private readonly retainSide: "both" | "left" | "right";
+	private readonly rippleEnabled: boolean;
 
-	constructor(
-		private elements: { trackId: string; elementId: string }[],
-		private splitTime: number,
-		private retainSide: "both" | "left" | "right" = "both",
-		private rippleEnabled = false,
-	) {
+	constructor({
+		elements,
+		splitTime,
+		retainSide = "both",
+		rippleEnabled = false,
+	}: {
+		elements: { trackId: string; elementId: string }[];
+		splitTime: number;
+		retainSide?: "both" | "left" | "right";
+		rippleEnabled?: boolean;
+	}) {
 		super();
+		this.elements = elements;
+		this.splitTime = splitTime;
+		this.retainSide = retainSide;
+		this.rippleEnabled = rippleEnabled;
 	}
 
 	getRightSideElements(): { trackId: string; elementId: string }[] {
@@ -61,6 +75,11 @@ export class SplitElementsCommand extends Command {
 				const relativeTime = this.splitTime - element.startTime;
 				const leftVisibleDuration = relativeTime;
 				const rightVisibleDuration = element.duration - relativeTime;
+				const { leftAnimations, rightAnimations } = splitAnimationsAtTime({
+					animations: element.animations,
+					splitTime: relativeTime,
+					shouldIncludeSplitBoundary: true,
+				});
 
 				if (this.retainSide === "left") {
 					return [
@@ -69,6 +88,7 @@ export class SplitElementsCommand extends Command {
 							duration: leftVisibleDuration,
 							trimEnd: element.trimEnd + rightVisibleDuration,
 							name: `${element.name} (left)`,
+							animations: leftAnimations,
 						},
 					];
 				}
@@ -90,11 +110,13 @@ export class SplitElementsCommand extends Command {
 							duration: rightVisibleDuration,
 							trimStart: element.trimStart + leftVisibleDuration,
 							name: `${element.name} (right)`,
+							animations: rightAnimations,
 						},
 					];
 				}
 
-			const secondElementId = generateUUID();
+				// "both" - split into two pieces
+				const secondElementId = generateUUID();
 				this.rightSideElements.push({
 					trackId: track.id,
 					elementId: secondElementId,
@@ -106,6 +128,7 @@ export class SplitElementsCommand extends Command {
 						duration: leftVisibleDuration,
 						trimEnd: element.trimEnd + rightVisibleDuration,
 						name: `${element.name} (left)`,
+						animations: leftAnimations,
 					},
 					{
 						...element,
@@ -114,14 +137,12 @@ export class SplitElementsCommand extends Command {
 						duration: rightVisibleDuration,
 						trimStart: element.trimStart + leftVisibleDuration,
 						name: `${element.name} (right)`,
+						animations: rightAnimations,
 					},
 				];
 			});
 
-			if (
-				this.rippleEnabled &&
-				leftVisibleDurationForRipple !== null
-			) {
+			if (this.rippleEnabled && leftVisibleDurationForRipple !== null) {
 				elements = rippleShiftElements({
 					elements,
 					afterTime: this.splitTime,

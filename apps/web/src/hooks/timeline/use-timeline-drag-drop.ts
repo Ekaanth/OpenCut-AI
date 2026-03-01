@@ -8,6 +8,7 @@ import {
 	buildTextElement,
 	buildStickerElement,
 	buildElementFromMedia,
+	buildEffectElement,
 } from "@/lib/timeline/element-utils";
 import type { Command } from "@/lib/commands/base-command";
 import { AddMediaAssetCommand } from "@/lib/commands/media";
@@ -16,7 +17,11 @@ import { BatchCommand } from "@/lib/commands";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
 import { getDragData, hasDragData } from "@/lib/drag-data";
 import type { TrackType, DropTarget, ElementType } from "@/types/timeline";
-import type { MediaDragData, StickerDragData } from "@/types/drag";
+import type {
+	MediaDragData,
+	StickerDragData,
+	EffectDragData,
+} from "@/types/drag";
 
 interface UseTimelineDragDropProps {
 	containerRef: RefObject<HTMLDivElement | null>;
@@ -54,6 +59,7 @@ export function useTimelineDragDrop({
 
 			if (dragData.type === "text") return "text";
 			if (dragData.type === "sticker") return "sticker";
+			if (dragData.type === "effect") return "effect";
 			if (dragData.type === "media") {
 				return dragData.mediaType;
 			}
@@ -70,7 +76,11 @@ export function useTimelineDragDrop({
 			elementType: ElementType;
 			mediaId?: string;
 		}): number => {
-			if (elementType === "text" || elementType === "sticker") {
+			if (
+				elementType === "text" ||
+				elementType === "sticker" ||
+				elementType === "effect"
+			) {
 				return TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION;
 			}
 			if (mediaId) {
@@ -124,6 +134,13 @@ export function useTimelineDragDrop({
 			const mouseX = e.clientX - rect.left;
 			const mouseY = Math.max(0, e.clientY - rect.top - headerHeight);
 
+			const targetElementTypes =
+				dragData?.type === "effect"
+					? (dragData as EffectDragData).targetElementTypes
+					: dragData?.type === "media"
+						? (dragData as MediaDragData).targetElementTypes
+						: undefined;
+
 			const target = computeDropTarget({
 				elementType,
 				mouseX,
@@ -134,6 +151,7 @@ export function useTimelineDragDrop({
 				elementDuration: duration,
 				pixelsPerSecond: TIMELINE_CONSTANTS.PIXELS_PER_SECOND,
 				zoomLevel,
+				targetElementTypes,
 			});
 
 			target.xPosition = getSnappedTime({ time: target.xPosition });
@@ -248,6 +266,11 @@ export function useTimelineDragDrop({
 
 	const executeMediaDrop = useCallback(
 		({ target, dragData }: { target: DropTarget; dragData: MediaDragData }) => {
+			if (target.targetElement) {
+				toast.info("Replace media source is coming soon!");
+				return;
+			}
+
 			const mediaAsset = mediaAssets.find((m) => m.id === dragData.id);
 			if (!mediaAsset) return;
 
@@ -282,6 +305,42 @@ export function useTimelineDragDrop({
 			});
 		},
 		[editor.timeline, mediaAssets, tracks],
+	);
+
+	const executeEffectDrop = useCallback(
+		({ target, dragData }: { target: DropTarget; dragData: EffectDragData }) => {
+			const effectTrack = tracks.find((t) => t.type === "effect");
+			let trackId: string;
+
+			if (effectTrack && !target.targetElement) {
+				trackId = effectTrack.id;
+			} else if (target.targetElement) {
+				trackId = effectTrack?.id ?? editor.timeline.addTrack({
+					type: "effect",
+					index: 0,
+				});
+			} else if (target.isNewTrack) {
+				trackId = editor.timeline.addTrack({
+					type: "effect",
+					index: target.trackIndex,
+				});
+			} else {
+				const track = tracks[target.trackIndex];
+				if (!track || track.type !== "effect") return;
+				trackId = track.id;
+			}
+
+			const element = buildEffectElement({
+				effectType: dragData.effectType,
+				startTime: target.xPosition,
+			});
+
+			editor.timeline.insertElement({
+				placement: { mode: "explicit", trackId },
+				element,
+			});
+		},
+		[editor.timeline, tracks],
 	);
 
 	const executeFileDrop = useCallback(
@@ -384,6 +443,11 @@ export function useTimelineDragDrop({
 						executeTextDrop({ target: currentTarget, dragData });
 					} else if (dragData.type === "sticker") {
 						executeStickerDrop({ target: currentTarget, dragData });
+					} else if (dragData.type === "effect") {
+						executeEffectDrop({
+							target: currentTarget,
+							dragData: dragData as EffectDragData,
+						});
 					} else {
 						executeMediaDrop({ target: currentTarget, dragData });
 					}
@@ -410,6 +474,7 @@ export function useTimelineDragDrop({
 			executeTextDrop,
 			executeStickerDrop,
 			executeMediaDrop,
+			executeEffectDrop,
 			executeFileDrop,
 			containerRef,
 			headerRef,

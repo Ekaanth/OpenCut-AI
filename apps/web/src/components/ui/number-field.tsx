@@ -71,9 +71,12 @@ function NumberField({
 				return;
 			}
 			cumulativeDeltaRef.current += moveEvent.movementX;
+			const sensitivity =
+				typeof dragSensitivity === "number"
+					? dragSensitivity
+					: DRAG_SENSITIVITIES[dragSensitivity];
 			const newValue =
-				startValueRef.current +
-				cumulativeDeltaRef.current * DRAG_SENSITIVITIES[dragSensitivity];
+				startValueRef.current + cumulativeDeltaRef.current * sensitivity;
 			onScrub(newValue);
 		};
 

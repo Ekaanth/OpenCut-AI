@@ -4,14 +4,17 @@ import { useEditor } from "@/hooks/use-editor";
 import { useAssetsPanelStore } from "@/stores/assets-panel-store";
 import AudioWaveform from "./audio-waveform";
 import { useTimelineElementResize } from "@/hooks/timeline/element/use-element-resize";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
-import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
+import { useKeyframeSelection } from "@/hooks/timeline/element/use-keyframe-selection";
+import type { SnapPoint } from "@/lib/timeline/snap-utils";
+import { getElementKeyframes } from "@/lib/animation";
 import {
 	getTrackClasses,
 	getTrackHeight,
 	canElementHaveAudio,
 	canElementBeHidden,
 	hasMediaId,
+	timelineTimeToPixels,
+	timelineTimeToSnappedPixels,
 } from "@/lib/timeline";
 import {
 	ContextMenu,
@@ -19,7 +22,7 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 	ContextMenuTrigger,
-} from "../../../ui/context-menu";
+} from "@/components/ui/context-menu";
 import type {
 	TimelineElement as TimelineElementType,
 	TimelineTrack,
@@ -42,10 +45,105 @@ import {
 	VolumeMute02Icon,
 	Search01Icon,
 	Exchange01Icon,
+	KeyframeIcon,
+	MagicWand05Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { uppercase } from "@/utils/string";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import type { SelectedKeyframeRef, ElementKeyframe } from "@/types/animation";
+import { cn } from "@/utils/ui";
+
+const KEYFRAME_INDICATOR_MIN_WIDTH_PX = 40;
+
+interface KeyframeIndicator {
+	time: number;
+	offsetPx: number;
+	keyframes: SelectedKeyframeRef[];
+}
+
+function buildKeyframeIndicator({
+	keyframe,
+	trackId,
+	elementId,
+	displayedStartTime,
+	zoomLevel,
+	elementLeft,
+}: {
+	keyframe: ElementKeyframe;
+	trackId: string;
+	elementId: string;
+	displayedStartTime: number;
+	zoomLevel: number;
+	elementLeft: number;
+}): {
+	time: number;
+	offsetPx: number;
+	keyframeRef: SelectedKeyframeRef;
+} {
+	const keyframeRef = {
+		trackId,
+		elementId,
+		propertyPath: keyframe.propertyPath,
+		keyframeId: keyframe.id,
+	};
+	const keyframeLeft = timelineTimeToSnappedPixels({
+		time: displayedStartTime + keyframe.time,
+		zoomLevel,
+	});
+	return {
+		time: keyframe.time,
+		offsetPx: keyframeLeft - elementLeft,
+		keyframeRef,
+	};
+}
+
+function getKeyframeIndicators({
+	keyframes,
+	trackId,
+	elementId,
+	displayedStartTime,
+	zoomLevel,
+	elementLeft,
+	elementWidth,
+}: {
+	keyframes: ElementKeyframe[];
+	trackId: string;
+	elementId: string;
+	displayedStartTime: number;
+	zoomLevel: number;
+	elementLeft: number;
+	elementWidth: number;
+}): KeyframeIndicator[] {
+	if (elementWidth < KEYFRAME_INDICATOR_MIN_WIDTH_PX) {
+		return [];
+	}
+
+	const keyframesByTime = new Map<number, KeyframeIndicator>();
+	for (const keyframe of keyframes) {
+		const indicator = buildKeyframeIndicator({
+			keyframe,
+			trackId,
+			elementId,
+			displayedStartTime,
+			zoomLevel,
+			elementLeft,
+		});
+		const existingIndicator = keyframesByTime.get(indicator.time);
+		if (!existingIndicator) {
+			keyframesByTime.set(indicator.time, {
+				time: indicator.time,
+				offsetPx: indicator.offsetPx,
+				keyframes: [indicator.keyframeRef],
+			});
+			continue;
+		}
+
+		existingIndicator.keyframes.push(indicator.keyframeRef);
+	}
+
+	return [...keyframesByTime.values()].sort((a, b) => a.time - b.time);
+}
 
 function getDisplayShortcut(action: TAction) {
 	const { defaultShortcuts } = getActionDefinition(action);
@@ -71,6 +169,7 @@ interface TimelineElementProps {
 	) => void;
 	onElementClick: (e: React.MouseEvent, element: TimelineElementType) => void;
 	dragState: ElementDragState;
+	isDropTarget?: boolean;
 }
 
 export function TimelineElement({
@@ -83,6 +182,7 @@ export function TimelineElement({
 	onElementMouseDown,
 	onElementClick,
 	dragState,
+	isDropTarget = false,
 }: TimelineElementProps) {
 	const editor = useEditor();
 	const { selectedElements } = useElementSelection();
@@ -123,10 +223,25 @@ export function TimelineElement({
 			: element.startTime;
 	const displayedStartTime = isResizing ? currentStartTime : elementStartTime;
 	const displayedDuration = isResizing ? currentDuration : element.duration;
-	const elementWidth =
-		displayedDuration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
-	const elementLeft = displayedStartTime * 50 * zoomLevel;
-
+	const elementWidth = timelineTimeToPixels({
+		time: displayedDuration,
+		zoomLevel,
+	});
+	const elementLeft = timelineTimeToSnappedPixels({
+		time: displayedStartTime,
+		zoomLevel,
+	});
+	const keyframeIndicators = isSelected
+		? getKeyframeIndicators({
+				keyframes: getElementKeyframes({ animations: element.animations }),
+				trackId: track.id,
+				elementId: element.id,
+				displayedStartTime,
+				zoomLevel,
+				elementLeft,
+				elementWidth,
+			})
+		: [];
 	const handleRevealInMedia = ({ event }: { event: React.MouseEvent }) => {
 		event.stopPropagation();
 		if (hasMediaId(element)) {
@@ -160,7 +275,9 @@ export function TimelineElement({
 						onElementClick={onElementClick}
 						onElementMouseDown={onElementMouseDown}
 						handleResizeStart={handleResizeStart}
+						isDropTarget={isDropTarget}
 					/>
+					{isSelected && <KeyframeIndicators indicators={keyframeIndicators} />}
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="w-64">
@@ -197,7 +314,9 @@ export function TimelineElement({
 					<>
 						<ContextMenuItem
 							icon={<HugeiconsIcon icon={Search01Icon} />}
-							onClick={(event) => handleRevealInMedia({ event })}
+							onClick={(event: React.MouseEvent) =>
+								handleRevealInMedia({ event })
+							}
 						>
 							Reveal media
 						</ContextMenuItem>
@@ -231,6 +350,7 @@ function ElementInner({
 	onElementClick,
 	onElementMouseDown,
 	handleResizeStart,
+	isDropTarget = false,
 }: {
 	element: TimelineElementType;
 	track: TimelineTrack;
@@ -248,14 +368,20 @@ function ElementInner({
 		elementId: string;
 		side: "left" | "right";
 	}) => void;
+	isDropTarget?: boolean;
 }) {
+	const opacityClass =
+		(canElementBeHidden(element) && element.hidden) || isDropTarget
+			? "opacity-50"
+			: "";
+
 	return (
 		<div
 			className={`relative h-full cursor-pointer overflow-hidden rounded-[0.5rem] ${getTrackClasses(
 				{
 					type: track.type,
 				},
-			)} ${canElementBeHidden(element) && element.hidden ? "opacity-50" : ""}`}
+			)} ${opacityClass}`}
 		>
 			<button
 				type="button"
@@ -271,7 +397,6 @@ function ElementInner({
 						mediaAssets={mediaAssets}
 					/>
 				</div>
-
 				{(hasAudio
 					? isMuted
 					: canElementBeHidden(element) && element.hidden) && (
@@ -335,52 +460,142 @@ function ResizeHandle({
 	);
 }
 
-function ElementContent({
-	element,
-	track,
-	isSelected,
-	mediaAssets,
+function KeyframeIndicators({
+	indicators,
 }: {
+	indicators: KeyframeIndicator[];
+}) {
+	const { isKeyframeSelected, toggleKeyframeSelection, selectKeyframeRange } =
+		useKeyframeSelection();
+	const orderedKeyframes = indicators.flatMap(
+		(indicator) => indicator.keyframes,
+	);
+
+	const handleKeyframeMouseDown = ({ event }: { event: React.MouseEvent }) => {
+		event.preventDefault();
+		event.stopPropagation();
+	};
+
+	const handleKeyframeClick = ({
+		event,
+		keyframes,
+	}: {
+		event: React.MouseEvent;
+		keyframes: SelectedKeyframeRef[];
+	}) => {
+		event.stopPropagation();
+		if (event.shiftKey) {
+			selectKeyframeRange({
+				orderedKeyframes,
+				targetKeyframes: keyframes,
+				isAdditive: event.metaKey || event.ctrlKey,
+			});
+			return;
+		}
+
+		toggleKeyframeSelection({
+			keyframes,
+			isMultiKey: event.metaKey || event.ctrlKey,
+		});
+	};
+
+	return indicators.map((indicator) => {
+		const isIndicatorSelected = indicator.keyframes.some((keyframe) =>
+			isKeyframeSelected({ keyframe }),
+		);
+
+		return (
+			<button
+				key={indicator.time}
+				type="button"
+				className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+				style={{ left: indicator.offsetPx }}
+				onMouseDown={(event) => handleKeyframeMouseDown({ event })}
+				onClick={(event) =>
+					handleKeyframeClick({ event, keyframes: indicator.keyframes })
+				}
+				aria-label="Select keyframe"
+			>
+				<HugeiconsIcon
+					icon={KeyframeIcon}
+					className={cn(
+						"size-3.5 text-black",
+						isIndicatorSelected ? "fill-primary" : "fill-white",
+					)}
+					strokeWidth={1.5}
+				/>
+			</button>
+		);
+	});
+}
+
+interface ElementContentProps {
 	element: TimelineElementType;
 	track: TimelineTrack;
 	isSelected: boolean;
 	mediaAssets: MediaAsset[];
-}) {
-	if (element.type === "text") {
+}
+
+type ElementContentRenderer = (props: ElementContentProps) => ReactNode;
+
+const ELEMENT_CONTENT_RENDERERS: Record<
+	TimelineElementType["type"],
+	ElementContentRenderer
+> = {
+	text: ({ element }) => {
+		const textElement = element as Extract<
+			TimelineElementType,
+			{ type: "text" }
+		>;
 		return (
-			<div className="flex size-full items-center justify-start pl-2">
-				<span className="truncate text-xs text-white">{element.content}</span>
+			<div className="flex size-full items-center justify-start pl-3">
+				<span className="truncate text-xs text-white">
+					{textElement.content}
+				</span>
 			</div>
 		);
-	}
-
-	if (element.type === "sticker") {
+	},
+	effect: ({ element }) => (
+		<div className="flex size-full items-center justify-start gap-1 pl-2">
+			<HugeiconsIcon icon={MagicWand05Icon} className="size-4 shrink-0 text-white" />
+			<span className="truncate text-xs text-white">{element.name}</span>
+		</div>
+	),
+	sticker: ({ element }) => {
+		const stickerElement = element as Extract<
+			TimelineElementType,
+			{ type: "sticker" }
+		>;
 		return (
 			<div className="flex size-full items-center gap-2 pl-2">
 				<Image
 					src={resolveStickerId({
-						stickerId: element.stickerId,
+						stickerId: stickerElement.stickerId,
 						options: { width: 20, height: 20 },
 					})}
-					alt={element.name}
+					alt={stickerElement.name}
 					className="size-5 shrink-0"
 					width={20}
 					height={20}
 					unoptimized
 				/>
-				<span className="truncate text-xs text-white">{element.name}</span>
+				<span className="truncate text-xs text-white">
+					{stickerElement.name}
+				</span>
 			</div>
 		);
-	}
-
-	if (element.type === "audio") {
+	},
+	audio: ({ element, mediaAssets }) => {
+		const audioElement = element as Extract<
+			TimelineElementType,
+			{ type: "audio" }
+		>;
 		const audioBuffer =
-			element.sourceType === "library" ? element.buffer : undefined;
-
+			audioElement.sourceType === "library" ? audioElement.buffer : undefined;
 		const audioUrl =
-			element.sourceType === "library"
-				? element.sourceUrl
-				: mediaAssets.find((asset) => asset.id === element.mediaId)?.url;
+			audioElement.sourceType === "library"
+				? audioElement.sourceUrl
+				: mediaAssets.find((asset) => asset.id === audioElement.mediaId)?.url;
 
 		if (audioBuffer || audioUrl) {
 			return (
@@ -399,28 +614,78 @@ function ElementContent({
 
 		return (
 			<span className="text-foreground/80 truncate text-xs">
-				{element.name}
+				{audioElement.name}
 			</span>
 		);
-	}
+	},
+	video: ({ element, track, isSelected, mediaAssets }) => {
+		const videoElement = element as Extract<
+			TimelineElementType,
+			{ type: "video" }
+		>;
+		const mediaAsset = mediaAssets.find(
+			(asset) => asset.id === videoElement.mediaId,
+		);
 
-	const mediaAsset = mediaAssets.find((asset) => asset.id === element.mediaId);
-	if (!mediaAsset) {
+		if (!mediaAsset) {
+			return (
+				<span className="text-foreground/80 truncate text-xs">
+					{videoElement.name}
+				</span>
+			);
+		}
+
+		if (mediaAsset.thumbnailUrl) {
+			const trackHeight = getTrackHeight({ type: track.type });
+			const tileWidth = trackHeight * (16 / 9);
+
+			return (
+				<div className="flex size-full items-center justify-center">
+					<div
+						className={`relative size-full ${isSelected ? "bg-primary" : "bg-transparent"}`}
+					>
+						<div
+							className="absolute right-0 left-0"
+							style={{
+								backgroundImage: `url(${mediaAsset.thumbnailUrl})`,
+								backgroundRepeat: "repeat-x",
+								backgroundSize: `${tileWidth}px ${trackHeight}px`,
+								backgroundPosition: "left center",
+								pointerEvents: "none",
+								top: isSelected ? "0.25rem" : "0rem",
+								bottom: isSelected ? "0.25rem" : "0rem",
+							}}
+						/>
+					</div>
+				</div>
+			);
+		}
+
 		return (
 			<span className="text-foreground/80 truncate text-xs">
-				{element.name}
+				{videoElement.name}
 			</span>
 		);
-	}
+	},
+	image: ({ element, track, isSelected, mediaAssets }) => {
+		const imageElement = element as Extract<
+			TimelineElementType,
+			{ type: "image" }
+		>;
+		const mediaAsset = mediaAssets.find(
+			(asset) => asset.id === imageElement.mediaId,
+		);
 
-	if (
-		mediaAsset.type === "image" ||
-		(mediaAsset.type === "video" && mediaAsset.thumbnailUrl)
-	) {
+		if (!mediaAsset?.url) {
+			return (
+				<span className="text-foreground/80 truncate text-xs">
+					{imageElement.name}
+				</span>
+			);
+		}
+
 		const trackHeight = getTrackHeight({ type: track.type });
 		const tileWidth = trackHeight * (16 / 9);
-		const imageUrl =
-			mediaAsset.type === "image" ? mediaAsset.url : mediaAsset.thumbnailUrl;
 
 		return (
 			<div className="flex size-full items-center justify-center">
@@ -430,7 +695,7 @@ function ElementContent({
 					<div
 						className="absolute right-0 left-0"
 						style={{
-							backgroundImage: imageUrl ? `url(${imageUrl})` : "none",
+							backgroundImage: `url(${mediaAsset.url})`,
 							backgroundRepeat: "repeat-x",
 							backgroundSize: `${tileWidth}px ${trackHeight}px`,
 							backgroundPosition: "left center",
@@ -442,11 +707,12 @@ function ElementContent({
 				</div>
 			</div>
 		);
-	}
+	},
+};
 
-	return (
-		<span className="text-foreground/80 truncate text-xs">{element.name}</span>
-	);
+function ElementContent(props: ElementContentProps) {
+	const renderer = ELEMENT_CONTENT_RENDERERS[props.element.type];
+	return <>{renderer(props)}</>;
 }
 
 function CopyMenuItem() {
@@ -549,10 +815,11 @@ function ActionMenuItem({
 	...props
 }: Omit<ComponentProps<typeof ContextMenuItem>, "onClick" | "textRight"> & {
 	action: TAction;
+	children: ReactNode;
 }) {
 	return (
 		<ContextMenuItem
-			onClick={(event) => {
+			onClick={(event: React.MouseEvent) => {
 				event.stopPropagation();
 				invokeAction(action);
 			}}

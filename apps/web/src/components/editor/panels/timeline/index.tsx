@@ -23,11 +23,11 @@ import { TimelinePlayhead } from "./timeline-playhead";
 import { SelectionBox } from "../../selection-box";
 import { useSelectionBox } from "@/hooks/timeline/use-selection-box";
 import { SnapIndicator } from "./snap-indicator";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
+import type { SnapPoint } from "@/lib/timeline/snap-utils";
 import type { TimelineTrack } from "@/types/timeline";
 import {
 	TIMELINE_CONSTANTS,
-	TRACK_ICONS,
+	TRACK_CONFIG,
 } from "@/constants/timeline-constants";
 import { useElementInteraction } from "@/hooks/timeline/element/use-element-interaction";
 import {
@@ -161,6 +161,7 @@ export function Timeline() {
 		shouldIgnoreClick,
 	} = useSelectionBox({
 		containerRef: tracksContainerRef,
+		headerRef: timelineHeaderRef,
 		onSelectionComplete: (elements) => {
 			setElementSelection({ elements });
 		},
@@ -326,7 +327,7 @@ export function Timeline() {
 						<DragLine
 							dropTarget={dropTarget}
 							tracks={timeline.getTracks()}
-							isVisible={isDragOver}
+							isVisible={isDragOver && !dropTarget?.targetElement}
 							headerHeight={timelineHeaderHeight}
 						/>
 						<DragLine
@@ -453,6 +454,11 @@ export function Timeline() {
 															}}
 															onTrackClick={handleTracksClick}
 															shouldIgnoreClick={shouldIgnoreClick}
+															targetElementId={
+																isDragOver
+																	? dropTarget?.targetElement?.elementId ?? null
+																	: null
+															}
 														/>
 													</div>
 												</ContextMenuTrigger>
@@ -523,7 +529,7 @@ export function Timeline() {
 }
 
 function TrackIcon({ track }: { track: TimelineTrack }) {
-	return <>{TRACK_ICONS[track.type]}</>;
+	return <>{TRACK_CONFIG[track.type].icon}</>;
 }
 
 function TrackToggleIcon({

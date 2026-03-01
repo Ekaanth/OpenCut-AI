@@ -1,8 +1,41 @@
-import type { TimelineTrack, ElementType } from "@/types/timeline";
-import { TRACK_HEIGHTS, TRACK_GAP } from "@/constants/timeline-constants";
+import type {
+	TimelineTrack,
+	ElementType,
+	TimelineElement,
+} from "@/types/timeline";
+import { TRACK_CONFIG, TRACK_GAP } from "@/constants/timeline-constants";
 import { wouldElementOverlap } from "./element-utils";
 import type { ComputeDropTargetParams, DropTarget } from "@/types/timeline";
 import { isMainTrack, enforceMainTrackStart } from "./track-utils";
+
+function findElementAtPosition({
+	mouseX,
+	tracks,
+	trackIndex,
+	targetElementTypes,
+	pixelsPerSecond,
+	zoomLevel,
+}: {
+	mouseX: number;
+	tracks: TimelineTrack[];
+	trackIndex: number;
+	targetElementTypes: string[];
+	pixelsPerSecond: number;
+	zoomLevel: number;
+}): { elementId: string; trackId: string } | null {
+	const time = mouseX / (pixelsPerSecond * zoomLevel);
+	const track = tracks[trackIndex];
+	if (!track || !("elements" in track)) return null;
+
+	const hit = track.elements.find(
+		(element: TimelineElement) =>
+			targetElementTypes.includes(element.type) &&
+			element.startTime <= time &&
+			time < element.startTime + element.duration,
+	);
+	if (!hit) return null;
+	return { elementId: hit.id, trackId: track.id };
+}
 
 function getTrackAtY({
 	mouseY,
@@ -16,7 +49,7 @@ function getTrackAtY({
 	let cumulativeHeight = 0;
 
 	for (let i = 0; i < tracks.length; i++) {
-		const trackHeight = TRACK_HEIGHTS[tracks[i].type];
+		const trackHeight = TRACK_CONFIG[tracks[i].type].height;
 		const trackTop = cumulativeHeight;
 		const trackBottom = trackTop + trackHeight;
 
@@ -55,6 +88,7 @@ function isCompatible({
 	if (elementType === "text") return trackType === "text";
 	if (elementType === "audio") return trackType === "audio";
 	if (elementType === "sticker") return trackType === "sticker";
+	if (elementType === "effect") return trackType === "effect";
 	if (elementType === "video" || elementType === "image") {
 		return trackType === "video";
 	}
@@ -100,6 +134,8 @@ function findInsertIndex({
 	};
 }
 
+const EMPTY_TARGET_ELEMENT = null;
+
 export function computeDropTarget({
 	elementType,
 	mouseX,
@@ -113,6 +149,7 @@ export function computeDropTarget({
 	verticalDragDirection,
 	startTimeOverride,
 	excludeElementId,
+	targetElementTypes,
 }: ComputeDropTargetParams): DropTarget {
 	const xPosition =
 		typeof startTimeOverride === "number"
@@ -130,9 +167,16 @@ export function computeDropTarget({
 				isNewTrack: true,
 				insertPosition: "below",
 				xPosition,
+				targetElement: EMPTY_TARGET_ELEMENT,
 			};
 		}
-		return { trackIndex: 0, isNewTrack: true, insertPosition: null, xPosition };
+		return {
+			trackIndex: 0,
+			isNewTrack: true,
+			insertPosition: null,
+			xPosition,
+			targetElement: EMPTY_TARGET_ELEMENT,
+		};
 	}
 
 	const trackAtMouse = getTrackAtY({ mouseY, tracks, verticalDragDirection });
@@ -146,6 +190,7 @@ export function computeDropTarget({
 				isNewTrack: true,
 				insertPosition: "below",
 				xPosition,
+				targetElement: EMPTY_TARGET_ELEMENT,
 			};
 		}
 
@@ -155,6 +200,7 @@ export function computeDropTarget({
 				isNewTrack: true,
 				insertPosition: "above",
 				xPosition,
+				targetElement: EMPTY_TARGET_ELEMENT,
 			};
 		}
 
@@ -163,12 +209,37 @@ export function computeDropTarget({
 			isNewTrack: true,
 			insertPosition: "above",
 			xPosition,
+			targetElement: EMPTY_TARGET_ELEMENT,
 		};
 	}
 
 	const { trackIndex, relativeY } = trackAtMouse;
 	const track = tracks[trackIndex];
-	const trackHeight = TRACK_HEIGHTS[track.type];
+
+	if (
+		targetElementTypes &&
+		targetElementTypes.length > 0
+	) {
+		const targetElement = findElementAtPosition({
+			mouseX,
+			tracks,
+			trackIndex,
+			targetElementTypes,
+			pixelsPerSecond,
+			zoomLevel,
+		});
+		if (targetElement) {
+			return {
+				trackIndex,
+				isNewTrack: false,
+				insertPosition: null,
+				xPosition,
+				targetElement,
+			};
+		}
+	}
+
+	const trackHeight = TRACK_CONFIG[track.type].height;
 	const isInUpperHalf = relativeY < trackHeight / 2;
 
 	const isTrackCompatible = isCompatible({
@@ -200,6 +271,7 @@ export function computeDropTarget({
 			isNewTrack: false,
 			insertPosition: null,
 			xPosition: adjustedXPosition,
+			targetElement: EMPTY_TARGET_ELEMENT,
 		};
 	}
 
@@ -220,6 +292,7 @@ export function computeDropTarget({
 		isNewTrack: true,
 		insertPosition: position,
 		xPosition,
+		targetElement: EMPTY_TARGET_ELEMENT,
 	};
 }
 
@@ -237,7 +310,7 @@ export function getDropLineY({
 	let y = 0;
 
 	for (let i = 0; i < safeTrackIndex; i++) {
-		y += TRACK_HEIGHTS[tracks[i].type] + TRACK_GAP;
+		y += TRACK_CONFIG[tracks[i].type].height + TRACK_GAP;
 	}
 
 	return y;

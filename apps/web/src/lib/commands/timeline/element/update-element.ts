@@ -1,28 +1,38 @@
 import { Command } from "@/lib/commands/base-command";
-import type { TimelineTrack } from "@/types/timeline";
+import type { TimelineElement, TimelineTrack } from "@/types/timeline";
 import { EditorCore } from "@/core";
+import { updateElementInTracks } from "@/lib/timeline";
 
 export class UpdateElementCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
+	private readonly trackId: string;
+	private readonly elementId: string;
+	private readonly updates: Partial<TimelineElement>;
 
-	constructor(
-		private trackId: string,
-		private elementId: string,
-		private updates: Partial<Record<string, unknown>>,
-	) {
+	constructor({
+		trackId,
+		elementId,
+		updates,
+	}: {
+		trackId: string;
+		elementId: string;
+		updates: Partial<TimelineElement>;
+	}) {
 		super();
+		this.trackId = trackId;
+		this.elementId = elementId;
+		this.updates = updates;
 	}
 
 	execute(): void {
 		const editor = EditorCore.getInstance();
 		this.savedState = editor.timeline.getTracks();
 
-		const updatedTracks = this.savedState.map((t) => {
-			if (t.id !== this.trackId) return t;
-			const newElements = t.elements.map((el) =>
-				el.id === this.elementId ? { ...el, ...this.updates } : el,
-			);
-			return { ...t, elements: newElements } as typeof t;
+		const updatedTracks = updateElementInTracks({
+			tracks: this.savedState,
+			trackId: this.trackId,
+			elementId: this.elementId,
+			update: (element) => ({ ...element, ...this.updates }) as TimelineElement,
 		});
 
 		editor.timeline.updateTracks(updatedTracks);

@@ -1,6 +1,6 @@
 "use client";
 
-import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
+import { timelineTimeToSnappedPixels } from "@/lib/timeline";
 import { formatRulerLabel } from "@/lib/timeline/ruler-utils";
 
 interface TimelineTickProps {
@@ -16,7 +16,7 @@ export function TimelineTick({
 	fps,
 	showLabel,
 }: TimelineTickProps) {
-	const leftPosition = time * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+	const leftPosition = timelineTimeToSnappedPixels({ time, zoomLevel });
 
 	if (showLabel) {
 		const label = formatRulerLabel({ timeInSeconds: time, fps });

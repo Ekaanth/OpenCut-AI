@@ -6,9 +6,13 @@ import {
 	getVisibleElementsWithBounds,
 	type ElementWithBounds,
 } from "@/lib/preview/element-bounds";
-import { screenToCanvas } from "@/lib/preview/preview-coords";
+import {
+	screenPixelsToLogicalThreshold,
+	screenToCanvas,
+} from "@/lib/preview/preview-coords";
 import {
 	MIN_SCALE,
+	SNAP_THRESHOLD_SCREEN_PIXELS,
 	snapRotation,
 	snapScale,
 	type SnapLine,
@@ -228,6 +232,10 @@ export function useTransformHandles({
 				);
 
 				const canvasSize = editor.project.getActive().settings.canvasSize;
+				const snapThreshold = screenPixelsToLogicalThreshold({
+					canvas: canvasRef.current,
+					screenPixels: SNAP_THRESHOLD_SCREEN_PIXELS,
+				});
 				const shouldSnap = !isShiftHeldRef.current;
 				const { snappedScale, activeLines } = shouldSnap
 					? snapScale({
@@ -236,6 +244,7 @@ export function useTransformHandles({
 							baseWidth,
 							baseHeight,
 							canvasSize,
+							snapThreshold,
 						})
 					: { snappedScale: proposedScale, activeLines: [] as SnapLine[] };
 

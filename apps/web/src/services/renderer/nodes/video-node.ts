@@ -12,11 +12,11 @@ export class VideoNode extends VisualNode<VideoNodeParams> {
 	async render({ renderer, time }: { renderer: CanvasRenderer; time: number }) {
 		await super.render({ renderer, time });
 
-		if (!this.isInRange(time)) {
+		if (!this.isInRange({ time })) {
 			return;
 		}
 
-		const videoTime = this.getLocalTime(time);
+		const videoTime = this.getSourceLocalTime({ time });
 		const frame = await videoCache.getFrameAt({
 			mediaId: this.params.mediaId,
 			file: this.params.file,
@@ -29,6 +29,7 @@ export class VideoNode extends VisualNode<VideoNodeParams> {
 				source: frame.canvas,
 				sourceWidth: frame.canvas.width,
 				sourceHeight: frame.canvas.height,
+				timelineTime: time,
 			});
 		}
 	}

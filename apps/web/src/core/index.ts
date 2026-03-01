@@ -8,6 +8,7 @@ import { CommandManager } from "./managers/commands";
 import { SaveManager } from "./managers/save-manager";
 import { AudioManager } from "./managers/audio-manager";
 import { SelectionManager } from "./managers/selection-manager";
+import { registerDefaultEffects } from "@/lib/effects";
 
 export class EditorCore {
 	private static instance: EditorCore | null = null;
@@ -24,6 +25,7 @@ export class EditorCore {
 	public readonly selection: SelectionManager;
 
 	private constructor() {
+		registerDefaultEffects();
 		this.command = new CommandManager();
 		this.playback = new PlaybackManager(this);
 		this.timeline = new TimelineManager(this);

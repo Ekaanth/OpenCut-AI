@@ -1,18 +1,35 @@
 import { Command } from "@/lib/commands/base-command";
 import type { TimelineTrack } from "@/types/timeline";
 import { EditorCore } from "@/core";
+import { clampAnimationsToDuration } from "@/lib/animation";
 
 export class UpdateElementTrimCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
+	private readonly elementId: string;
+	private readonly trimStart: number;
+	private readonly trimEnd: number;
+	private readonly startTime: number | undefined;
+	private readonly duration: number | undefined;
 
-	constructor(
-		private elementId: string,
-		private trimStart: number,
-		private trimEnd: number,
-		private startTime?: number,
-		private duration?: number,
-	) {
+	constructor({
+		elementId,
+		trimStart,
+		trimEnd,
+		startTime,
+		duration,
+	}: {
+		elementId: string;
+		trimStart: number;
+		trimEnd: number;
+		startTime?: number;
+		duration?: number;
+	}) {
 		super();
+		this.elementId = elementId;
+		this.trimStart = trimStart;
+		this.trimEnd = trimEnd;
+		this.startTime = startTime;
+		this.duration = duration;
 	}
 
 	execute(): void {
@@ -25,12 +42,17 @@ export class UpdateElementTrimCommand extends Command {
 					return element;
 				}
 
+				const nextDuration = this.duration ?? element.duration;
 				return {
 					...element,
 					trimStart: this.trimStart,
 					trimEnd: this.trimEnd,
 					startTime: this.startTime ?? element.startTime,
-					duration: this.duration ?? element.duration,
+					duration: nextDuration,
+					animations: clampAnimationsToDuration({
+						animations: element.animations,
+						duration: nextDuration,
+					}),
 				};
 			});
 			return { ...track, elements: newElements } as typeof track;

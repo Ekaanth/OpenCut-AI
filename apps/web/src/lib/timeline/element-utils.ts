@@ -6,6 +6,7 @@ import {
 	TIMELINE_CONSTANTS,
 } from "@/constants/timeline-constants";
 import type {
+	CreateEffectElement,
 	CreateTimelineElement,
 	CreateVideoElement,
 	CreateImageElement,
@@ -18,10 +19,12 @@ import type {
 	AudioElement,
 	VideoElement,
 	ImageElement,
-	StickerElement,
+	VisualElement,
 	UploadAudioElement,
 } from "@/types/timeline";
 import type { MediaType } from "@/types/assets";
+import { buildDefaultEffectInstance } from "@/lib/effects";
+import { capitalizeFirstLetter } from "@/utils/string";
 
 export function canElementHaveAudio(
 	element: TimelineElement,
@@ -31,7 +34,7 @@ export function canElementHaveAudio(
 
 export function isVisualElement(
 	element: TimelineElement,
-): element is VideoElement | ImageElement | TextElement | StickerElement {
+): element is VisualElement {
 	return (
 		element.type === "video" ||
 		element.type === "image" ||
@@ -42,7 +45,7 @@ export function isVisualElement(
 
 export function canElementBeHidden(
 	element: TimelineElement,
-): element is VideoElement | ImageElement | TextElement | StickerElement {
+): element is VisualElement {
 	return element.type !== "audio";
 }
 
@@ -154,7 +157,14 @@ export function buildTextElement({
 				: DEFAULT_TEXT_ELEMENT.fontSize,
 		fontFamily: t.fontFamily ?? DEFAULT_TEXT_ELEMENT.fontFamily,
 		color: t.color ?? DEFAULT_TEXT_ELEMENT.color,
-		backgroundColor: t.backgroundColor ?? DEFAULT_TEXT_ELEMENT.backgroundColor,
+		background: {
+			color: t.background?.color ?? DEFAULT_TEXT_ELEMENT.background.color,
+			cornerRadius: t.background?.cornerRadius,
+			paddingX: t.background?.paddingX,
+			paddingY: t.background?.paddingY,
+			offsetX: t.background?.offsetX,
+			offsetY: t.background?.offsetY,
+		},
 		textAlign: t.textAlign ?? DEFAULT_TEXT_ELEMENT.textAlign,
 		fontWeight: t.fontWeight ?? DEFAULT_TEXT_ELEMENT.fontWeight,
 		fontStyle: t.fontStyle ?? DEFAULT_TEXT_ELEMENT.fontStyle,
@@ -164,6 +174,28 @@ export function buildTextElement({
 		transform: t.transform ?? DEFAULT_TEXT_ELEMENT.transform,
 		opacity: t.opacity ?? DEFAULT_TEXT_ELEMENT.opacity,
 		blendMode: t.blendMode ?? DEFAULT_BLEND_MODE,
+	};
+}
+
+export function buildEffectElement({
+	effectType,
+	startTime,
+	duration,
+}: {
+	effectType: string;
+	startTime: number;
+	duration?: number;
+}): CreateEffectElement {
+	const instance = buildDefaultEffectInstance({ effectType });
+	return {
+		type: "effect",
+		name: capitalizeFirstLetter({ string: instance.type }),
+		effectType,
+		params: instance.params,
+		duration: duration ?? TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION,
+		startTime,
+		trimStart: 0,
+		trimEnd: 0,
 	};
 }
 
@@ -211,6 +243,7 @@ export function buildVideoElement({
 		startTime,
 		trimStart: 0,
 		trimEnd: 0,
+		sourceDuration: duration,
 		muted: false,
 		hidden: false,
 		transform: { ...DEFAULT_TRANSFORM },
@@ -267,6 +300,7 @@ export function buildUploadAudioElement({
 		startTime,
 		trimStart: 0,
 		trimEnd: 0,
+		sourceDuration: duration,
 		volume: 1,
 		muted: false,
 	};
@@ -329,6 +363,7 @@ export function buildLibraryAudioElement({
 		startTime,
 		trimStart: 0,
 		trimEnd: 0,
+		sourceDuration: duration,
 		volume: 1,
 		muted: false,
 	};

@@ -2,9 +2,21 @@ import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
 import type { TextElement } from "@/types/timeline";
 import {
+	DEFAULT_TEXT_ELEMENT,
 	DEFAULT_LINE_HEIGHT,
 	FONT_SIZE_SCALE_REFERENCE,
 } from "@/constants/text-constants";
+import {
+	getMetricAscent,
+	getMetricDescent,
+	getTextBackgroundRect,
+	measureTextBlock,
+} from "@/lib/text/layout";
+import {
+	getElementLocalTime,
+	resolveOpacityAtTime,
+	resolveTransformAtTime,
+} from "@/lib/animation";
 
 function scaleFontSize({
 	fontSize,
@@ -18,65 +30,6 @@ function scaleFontSize({
 
 function quoteFontFamily({ fontFamily }: { fontFamily: string }): string {
 	return `"${fontFamily.replace(/"/g, '\\"')}"`;
-}
-
-function getMetricAscent({
-	metrics,
-	fallback,
-}: {
-	metrics: TextMetrics;
-	fallback: number;
-}): number {
-	return metrics.actualBoundingBoxAscent ?? fallback * 0.8;
-}
-
-function getMetricDescent({
-	metrics,
-	fallback,
-}: {
-	metrics: TextMetrics;
-	fallback: number;
-}): number {
-	return metrics.actualBoundingBoxDescent ?? fallback * 0.2;
-}
-
-interface TextBlockMeasurement {
-	visualCenterOffset: number;
-	height: number;
-	maxWidth: number;
-}
-
-function measureTextBlock({
-	lineMetrics,
-	lineHeightPx,
-	fallbackFontSize,
-}: {
-	lineMetrics: TextMetrics[];
-	lineHeightPx: number;
-	fallbackFontSize: number;
-}): TextBlockMeasurement {
-	let top = Number.POSITIVE_INFINITY;
-	let bottom = Number.NEGATIVE_INFINITY;
-	let maxWidth = 0;
-
-	for (let i = 0; i < lineMetrics.length; i++) {
-		const metrics = lineMetrics[i];
-		const y = i * lineHeightPx;
-		top = Math.min(
-			top,
-			y - getMetricAscent({ metrics, fallback: fallbackFontSize }),
-		);
-		bottom = Math.max(
-			bottom,
-			y + getMetricDescent({ metrics, fallback: fallbackFontSize }),
-		);
-		maxWidth = Math.max(maxWidth, metrics.width);
-	}
-
-	const height = bottom - top;
-	const visualCenterOffset = (top + bottom) / 2;
-
-	return { visualCenterOffset, height, maxWidth };
 }
 
 function drawTextDecoration({
@@ -99,8 +52,8 @@ function drawTextDecoration({
 	if (textDecoration === "none" || !textDecoration) return;
 
 	const thickness = Math.max(1, scaledFontSize * 0.07);
-	const ascent = getMetricAscent({ metrics, fallback: scaledFontSize });
-	const descent = getMetricDescent({ metrics, fallback: scaledFontSize });
+	const ascent = getMetricAscent({ metrics, fallbackFontSize: scaledFontSize });
+	const descent = getMetricDescent({ metrics, fallbackFontSize: scaledFontSize });
 
 	let xStart = -lineWidth / 2;
 	if (textAlign === "left") xStart = 0;
@@ -138,16 +91,28 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		renderer.context.save();
 
-		const x = this.params.transform.position.x + this.params.canvasCenter.x;
-		const y = this.params.transform.position.y + this.params.canvasCenter.y;
+		const localTime = getElementLocalTime({
+			timelineTime: time,
+			elementStartTime: this.params.startTime,
+			elementDuration: this.params.duration,
+		});
+		const transform = resolveTransformAtTime({
+			baseTransform: this.params.transform,
+			animations: this.params.animations,
+			localTime,
+		});
+		const opacity = resolveOpacityAtTime({
+			baseOpacity: this.params.opacity,
+			animations: this.params.animations,
+			localTime,
+		});
+		const x = transform.position.x + this.params.canvasCenter.x;
+		const y = transform.position.y + this.params.canvasCenter.y;
 
 		renderer.context.translate(x, y);
-		renderer.context.scale(
-			this.params.transform.scale,
-			this.params.transform.scale,
-		);
-		if (this.params.transform.rotate) {
-			renderer.context.rotate((this.params.transform.rotate * Math.PI) / 180);
+		renderer.context.scale(transform.scale, transform.scale);
+		if (transform.rotate) {
+			renderer.context.rotate((transform.rotate * Math.PI) / 180);
 		}
 
 		const fontWeight = this.params.fontWeight === "bold" ? "bold" : "normal";
@@ -171,6 +136,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		const lines = this.params.content.split("\n");
 		const lineHeightPx = scaledFontSize * lineHeight;
+		const fontSizeRatio = this.params.fontSize / DEFAULT_TEXT_ELEMENT.fontSize;
 		const baseline = this.params.textBaseline ?? "middle";
 
 		renderer.context.textBaseline = baseline;
@@ -189,24 +155,33 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				? this.params.blendMode
 				: "source-over"
 		) as GlobalCompositeOperation;
-		renderer.context.globalAlpha = this.params.opacity;
+		renderer.context.globalAlpha = opacity;
 
-		if (this.params.backgroundColor && lineCount > 0) {
-			const padX = 8;
-			const padY = 4;
-			renderer.context.fillStyle = this.params.backgroundColor;
-			let bgLeft = -block.maxWidth / 2;
-			if (renderer.context.textAlign === "left") bgLeft = 0;
-			if (renderer.context.textAlign === "right") bgLeft = -block.maxWidth;
-
-			renderer.context.fillRect(
-				bgLeft - padX,
-				-block.height / 2 - padY,
-				block.maxWidth + padX * 2,
-				block.height + padY * 2,
-			);
-
-			renderer.context.fillStyle = this.params.color;
+		if (
+			this.params.background.color &&
+			this.params.background.color !== "transparent" &&
+			lineCount > 0
+		) {
+			const { color, cornerRadius = 0 } = this.params.background;
+			const backgroundRect = getTextBackgroundRect({
+				textAlign: this.params.textAlign,
+				block,
+				background: this.params.background,
+				fontSizeRatio,
+			});
+			if (backgroundRect) {
+				renderer.context.fillStyle = color;
+				renderer.context.beginPath();
+				renderer.context.roundRect(
+					backgroundRect.left,
+					backgroundRect.top,
+					backgroundRect.width,
+					backgroundRect.height,
+					cornerRadius,
+				);
+				renderer.context.fill();
+				renderer.context.fillStyle = this.params.color;
+			}
 		}
 
 		for (let i = 0; i < lineCount; i++) {

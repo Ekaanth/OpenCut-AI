@@ -4,9 +4,9 @@ import { useEdgeAutoScroll } from "@/hooks/timeline/use-edge-auto-scroll";
 import { useEditor } from "../use-editor";
 import { useShiftKey } from "@/hooks/use-shift-key";
 import {
-	useTimelineSnapping,
-	type SnapPoint,
-} from "@/hooks/timeline/use-timeline-snapping";
+	findSnapPoints,
+	snapToNearestPoint,
+} from "@/lib/timeline/snap-utils";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 
 interface UseTimelinePlayheadProps {
@@ -31,10 +31,6 @@ export function useTimelinePlayhead({
 	const isPlaying = editor.playback.getIsPlaying();
 	const isScrubbing = editor.playback.getIsScrubbing();
 	const isShiftHeldRef = useShiftKey();
-	const { snapToNearestPoint } = useTimelineSnapping({
-		enableElementSnapping: false,
-		enablePlayheadSnapping: false,
-	});
 
 	const seek = useCallback(
 		({ time }: { time: number }) => editor.playback.seek({ time }),
@@ -51,7 +47,13 @@ export function useTimelinePlayhead({
 		isScrubbing && scrubTime !== null ? scrubTime : currentTime;
 
 	const handleScrub = useCallback(
-		({ event }: { event: MouseEvent | React.MouseEvent }) => {
+		({
+			event,
+			snappingEnabled = true,
+		}: {
+			event: MouseEvent | React.MouseEvent;
+			snappingEnabled?: boolean;
+		}) => {
 			const ruler = rulerRef.current;
 			if (!ruler) return;
 			const rulerRect = ruler.getBoundingClientRect();
@@ -80,21 +82,25 @@ export function useTimelinePlayhead({
 				fps: framesPerSecond,
 			});
 
-			const bookmarks = editor.scenes.getActiveScene()?.bookmarks ?? [];
-			const bookmarkSnapPoints: SnapPoint[] = bookmarks.map((bookmark) => ({
-				time: bookmark.time,
-				type: "bookmark",
-			}));
-			const shouldSnapToBookmark =
-				!isShiftHeldRef.current && bookmarkSnapPoints.length > 0;
-			const snapResult = shouldSnapToBookmark
-				? snapToNearestPoint({
-						targetTime: frameTime,
-						snapPoints: bookmarkSnapPoints,
-						zoomLevel,
-					})
-				: null;
-			const time = snapResult?.snapPoint ? snapResult.snappedTime : frameTime;
+			const shouldSnap = snappingEnabled && !isShiftHeldRef.current;
+			const time = (() => {
+				if (!shouldSnap) return frameTime;
+				const tracks = editor.timeline.getTracks();
+				const bookmarks =
+					editor.scenes.getActiveScene()?.bookmarks ?? [];
+				const snapPoints = findSnapPoints({
+					tracks,
+					playheadTime: frameTime,
+					bookmarks,
+					enablePlayheadSnapping: false,
+				});
+				const snapResult = snapToNearestPoint({
+					targetTime: frameTime,
+					snapPoints,
+					zoomLevel,
+				});
+				return snapResult.snapPoint ? snapResult.snappedTime : frameTime;
+			})();
 
 			setScrubTime(time);
 			seek({ time });
@@ -109,7 +115,7 @@ export function useTimelinePlayhead({
 			activeProject.settings.fps,
 			isShiftHeldRef,
 			editor.scenes,
-			snapToNearestPoint,
+			editor.timeline,
 		],
 	);
 
@@ -133,10 +139,10 @@ export function useTimelinePlayhead({
 			setIsDraggingRuler(true);
 			setHasDraggedRuler(false);
 
-			editor.playback.setScrubbing({ isScrubbing: true });
-			handleScrub({ event });
-		},
-		[handleScrub, playheadRef, editor.playback],
+		editor.playback.setScrubbing({ isScrubbing: true });
+		handleScrub({ event, snappingEnabled: false });
+	},
+	[handleScrub, playheadRef, editor.playback],
 	);
 
 	const handlePlayheadMouseDownEvent = useCallback(
@@ -184,7 +190,7 @@ export function useTimelinePlayhead({
 			if (isDraggingRuler) {
 				setIsDraggingRuler(false);
 				if (!hasDraggedRuler) {
-					handleScrub({ event });
+					handleScrub({ event, snappingEnabled: false });
 				}
 				setHasDraggedRuler(false);
 			}

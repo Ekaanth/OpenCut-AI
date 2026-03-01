@@ -7,7 +7,9 @@ import { cn } from "@/utils/ui";
 
 const Slider = React.forwardRef<
 	React.ElementRef<typeof SliderPrimitive.Root>,
-	React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+	React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & {
+		className?: string;
+	}
 >(({ className, ...props }, ref) => (
 	<SliderPrimitive.Root
 		ref={ref}

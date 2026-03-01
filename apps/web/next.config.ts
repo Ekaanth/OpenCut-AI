@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 import { withBotId } from "botid/next/config";
+import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
+	turbopack: {
+		rules: {
+			"*.glsl": {
+				loaders: [require.resolve("raw-loader")],
+				as: "*.js",
+			},
+		},
+	},
 	compiler: {
 		removeConsole: process.env.NODE_ENV === "production",
 	},
@@ -46,4 +55,4 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default withBotId(nextConfig);
+export default withContentCollections(withBotId(nextConfig));

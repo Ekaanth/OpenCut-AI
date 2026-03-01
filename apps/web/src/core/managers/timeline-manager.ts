@@ -5,6 +5,11 @@ import type {
 	TimelineElement,
 	ClipboardItem,
 } from "@/types/timeline";
+import type {
+	AnimationInterpolation,
+	AnimationPropertyPath,
+	AnimationValue,
+} from "@/types/animation";
 import { calculateTotalDuration } from "@/lib/timeline";
 import {
 	AddTrackCommand,
@@ -24,6 +29,9 @@ import {
 	UpdateElementStartTimeCommand,
 	MoveElementCommand,
 	TracksSnapshotCommand,
+	UpsertKeyframeCommand,
+	RemoveKeyframeCommand,
+	RetimeKeyframeCommand,
 } from "@/lib/commands/timeline";
 import { BatchCommand, PreviewTracker } from "@/lib/commands";
 import type { InsertElementParams } from "@/lib/commands/timeline/element/insert-element";
@@ -61,7 +69,11 @@ export class TimelineManager {
 		trimEnd: number;
 		pushHistory?: boolean;
 	}): void {
-		const command = new UpdateElementTrimCommand(elementId, trimStart, trimEnd);
+		const command = new UpdateElementTrimCommand({
+			elementId,
+			trimStart,
+			trimEnd,
+		});
 		if (pushHistory) {
 			this.editor.command.execute({ command });
 		} else {
@@ -80,11 +92,11 @@ export class TimelineManager {
 		duration: number;
 		pushHistory?: boolean;
 	}): void {
-		const command = new UpdateElementDurationCommand(
+		const command = new UpdateElementDurationCommand({
 			trackId,
 			elementId,
 			duration,
-		);
+		});
 		if (pushHistory) {
 			this.editor.command.execute({ command });
 		} else {
@@ -99,7 +111,10 @@ export class TimelineManager {
 		elements: { trackId: string; elementId: string }[];
 		startTime: number;
 	}): void {
-		const command = new UpdateElementStartTimeCommand(elements, startTime);
+		const command = new UpdateElementStartTimeCommand({
+			elements,
+			startTime,
+		});
 		this.editor.command.execute({ command });
 	}
 
@@ -116,13 +131,13 @@ export class TimelineManager {
 		newStartTime: number;
 		createTrack?: { type: TrackType; index: number };
 	}): void {
-		const command = new MoveElementCommand(
+		const command = new MoveElementCommand({
 			sourceTrackId,
 			targetTrackId,
 			elementId,
 			newStartTime,
 			createTrack,
-		);
+		});
 		this.editor.command.execute({ command });
 	}
 
@@ -147,12 +162,12 @@ export class TimelineManager {
 		retainSide?: "both" | "left" | "right";
 		rippleEnabled?: boolean;
 	}): { trackId: string; elementId: string }[] {
-		const command = new SplitElementsCommand(
+		const command = new SplitElementsCommand({
 			elements,
 			splitTime,
 			retainSide,
 			rippleEnabled,
-		);
+		});
 		this.editor.command.execute({ command });
 		return command.getRightSideElements();
 	}
@@ -206,7 +221,7 @@ export class TimelineManager {
 		elements: { trackId: string; elementId: string }[];
 		rippleEnabled?: boolean;
 	}): void {
-		const command = new DeleteElementsCommand(elements, rippleEnabled);
+		const command = new DeleteElementsCommand({ elements, rippleEnabled });
 		this.editor.command.execute({ command });
 	}
 
@@ -217,13 +232,17 @@ export class TimelineManager {
 		updates: Array<{
 			trackId: string;
 			elementId: string;
-			updates: Partial<Record<string, unknown>>;
+			updates: Partial<TimelineElement>;
 		}>;
 		pushHistory?: boolean;
 	}): void {
 		const commands = updates.map(
 			({ trackId, elementId, updates: elementUpdates }) =>
-				new UpdateElementCommand(trackId, elementId, elementUpdates),
+				new UpdateElementCommand({
+					trackId,
+					elementId,
+					updates: elementUpdates,
+				}),
 		);
 		const command =
 			commands.length === 1 ? commands[0] : new BatchCommand(commands);
@@ -232,6 +251,99 @@ export class TimelineManager {
 		} else {
 			command.execute();
 		}
+	}
+
+	upsertKeyframes({
+		keyframes,
+	}: {
+		keyframes: Array<{
+			trackId: string;
+			elementId: string;
+			propertyPath: AnimationPropertyPath;
+			time: number;
+			value: AnimationValue;
+			interpolation?: AnimationInterpolation;
+			keyframeId?: string;
+		}>;
+	}): void {
+		if (keyframes.length === 0) {
+			return;
+		}
+
+		const commands = keyframes.map(
+			({
+				trackId,
+				elementId,
+				propertyPath,
+				time,
+				value,
+				interpolation,
+				keyframeId,
+			}) =>
+				new UpsertKeyframeCommand({
+					trackId,
+					elementId,
+					propertyPath,
+					time,
+					value,
+					interpolation,
+					keyframeId,
+				}),
+		);
+		const command =
+			commands.length === 1 ? commands[0] : new BatchCommand(commands);
+		this.editor.command.execute({ command });
+	}
+
+	removeKeyframes({
+		keyframes,
+	}: {
+		keyframes: Array<{
+			trackId: string;
+			elementId: string;
+			propertyPath: AnimationPropertyPath;
+			keyframeId: string;
+		}>;
+	}): void {
+		if (keyframes.length === 0) {
+			return;
+		}
+
+		const commands = keyframes.map(
+			({ trackId, elementId, propertyPath, keyframeId }) =>
+				new RemoveKeyframeCommand({
+					trackId,
+					elementId,
+					propertyPath,
+					keyframeId,
+				}),
+		);
+		const command =
+			commands.length === 1 ? commands[0] : new BatchCommand(commands);
+		this.editor.command.execute({ command });
+	}
+
+	retimeKeyframe({
+		trackId,
+		elementId,
+		propertyPath,
+		keyframeId,
+		time,
+	}: {
+		trackId: string;
+		elementId: string;
+		propertyPath: AnimationPropertyPath;
+		keyframeId: string;
+		time: number;
+	}): void {
+		const command = new RetimeKeyframeCommand({
+			trackId,
+			elementId,
+			propertyPath,
+			keyframeId,
+			nextTime: time,
+		});
+		this.editor.command.execute({ command });
 	}
 
 	isPreviewActive(): boolean {
@@ -244,7 +356,7 @@ export class TimelineManager {
 		updates: Array<{
 			trackId: string;
 			elementId: string;
-			updates: Partial<Record<string, unknown>>;
+			updates: Partial<TimelineElement>;
 		}>;
 	}): void {
 		const tracks = this.getTracks();

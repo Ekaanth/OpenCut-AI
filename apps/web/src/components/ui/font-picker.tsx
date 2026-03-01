@@ -26,7 +26,7 @@ import type { FontAtlas, FontAtlasEntry } from "@/types/fonts";
 import { cn } from "@/utils/ui";
 import { ChevronDown, Search, Upload } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { TextFontIcon } from "@hugeicons/core-free-icons";
+import { TextIcon } from "@hugeicons/core-free-icons";
 
 const FONT_TABS = [
 	{ key: "all", label: "All fonts" },
@@ -139,7 +139,7 @@ export function FontPicker({
 			>
 				<div className="flex min-w-0 items-center gap-1.5">
 					<span className="text-muted-foreground [&_svg]:size-3.5 shrink-0">
-						<HugeiconsIcon icon={TextFontIcon} />
+						<HugeiconsIcon icon={TextIcon} />
 					</span>
 					<span className="truncate" style={{ fontFamily: defaultValue }}>
 						{defaultValue ?? "Select a font"}

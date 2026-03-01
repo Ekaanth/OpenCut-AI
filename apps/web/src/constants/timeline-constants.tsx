@@ -3,6 +3,7 @@ import type { BlendMode } from "@/types/rendering";
 import type { TrackType, Transform } from "@/types/timeline";
 import {
 	Happy01Icon,
+	MagicWand05Icon,
 	MusicNote03Icon,
 	TextIcon,
 } from "@hugeicons/core-free-icons";
@@ -19,26 +20,65 @@ export const DEFAULT_OPACITY = 1;
 export const DEFAULT_BLEND_MODE: BlendMode = "normal";
 export const DEFAULT_BOOKMARK_COLOR = "#009dff";
 
-export const TRACK_COLORS: Record<TrackType, { background: string }> = {
+export const TRACK_CONFIG: Record<
+	TrackType,
+	{
+		background: string;
+		height: number;
+		defaultName: string;
+		icon: React.ReactNode;
+	}
+> = {
 	video: {
 		background: "transparent",
+		height: 60,
+		defaultName: "Video track",
+		icon: <OcVideoIcon className="text-muted-foreground size-4 shrink-0" />,
 	},
 	text: {
 		background: "bg-[#5DBAA0]",
+		height: 25,
+		defaultName: "Text track",
+		icon: (
+			<HugeiconsIcon
+				icon={TextIcon}
+				className="text-muted-foreground size-4 shrink-0"
+			/>
+		),
 	},
 	audio: {
-		background: "bg-[#915DBE]",
+		background: "bg-[#8F5DBA]",
+		height: 50,
+		defaultName: "Audio track",
+		icon: (
+			<HugeiconsIcon
+				icon={MusicNote03Icon}
+				className="text-muted-foreground size-4 shrink-0"
+			/>
+		),
 	},
 	sticker: {
-		background: "bg-amber-500",
+		background: "bg-[#BA5D7A]",
+		height: 50,
+		defaultName: "Sticker track",
+		icon: (
+			<HugeiconsIcon
+				icon={Happy01Icon}
+				className="text-muted-foreground size-4 shrink-0"
+			/>
+		),
 	},
-} as const;
-
-export const TRACK_HEIGHTS: Record<TrackType, number> = {
-	video: 60,
-	text: 25,
-	audio: 50,
-	sticker: 50,
+	effect: {
+		background: "bg-[#5d93ba]",
+		height: 25,
+		defaultName: "Effect track",
+		icon: (
+			<HugeiconsIcon
+				icon={MagicWand05Icon}
+				className="text-muted-foreground size-4 shrink-0"
+			/>
+		),
+	},
 } as const;
 
 export const TRACK_GAP = 4;
@@ -60,25 +100,3 @@ export const DEFAULT_TIMELINE_VIEW_STATE: TTimelineViewState = {
 	scrollLeft: 0,
 	playheadTime: 0,
 };
-
-export const TRACK_ICONS: Record<TrackType, React.ReactNode> = {
-	video: <OcVideoIcon className="text-muted-foreground size-4 shrink-0" />,
-	text: (
-		<HugeiconsIcon
-			icon={TextIcon}
-			className="text-muted-foreground size-4 shrink-0"
-		/>
-	),
-	audio: (
-		<HugeiconsIcon
-			icon={MusicNote03Icon}
-			className="text-muted-foreground size-4 shrink-0"
-		/>
-	),
-	sticker: (
-		<HugeiconsIcon
-			icon={Happy01Icon}
-			className="text-muted-foreground size-4 shrink-0"
-		/>
-	),
-} as const;

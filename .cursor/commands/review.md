@@ -37,6 +37,7 @@ Review every point below carefully to ensure files follow consistent code style 
 - [ ] Each file has one single purpose/responsibility
   - Example: `timeline/index.tsx` should not define `validateElementTrackCompatibility` — that belongs in a lib file
   - Example: `lib/timeline-utils.ts` should not declare `TRACK_COLORS` — that belongs in `constants/`
+- [ ] File name accurately reflects what the file contains — a misleading name is a bug waiting to happen
 - [ ] Business logic lives in either `src/lib`, `src/core` or `src/services` folder
 
 ## Comments
@@ -133,8 +134,8 @@ Do NOT review by reading the file top-to-bottom and noting what jumps out. Inste
 3. Only move to the next section after you've exhausted the current one
 4. After all sections are checked, do a final pass: re-read every checklist item and confirm you didn't skip it
 
-Before outputting the table, list each checklist section and confirm you checked it:
-`Signatures ✓ | TypeScript ✓ | JSX ✓ | Organization ✓ | Comments ✓ | Naming ✓ | Tailwind ✓ | State ✓ | Quality ✓ | Keywords ✓`
+Before outputting the review, list each checklist section and confirm you checked it:
+`Signatures ✓ | TypeScript ✓ | JSX ✓ | Organization ✓ | File Names ✓ | Comments ✓ | Naming ✓ | Tailwind ✓ | State ✓ | Quality ✓ | Keywords ✓`
 
 ---
 
@@ -142,7 +143,22 @@ Before outputting the table, list each checklist section and confirm you checked
 
 - **ONLY** flag issues that are explicitly covered by a checklist item above.
 - Do **NOT** invent your own rules, suggestions, or "nice to haves" as primary issues.
-- The review output must be a table of issues, each one mapping to a specific checklist item.
+- The review output must be a list of issues, each one mapping to a specific checklist item.
 - If something looks off but isn't covered by the checklist, you can mention it as a brief side note at the end — but keep it clearly separate from the actual review. Always default to fixing the issues covered by the checklist above, unless the user says otherwise.
 
 > You WILL miss things if you try to review the whole file in one pass. Iterate rule by rule.
+
+---
+
+## Think Bigger
+
+After the checklist review, step back and ask the hard questions. The biggest architectural problems get solved by the biggest questions.
+
+- Does this abstraction actually need to exist? Could it be deleted entirely?
+- Is this the right layer for this logic? (wrong layer = future pain)
+- Is this solving a real problem, or a problem we invented?
+- Would a simpler data model make this whole file unnecessary?
+- Are we adding complexity to work around a bad decision made earlier?
+- Could this field be derived from other existing fields? Redundant data in a model is a source of bugs.
+
+Don't be shy about flagging these. A "why does this exist?" question is often worth more than 10 style fixes.

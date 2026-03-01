@@ -14,15 +14,31 @@ import {
 
 export class MoveElementCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
+	private readonly sourceTrackId: string;
+	private readonly targetTrackId: string;
+	private readonly elementId: string;
+	private readonly newStartTime: number;
+	private readonly createTrack: { type: TrackType; index: number } | undefined;
 
-	constructor(
-		private sourceTrackId: string,
-		private targetTrackId: string,
-		private elementId: string,
-		private newStartTime: number,
-		private createTrack?: { type: TrackType; index: number },
-	) {
+	constructor({
+		sourceTrackId,
+		targetTrackId,
+		elementId,
+		newStartTime,
+		createTrack,
+	}: {
+		sourceTrackId: string;
+		targetTrackId: string;
+		elementId: string;
+		newStartTime: number;
+		createTrack?: { type: TrackType; index: number };
+	}) {
 		super();
+		this.sourceTrackId = sourceTrackId;
+		this.targetTrackId = targetTrackId;
+		this.elementId = elementId;
+		this.newStartTime = newStartTime;
+		this.createTrack = createTrack;
 	}
 
 	execute(): void {
@@ -30,10 +46,10 @@ export class MoveElementCommand extends Command {
 		this.savedState = editor.timeline.getTracks();
 
 		const sourceTrack = this.savedState.find(
-			(t) => t.id === this.sourceTrackId,
+			(track) => track.id === this.sourceTrackId,
 		);
 		const element = sourceTrack?.elements.find(
-			(el) => el.id === this.elementId,
+			(trackElement) => trackElement.id === this.elementId,
 		);
 
 		if (!sourceTrack || !element) {
@@ -41,7 +57,7 @@ export class MoveElementCommand extends Command {
 			return;
 		}
 
-		let targetTrack = this.savedState.find((t) => t.id === this.targetTrackId);
+		let targetTrack = this.savedState.find((track) => track.id === this.targetTrackId);
 		let tracksToUpdate = this.savedState;
 		if (!targetTrack && this.createTrack) {
 			const newTrack = buildEmptyTrack({
@@ -74,6 +90,7 @@ export class MoveElementCommand extends Command {
 			excludeElementId: this.elementId,
 		});
 
+		// keyframe times remain clip-local, so moving only changes element startTime.
 		const movedElement: TimelineElement = {
 			...element,
 			startTime: adjustedStartTime,
@@ -81,12 +98,12 @@ export class MoveElementCommand extends Command {
 
 		const isSameTrack = this.sourceTrackId === this.targetTrackId;
 
-		let updatedTracks = tracksToUpdate.map((track) => {
+		let updatedTracks = tracksToUpdate.map((track): TimelineTrack => {
 			if (isSameTrack && track.id === this.sourceTrackId) {
 				return {
 					...track,
-					elements: track.elements.map((el) =>
-						el.id === this.elementId ? movedElement : el,
+					elements: track.elements.map((trackElement) =>
+						trackElement.id === this.elementId ? movedElement : trackElement,
 					),
 				};
 			}
@@ -94,7 +111,9 @@ export class MoveElementCommand extends Command {
 			if (track.id === this.sourceTrackId) {
 				return {
 					...track,
-					elements: track.elements.filter((el) => el.id !== this.elementId),
+					elements: track.elements.filter(
+						(trackElement) => trackElement.id !== this.elementId,
+					),
 				};
 			}
 
@@ -105,8 +124,8 @@ export class MoveElementCommand extends Command {
 				};
 			}
 
-			return track;
-		}) as TimelineTrack[];
+		return track;
+	});
 
 		if (!isSameTrack) {
 			const sourceTrackAfterMove = updatedTracks.find(

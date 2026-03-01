@@ -1,7 +1,11 @@
 "use client";
 
 import { useSnapIndicatorPosition } from "@/hooks/timeline/use-snap-indicator-position";
-import type { SnapPoint } from "@/hooks/timeline/use-timeline-snapping";
+import type { SnapPoint } from "@/lib/timeline/snap-utils";
+import {
+	getCenteredLineLeft,
+	TIMELINE_INDICATOR_LINE_WIDTH_PX,
+} from "@/lib/timeline";
 import type { TimelineTrack } from "@/types/timeline";
 
 interface SnapIndicatorProps {
@@ -40,10 +44,10 @@ export function SnapIndicator({
 		<div
 			className="pointer-events-none absolute"
 			style={{
-				left: `${leftPosition}px`,
+				left: `${getCenteredLineLeft({ centerPixel: leftPosition })}px`,
 				top: topPosition,
 				height: `${height}px`,
-				width: "2px",
+				width: `${TIMELINE_INDICATOR_LINE_WIDTH_PX}px`,
 			}}
 		>
 			<div className={"bg-primary/40 h-full w-0.5 opacity-80"} />

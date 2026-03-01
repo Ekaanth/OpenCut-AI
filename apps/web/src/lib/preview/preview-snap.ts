@@ -3,10 +3,10 @@ export interface SnapLine {
 	position: number;
 }
 
-const SNAP_THRESHOLD = 10;
 const ROTATION_SNAP_STEP_DEGREES = 90;
 const ROTATION_SNAP_THRESHOLD_DEGREES = 5;
 export const MIN_SCALE = 0.01;
+export const SNAP_THRESHOLD_SCREEN_PIXELS = 8;
 
 export interface SnapResult {
 	snappedPosition: { x: number; y: number };
@@ -17,10 +17,12 @@ export function snapPosition({
 	proposedPosition,
 	canvasSize,
 	elementSize,
+	snapThreshold,
 }: {
 	proposedPosition: { x: number; y: number };
 	canvasSize: { width: number; height: number };
 	elementSize: { width: number; height: number };
+	snapThreshold: { x: number; y: number };
 }): SnapResult {
 	const centerX = 0;
 	const centerY = 0;
@@ -41,11 +43,13 @@ export function snapPosition({
 
 	function getClosestAxisSnap({
 		candidates,
+		threshold,
 	}: {
 		candidates: AxisSnapCandidate[];
+		threshold: number;
 	}): AxisSnapCandidate | null {
 		const snapCandidatesWithinThreshold = candidates.filter(
-			(candidate) => candidate.distance <= SNAP_THRESHOLD,
+			(candidate) => candidate.distance <= threshold,
 		);
 		if (snapCandidatesWithinThreshold.length === 0) {
 			return null;
@@ -95,8 +99,14 @@ export function snapPosition({
 		});
 	}
 
-	const closestX = getClosestAxisSnap({ candidates: xCandidates });
-	const closestY = getClosestAxisSnap({ candidates: yCandidates });
+	const closestX = getClosestAxisSnap({
+		candidates: xCandidates,
+		threshold: snapThreshold.x,
+	});
+	const closestY = getClosestAxisSnap({
+		candidates: yCandidates,
+		threshold: snapThreshold.y,
+	});
 
 	const x = closestX?.snappedPosition ?? proposedPosition.x;
 	const y = closestY?.snappedPosition ?? proposedPosition.y;
@@ -124,12 +134,14 @@ export function snapScale({
 	baseWidth,
 	baseHeight,
 	canvasSize,
+	snapThreshold,
 }: {
 	proposedScale: number;
 	position: { x: number; y: number };
 	baseWidth: number;
 	baseHeight: number;
 	canvasSize: { width: number; height: number };
+	snapThreshold: { x: number; y: number };
 }): ScaleSnapResult {
 	const centerX = 0;
 	const centerY = 0;
@@ -162,7 +174,7 @@ export function snapScale({
 
 	for (const target of verticalTargets) {
 		const distanceLeft = Math.abs(leftEdge - target.position);
-		if (distanceLeft <= SNAP_THRESHOLD) {
+		if (distanceLeft <= snapThreshold.x) {
 			const scale = (2 * (position.x - target.position)) / baseWidth;
 			if (scale > MIN_SCALE) {
 				candidates.push({
@@ -173,7 +185,7 @@ export function snapScale({
 			}
 		}
 		const distanceRight = Math.abs(rightEdge - target.position);
-		if (distanceRight <= SNAP_THRESHOLD) {
+		if (distanceRight <= snapThreshold.x) {
 			const scale = (2 * (target.position - position.x)) / baseWidth;
 			if (scale > MIN_SCALE) {
 				candidates.push({
@@ -199,7 +211,7 @@ export function snapScale({
 
 	for (const target of horizontalTargets) {
 		const distanceTop = Math.abs(topEdge - target.position);
-		if (distanceTop <= SNAP_THRESHOLD) {
+		if (distanceTop <= snapThreshold.y) {
 			const scale = (2 * (position.y - target.position)) / baseHeight;
 			if (scale > MIN_SCALE) {
 				candidates.push({
@@ -210,7 +222,7 @@ export function snapScale({
 			}
 		}
 		const distanceBottom = Math.abs(bottomEdge - target.position);
-		if (distanceBottom <= SNAP_THRESHOLD) {
+		if (distanceBottom <= snapThreshold.y) {
 			const scale = (2 * (target.position - position.y)) / baseHeight;
 			if (scale > MIN_SCALE) {
 				candidates.push({

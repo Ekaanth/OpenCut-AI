@@ -8,19 +8,23 @@ import type { MediaAsset } from "@/types/assets";
 import { canElementHaveAudio } from "@/lib/timeline/element-utils";
 import { canTracktHaveAudio } from "@/lib/timeline";
 import { mediaSupportsAudio } from "@/lib/media/media-utils";
+import { Input, ALL_FORMATS, BlobSource, AudioBufferSink } from "mediabunny";
+
+const MAX_AUDIO_CHANNELS = 2;
+const EXPORT_SAMPLE_RATE = 44100;
 
 export type CollectedAudioElement = Omit<
 	AudioElement,
 	"type" | "mediaId" | "volume" | "id" | "name" | "sourceType" | "sourceUrl"
 > & { buffer: AudioBuffer };
 
-export function createAudioContext(): AudioContext {
+export function createAudioContext({ sampleRate }: { sampleRate?: number } = {}): AudioContext {
 	const AudioContextConstructor =
 		window.AudioContext ||
 		(window as typeof window & { webkitAudioContext?: typeof AudioContext })
 			.webkitAudioContext;
 
-	return new AudioContextConstructor();
+	return new AudioContextConstructor(sampleRate ? { sampleRate } : undefined);
 }
 
 export interface DecodedAudio {
@@ -170,12 +174,64 @@ async function resolveAudioBufferForVideoElement({
 	mediaAsset: MediaAsset;
 	audioContext: AudioContext;
 }): Promise<AudioBuffer | null> {
+	const input = new Input({
+		source: new BlobSource(mediaAsset.file),
+		formats: ALL_FORMATS,
+	});
+
 	try {
-		const arrayBuffer = await mediaAsset.file.arrayBuffer();
-		return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+		const audioTrack = await input.getPrimaryAudioTrack();
+		if (!audioTrack) return null;
+
+		const sink = new AudioBufferSink(audioTrack);
+		const targetSampleRate = audioContext.sampleRate;
+
+		const chunks: AudioBuffer[] = [];
+		let totalSamples = 0;
+
+		for await (const { buffer } of sink.buffers(0)) {
+			chunks.push(buffer);
+			totalSamples += buffer.length;
+		}
+
+		if (chunks.length === 0) return null;
+
+		const nativeSampleRate = chunks[0].sampleRate;
+		const numChannels = Math.min(MAX_AUDIO_CHANNELS, chunks[0].numberOfChannels);
+
+		const nativeChannels = Array.from(
+			{ length: numChannels },
+			() => new Float32Array(totalSamples),
+		);
+		let offset = 0;
+		for (const chunk of chunks) {
+			for (let channel = 0; channel < numChannels; channel++) {
+				const sourceData = chunk.getChannelData(Math.min(channel, chunk.numberOfChannels - 1));
+				nativeChannels[channel].set(sourceData, offset);
+			}
+			offset += chunk.length;
+		}
+
+		// use OfflineAudioContext for high-quality resampling to target rate
+		const outputSamples = Math.ceil(totalSamples * (targetSampleRate / nativeSampleRate));
+		const offlineContext = new OfflineAudioContext(numChannels, outputSamples, targetSampleRate);
+
+		const nativeBuffer = audioContext.createBuffer(numChannels, totalSamples, nativeSampleRate);
+		for (let ch = 0; ch < numChannels; ch++) {
+			nativeBuffer.copyToChannel(nativeChannels[ch], ch);
+		}
+
+		const sourceNode = offlineContext.createBufferSource();
+		sourceNode.buffer = nativeBuffer;
+		sourceNode.connect(offlineContext.destination);
+		sourceNode.start(0);
+
+		return await offlineContext.startRendering();
 	} catch (error) {
 		console.warn("Failed to decode video audio:", error);
 		return null;
+	} finally {
+		input.dispose();
 	}
 }
 
@@ -422,7 +478,7 @@ export async function createTimelineAudioBuffer({
 	tracks,
 	mediaAssets,
 	duration,
-	sampleRate = 44100,
+	sampleRate = EXPORT_SAMPLE_RATE,
 	audioContext,
 }: {
 	tracks: TimelineTrack[];
@@ -431,7 +487,7 @@ export async function createTimelineAudioBuffer({
 	sampleRate?: number;
 	audioContext?: AudioContext;
 }): Promise<AudioBuffer | null> {
-	const context = audioContext ?? createAudioContext();
+	const context = audioContext ?? createAudioContext({ sampleRate });
 
 	const audioElements = await collectAudioElements({
 		tracks,

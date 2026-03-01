@@ -5,12 +5,19 @@ import { isMainTrack, rippleShiftElements } from "@/lib/timeline";
 
 export class DeleteElementsCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
+	private readonly elements: { trackId: string; elementId: string }[];
+	private readonly rippleEnabled: boolean;
 
-	constructor(
-		private elements: { trackId: string; elementId: string }[],
-		private rippleEnabled = false,
-	) {
+	constructor({
+		elements,
+		rippleEnabled = false,
+	}: {
+		elements: { trackId: string; elementId: string }[];
+		rippleEnabled?: boolean;
+	}) {
 		super();
+		this.elements = elements;
+		this.rippleEnabled = rippleEnabled;
 	}
 
 	execute(): void {
@@ -19,29 +26,29 @@ export class DeleteElementsCommand extends Command {
 
 		const updatedTracks = this.savedState
 			.map((track) => {
-			const elementsToDeleteOnTrack = this.elements.filter(
-				(target) => target.trackId === track.id,
-			);
-			const hasElementsToDelete = elementsToDeleteOnTrack.length > 0;
+				const elementsToDeleteOnTrack = this.elements.filter(
+					(target) => target.trackId === track.id,
+				);
+				const hasElementsToDelete = elementsToDeleteOnTrack.length > 0;
 
-			if (!hasElementsToDelete) {
-				return track;
-			}
+				if (!hasElementsToDelete) {
+					return track;
+				}
 
-			const deletedElementInfos = elementsToDeleteOnTrack
-				.map((target) =>
-					track.elements.find((element) => element.id === target.elementId),
-				)
-				.filter((element): element is NonNullable<typeof element> => element !== undefined)
-				.map((element) => ({ startTime: element.startTime, duration: element.duration }));
+				const deletedElementInfos = elementsToDeleteOnTrack
+					.map((target) =>
+						track.elements.find((element) => element.id === target.elementId),
+					)
+					.filter((element): element is NonNullable<typeof element> => element !== undefined)
+					.map((element) => ({ startTime: element.startTime, duration: element.duration }));
 
-			let elements = track.elements.filter(
-				(element) =>
-					!this.elements.some(
-						(target) =>
-							target.trackId === track.id && target.elementId === element.id,
-					),
-			);
+				let elements = track.elements.filter(
+					(element) =>
+						!this.elements.some(
+							(target) =>
+								target.trackId === track.id && target.elementId === element.id,
+						),
+				);
 
 				if (this.rippleEnabled && deletedElementInfos.length > 0) {
 					const sortedByStartDesc = [...deletedElementInfos].sort(

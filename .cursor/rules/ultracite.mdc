@@ -28,7 +28,6 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 ### Accessibility (a11y)
 
 - Always include a `title` element for icons unless there's text beside the icon.
-- Always include a `type` attribute for button elements.
 - Accompany `onClick` with at least one of: `onKeyUp`, `onKeyDown`, or `onKeyPress`.
 - Accompany `onMouseOver`/`onMouseOut` with `onFocus`/`onBlur`.
 
