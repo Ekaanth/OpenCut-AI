@@ -29,6 +29,7 @@ export class AudioManager {
 	private playbackSessionId = 0;
 	private lastIsPlaying = false;
 	private lastVolume = 1;
+	private playbackLatencyCompensationSeconds = 0;
 	private unsubscribers: Array<() => void> = [];
 
 	constructor(private editor: EditorCore) {
@@ -136,6 +137,7 @@ export class AudioManager {
 
 		this.stopPlayback();
 		this.playbackSessionId++;
+		this.playbackLatencyCompensationSeconds = 0;
 
 		const tracks = this.editor.timeline.getTracks();
 		const mediaAssets = this.editor.media.getAssets();
@@ -224,13 +226,21 @@ export class AudioManager {
 
 		const clipStart = clip.startTime;
 		const clipEnd = clip.startTime + clip.duration;
-
-		const iteratorStartTime = Math.max(startTime, clipStart);
+		const playbackTimeAfterSinkReady = this.getPlaybackTime();
+		const iteratorStartTime = Math.max(
+			startTime,
+			clipStart,
+			playbackTimeAfterSinkReady,
+		);
+		if (iteratorStartTime >= clipEnd) {
+			return;
+		}
 		const sourceStartTime =
 			clip.trimStart + (iteratorStartTime - clip.startTime);
 
 		const iterator = sink.buffers(sourceStartTime);
 		this.clipIterators.set(clip.id, iterator);
+		let consecutiveDroppedBufferCount = 0;
 
 		for await (const { buffer, timestamp } of iterator) {
 			if (!this.editor.playback.getIsPlaying()) return;
@@ -244,15 +254,41 @@ export class AudioManager {
 			node.connect(this.masterGain ?? audioContext.destination);
 
 			const startTimestamp =
-				this.playbackStartContextTime + (timelineTime - this.playbackStartTime);
+				this.playbackStartContextTime +
+				this.playbackLatencyCompensationSeconds +
+				(timelineTime - this.playbackStartTime);
 
 			if (startTimestamp >= audioContext.currentTime) {
 				node.start(startTimestamp);
+				consecutiveDroppedBufferCount = 0;
 			} else {
 				const offset = audioContext.currentTime - startTimestamp;
 				if (offset < buffer.duration) {
 					node.start(audioContext.currentTime, offset);
+					consecutiveDroppedBufferCount = 0;
 				} else {
+					consecutiveDroppedBufferCount += 1;
+					if (consecutiveDroppedBufferCount >= 5) {
+						const nextCompensationSeconds = Math.max(
+							this.playbackLatencyCompensationSeconds,
+							Math.min(0.25, offset + 0.01),
+						);
+						if (
+							nextCompensationSeconds >
+							this.playbackLatencyCompensationSeconds + 0.001
+						) {
+							this.playbackLatencyCompensationSeconds =
+								nextCompensationSeconds;
+						}
+						const resyncStartTime = this.getPlaybackTime();
+						this.clipIterators.delete(clip.id);
+						void this.runClipIterator({
+							clip,
+							startTime: resyncStartTime,
+							sessionId,
+						});
+						return;
+					}
 					continue;
 				}
 			}
