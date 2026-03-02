@@ -18,6 +18,7 @@ export {
 export {
 	getElementLocalTime,
 	resolveColorAtTime,
+	resolveNumberAtTime,
 	resolveOpacityAtTime,
 	resolveTransformAtTime,
 	resolveVolumeAtTime,

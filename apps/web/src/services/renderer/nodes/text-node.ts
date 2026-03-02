@@ -3,6 +3,7 @@ import { createOffscreenCanvas } from "../canvas-utils";
 import { BaseNode } from "./base-node";
 import type { TextElement } from "@/types/timeline";
 import {
+	DEFAULT_TEXT_BACKGROUND,
 	DEFAULT_TEXT_ELEMENT,
 	DEFAULT_LINE_HEIGHT,
 	FONT_SIZE_SCALE_REFERENCE,
@@ -18,6 +19,7 @@ import {
 import {
 	getElementLocalTime,
 	resolveColorAtTime,
+	resolveNumberAtTime,
 	resolveOpacityAtTime,
 	resolveTransformAtTime,
 } from "@/lib/animation";
@@ -157,12 +159,46 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			propertyPath: "color",
 			localTime,
 		});
-		const backgroundColor = resolveColorAtTime({
-			baseColor: this.params.background.color,
-			animations: this.params.animations,
-			propertyPath: "background.color",
-			localTime,
-		});
+		const bg = this.params.background;
+		const resolvedBackground = {
+			...bg,
+			color: resolveColorAtTime({
+				baseColor: bg.color,
+				animations: this.params.animations,
+				propertyPath: "background.color",
+				localTime,
+			}),
+			paddingX: resolveNumberAtTime({
+				baseValue: bg.paddingX ?? DEFAULT_TEXT_BACKGROUND.paddingX,
+				animations: this.params.animations,
+				propertyPath: "background.paddingX",
+				localTime,
+			}),
+			paddingY: resolveNumberAtTime({
+				baseValue: bg.paddingY ?? DEFAULT_TEXT_BACKGROUND.paddingY,
+				animations: this.params.animations,
+				propertyPath: "background.paddingY",
+				localTime,
+			}),
+			offsetX: resolveNumberAtTime({
+				baseValue: bg.offsetX ?? DEFAULT_TEXT_BACKGROUND.offsetX,
+				animations: this.params.animations,
+				propertyPath: "background.offsetX",
+				localTime,
+			}),
+			offsetY: resolveNumberAtTime({
+				baseValue: bg.offsetY ?? DEFAULT_TEXT_BACKGROUND.offsetY,
+				animations: this.params.animations,
+				propertyPath: "background.offsetY",
+				localTime,
+			}),
+			cornerRadius: resolveNumberAtTime({
+				baseValue: bg.cornerRadius ?? CORNER_RADIUS_MIN,
+				animations: this.params.animations,
+				propertyPath: "background.cornerRadius",
+				localTime,
+			}),
+		};
 
 	const drawContent = (ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) => {
 			ctx.font = fontString;
@@ -179,17 +215,16 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				this.params.background.color !== "transparent" &&
 				lineCount > 0
 			) {
-				const { cornerRadius = 0 } = this.params.background;
 				const backgroundRect = getTextBackgroundRect({
 					textAlign: this.params.textAlign,
 					block,
-					background: this.params.background,
+					background: resolvedBackground,
 					fontSizeRatio,
 				});
 				if (backgroundRect) {
-					const p = clamp({ value: cornerRadius, min: CORNER_RADIUS_MIN, max: CORNER_RADIUS_MAX }) / 100;
+					const p = clamp({ value: resolvedBackground.cornerRadius, min: CORNER_RADIUS_MIN, max: CORNER_RADIUS_MAX }) / 100;
 					const radius = Math.min(backgroundRect.width, backgroundRect.height) / 2 * p;
-				ctx.fillStyle = backgroundColor;
+				ctx.fillStyle = resolvedBackground.color;
 				ctx.beginPath();
 				ctx.roundRect(backgroundRect.left, backgroundRect.top, backgroundRect.width, backgroundRect.height, radius);
 				ctx.fill();

@@ -1,5 +1,4 @@
 import { useEditor } from "@/hooks/use-editor";
-import { usePropertyDraft } from "../hooks/use-property-draft";
 import { clamp } from "@/utils/math";
 import { NumberField } from "@/components/ui/number-field";
 import {
@@ -19,14 +18,23 @@ import {
 } from "@/components/ui/select";
 import type { BlendMode } from "@/types/rendering";
 import type { ElementType } from "@/types/timeline";
+import type { ElementAnimations } from "@/types/animation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { RainDropIcon } from "@hugeicons/core-free-icons";
+import { KeyframeToggle } from "../keyframe-toggle";
+import { useKeyframedNumberProperty } from "../hooks/use-keyframed-number-property";
+import { useElementPlayhead } from "../hooks/use-element-playhead";
+import { resolveOpacityAtTime } from "@/lib/animation";
+import { isPropertyAtDefault } from "./transform";
 
 type BlendingElement = {
 	id: string;
 	opacity: number;
 	type: ElementType;
 	blendMode?: BlendMode;
+	startTime: number;
+	duration: number;
+	animations?: ElementAnimations;
 };
 
 const BLEND_MODE_GROUPS = [
@@ -105,20 +113,31 @@ export function BlendingSection({
 		}
 	};
 
-	const opacity = usePropertyDraft({
-		displayValue: Math.round(element.opacity * 100).toString(),
+	const { localTime, isPlayheadWithinElementRange } = useElementPlayhead({
+		startTime: element.startTime,
+		duration: element.duration,
+	});
+	const resolvedOpacity = resolveOpacityAtTime({
+		baseOpacity: element.opacity,
+		animations: element.animations,
+		localTime,
+	});
+
+	const opacity = useKeyframedNumberProperty({
+		trackId,
+		elementId: element.id,
+		animations: element.animations,
+		propertyPath: "opacity",
+		localTime,
+		isPlayheadWithinElementRange,
+		displayValue: Math.round(resolvedOpacity * 100).toString(),
 		parse: (input) => {
 			const parsed = parseFloat(input);
 			if (Number.isNaN(parsed)) return null;
 			return clamp({ value: parsed, min: 0, max: 100 }) / 100;
 		},
-		onPreview: (value) =>
-			editor.timeline.previewElements({
-				updates: [
-					{ trackId, elementId: element.id, updates: { opacity: value } },
-				],
-			}),
-		onCommit: () => editor.timeline.commitPreview(),
+		valueAtPlayhead: resolvedOpacity,
+		buildBaseUpdates: ({ value }) => ({ opacity: value }),
 	});
 
 	return (
@@ -126,7 +145,18 @@ export function BlendingSection({
 			<SectionHeader><SectionTitle>Blending</SectionTitle></SectionHeader>
 		<SectionContent>
 			<div className="flex items-start gap-2">
-				<SectionField label="Opacity" className="w-1/2">
+				<SectionField
+					label="Opacity"
+					className="w-1/2"
+					beforeLabel={
+						<KeyframeToggle
+							isActive={opacity.isKeyframedAtTime}
+							isDisabled={!isPlayheadWithinElementRange}
+							title="Toggle opacity keyframe"
+							onToggle={opacity.toggleKeyframe}
+						/>
+					}
+				>
 					<NumberField
 						className="w-full"
 						icon={
@@ -140,18 +170,14 @@ export function BlendingSection({
 						onBlur={opacity.onBlur}
 						onScrub={opacity.scrubTo}
 						onScrubEnd={opacity.commitScrub}
-						onReset={() =>
-							editor.timeline.updateElements({
-								updates: [
-									{
-										trackId,
-										elementId: element.id,
-										updates: { opacity: DEFAULT_OPACITY },
-									},
-								],
-							})
-						}
-						isDefault={element.opacity === DEFAULT_OPACITY}
+						onReset={() => opacity.commitValue({ value: DEFAULT_OPACITY })}
+						isDefault={isPropertyAtDefault({
+							hasAnimatedKeyframes: opacity.hasAnimatedKeyframes,
+							isPlayheadWithinElementRange,
+							resolvedValue: resolvedOpacity,
+							staticValue: element.opacity,
+							defaultValue: DEFAULT_OPACITY,
+						})}
 						dragSensitivity="slow"
 					/>
 				</SectionField>

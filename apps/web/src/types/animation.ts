@@ -7,6 +7,11 @@ export const ANIMATION_PROPERTY_PATHS = [
 	"volume",
 	"color",
 	"background.color",
+	"background.paddingX",
+	"background.paddingY",
+	"background.offsetX",
+	"background.offsetY",
+	"background.cornerRadius",
 ] as const;
 
 export type AnimationPropertyPath = (typeof ANIMATION_PROPERTY_PATHS)[number];

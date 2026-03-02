@@ -4,10 +4,15 @@ import { isMainTrack } from "@/lib/timeline";
 import {
 	DEFAULT_TEXT_ELEMENT,
 	DEFAULT_LINE_HEIGHT,
+	DEFAULT_TEXT_BACKGROUND,
 	FONT_SIZE_SCALE_REFERENCE,
 } from "@/constants/text-constants";
 import { getTextVisualRect, measureTextBlock } from "@/lib/text/layout";
-import { getElementLocalTime, resolveTransformAtTime } from "@/lib/animation";
+import {
+	getElementLocalTime,
+	resolveTransformAtTime,
+	resolveNumberAtTime,
+} from "@/lib/animation";
 
 export interface ElementBounds {
 	cx: number;
@@ -147,10 +152,41 @@ export function getElementBounds({
 				fallbackFontSize: scaledFontSize,
 			});
 			const fontSizeRatio = element.fontSize / DEFAULT_TEXT_ELEMENT.fontSize;
+			const resolvedBackground = {
+				...element.background,
+				paddingX: resolveNumberAtTime({
+					baseValue:
+						element.background.paddingX ?? DEFAULT_TEXT_BACKGROUND.paddingX,
+					animations: element.animations,
+					propertyPath: "background.paddingX",
+					localTime,
+				}),
+				paddingY: resolveNumberAtTime({
+					baseValue:
+						element.background.paddingY ?? DEFAULT_TEXT_BACKGROUND.paddingY,
+					animations: element.animations,
+					propertyPath: "background.paddingY",
+					localTime,
+				}),
+				offsetX: resolveNumberAtTime({
+					baseValue:
+						element.background.offsetX ?? DEFAULT_TEXT_BACKGROUND.offsetX,
+					animations: element.animations,
+					propertyPath: "background.offsetX",
+					localTime,
+				}),
+				offsetY: resolveNumberAtTime({
+					baseValue:
+						element.background.offsetY ?? DEFAULT_TEXT_BACKGROUND.offsetY,
+					animations: element.animations,
+					propertyPath: "background.offsetY",
+					localTime,
+				}),
+			};
 			const visualRect = getTextVisualRect({
 				textAlign: element.textAlign,
 				block,
-				background: element.background,
+				background: resolvedBackground,
 				fontSizeRatio,
 			});
 			measuredWidth = visualRect.width;

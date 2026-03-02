@@ -7,6 +7,11 @@ import type {
 } from "@/types/animation";
 import type { TimelineElement } from "@/types/timeline";
 import { MIN_TRANSFORM_SCALE } from "@/constants/animation-constants";
+import {
+	CORNER_RADIUS_MAX,
+	CORNER_RADIUS_MIN,
+	DEFAULT_TEXT_BACKGROUND,
+} from "@/constants/text-constants";
 import { isVisualElement } from "@/lib/timeline/element-utils";
 
 interface NumericRange {
@@ -141,6 +146,89 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 				? {
 						...element,
 						background: { ...element.background, color: value as string },
+					}
+				: element,
+	},
+	"background.paddingX": {
+		valueKind: "number",
+		defaultInterpolation: "linear",
+		numericRange: { min: 0 },
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) =>
+			element.type === "text"
+				? (element.background.paddingX ?? DEFAULT_TEXT_BACKGROUND.paddingX)
+				: null,
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? {
+						...element,
+						background: { ...element.background, paddingX: value as number },
+					}
+				: element,
+	},
+	"background.paddingY": {
+		valueKind: "number",
+		defaultInterpolation: "linear",
+		numericRange: { min: 0 },
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) =>
+			element.type === "text"
+				? (element.background.paddingY ?? DEFAULT_TEXT_BACKGROUND.paddingY)
+				: null,
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? {
+						...element,
+						background: { ...element.background, paddingY: value as number },
+					}
+				: element,
+	},
+	"background.offsetX": {
+		valueKind: "number",
+		defaultInterpolation: "linear",
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) =>
+			element.type === "text"
+				? (element.background.offsetX ?? DEFAULT_TEXT_BACKGROUND.offsetX)
+				: null,
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? {
+						...element,
+						background: { ...element.background, offsetX: value as number },
+					}
+				: element,
+	},
+	"background.offsetY": {
+		valueKind: "number",
+		defaultInterpolation: "linear",
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) =>
+			element.type === "text"
+				? (element.background.offsetY ?? DEFAULT_TEXT_BACKGROUND.offsetY)
+				: null,
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? {
+						...element,
+						background: { ...element.background, offsetY: value as number },
+					}
+				: element,
+	},
+	"background.cornerRadius": {
+		valueKind: "number",
+		defaultInterpolation: "linear",
+		numericRange: { min: CORNER_RADIUS_MIN, max: CORNER_RADIUS_MAX },
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) =>
+			element.type === "text"
+				? (element.background.cornerRadius ?? CORNER_RADIUS_MIN)
+				: null,
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? {
+						...element,
+						background: { ...element.background, cornerRadius: value as number },
 					}
 				: element,
 	},

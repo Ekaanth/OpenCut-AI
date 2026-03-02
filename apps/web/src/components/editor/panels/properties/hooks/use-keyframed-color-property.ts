@@ -6,18 +6,15 @@ import {
 } from "@/lib/animation";
 import type { AnimationPropertyPath, ElementAnimations } from "@/types/animation";
 import type { TimelineElement } from "@/types/timeline";
-import { usePropertyDraft } from "./use-property-draft";
 
-export function useKeyframedNumberProperty({
+export function useKeyframedColorProperty({
 	trackId,
 	elementId,
 	animations,
 	propertyPath,
 	localTime,
 	isPlayheadWithinElementRange,
-	displayValue,
-	parse,
-	valueAtPlayhead,
+	resolvedColor,
 	buildBaseUpdates,
 }: {
 	trackId: string;
@@ -26,10 +23,8 @@ export function useKeyframedNumberProperty({
 	propertyPath: AnimationPropertyPath;
 	localTime: number;
 	isPlayheadWithinElementRange: boolean;
-	displayValue: string;
-	parse: (input: string) => number | null;
-	valueAtPlayhead: number;
-	buildBaseUpdates: ({ value }: { value: number }) => Partial<TimelineElement>;
+	resolvedColor: string;
+	buildBaseUpdates: ({ value }: { value: string }) => Partial<TimelineElement>;
 }) {
 	const editor = useEditor();
 
@@ -42,7 +37,7 @@ export function useKeyframedNumberProperty({
 	const shouldUseAnimatedChannel =
 		hasAnimatedKeyframes && isPlayheadWithinElementRange;
 
-	const previewValue = ({ value }: { value: number }) => {
+	const onChange = ({ color }: { color: string }) => {
 		if (shouldUseAnimatedChannel) {
 			editor.timeline.previewElements({
 				updates: [
@@ -54,7 +49,7 @@ export function useKeyframedNumberProperty({
 								animations,
 								propertyPath,
 								time: localTime,
-								value,
+								value: color,
 							}),
 						},
 					},
@@ -64,22 +59,11 @@ export function useKeyframedNumberProperty({
 		}
 
 		editor.timeline.previewElements({
-			updates: [
-				{
-					trackId,
-					elementId,
-					updates: buildBaseUpdates({ value }),
-				},
-			],
+			updates: [{ trackId, elementId, updates: buildBaseUpdates({ value: color }) }],
 		});
 	};
 
-	const propertyDraft = usePropertyDraft({
-		displayValue,
-		parse,
-		onPreview: (value) => previewValue({ value }),
-		onCommit: () => editor.timeline.commitPreview(),
-	});
+	const onChangeEnd = () => editor.timeline.commitPreview();
 
 	const toggleKeyframe = () => {
 		if (!isPlayheadWithinElementRange) {
@@ -88,64 +72,24 @@ export function useKeyframedNumberProperty({
 
 		if (keyframeIdAtTime) {
 			editor.timeline.removeKeyframes({
-				keyframes: [
-					{
-						trackId,
-						elementId,
-						propertyPath,
-						keyframeId: keyframeIdAtTime,
-					},
-				],
+				keyframes: [{ trackId, elementId, propertyPath, keyframeId: keyframeIdAtTime }],
 			});
 			return;
 		}
 
 		editor.timeline.upsertKeyframes({
 			keyframes: [
-				{
-					trackId,
-					elementId,
-					propertyPath,
-					time: localTime,
-					value: valueAtPlayhead,
-				},
-			],
-		});
-	};
-
-	const commitValue = ({ value }: { value: number }) => {
-		if (shouldUseAnimatedChannel) {
-			editor.timeline.upsertKeyframes({
-				keyframes: [
-					{
-						trackId,
-						elementId,
-						propertyPath,
-						time: localTime,
-						value,
-					},
-				],
-			});
-			return;
-		}
-
-		editor.timeline.updateElements({
-			updates: [
-				{
-					trackId,
-					elementId,
-					updates: buildBaseUpdates({ value }),
-				},
+				{ trackId, elementId, propertyPath, time: localTime, value: resolvedColor },
 			],
 		});
 	};
 
 	return {
-		...propertyDraft,
-		hasAnimatedKeyframes,
 		isKeyframedAtTime,
+		hasAnimatedKeyframes,
 		keyframeIdAtTime,
+		onChange,
+		onChangeEnd,
 		toggleKeyframe,
-		commitValue,
 	};
 }

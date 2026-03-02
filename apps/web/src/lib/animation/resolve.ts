@@ -92,6 +92,24 @@ export function resolveOpacityAtTime({
 	});
 }
 
+export function resolveNumberAtTime({
+	baseValue,
+	animations,
+	propertyPath,
+	localTime,
+}: {
+	baseValue: number;
+	animations: ElementAnimations | undefined;
+	propertyPath: AnimationPropertyPath;
+	localTime: number;
+}): number {
+	return getNumberChannelValueAtTime({
+		channel: getNumberChannelForPath({ animations, propertyPath }),
+		time: Math.max(0, localTime),
+		fallbackValue: baseValue,
+	});
+}
+
 export function resolveColorAtTime({
 	baseColor,
 	animations,

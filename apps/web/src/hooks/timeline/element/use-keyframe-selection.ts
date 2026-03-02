@@ -121,14 +121,14 @@ export function useKeyframeSelection() {
 			isMultiKey: boolean;
 		}) => {
 			const anchorKeyframe = keyframes[0];
+			const areAllKeyframesSelected = keyframes.every((keyframe) =>
+				isKeyframeSelected({ keyframe }),
+			);
 			if (!isMultiKey) {
 				setKeyframeSelection({ keyframes, anchorKeyframe });
 				return;
 			}
 
-			const areAllKeyframesSelected = keyframes.every((keyframe) =>
-				isKeyframeSelected({ keyframe }),
-			);
 			if (areAllKeyframesSelected) {
 				removeKeyframesFromSelection({ keyframes, anchorKeyframe });
 				return;
