@@ -73,6 +73,7 @@ export class TimelineManager {
 		startTime,
 		duration,
 		pushHistory = true,
+		rippleEnabled = false,
 	}: {
 		elementId: string;
 		trimStart: number;
@@ -80,6 +81,7 @@ export class TimelineManager {
 		startTime?: number;
 		duration?: number;
 		pushHistory?: boolean;
+		rippleEnabled?: boolean;
 	}): void {
 		const command = new UpdateElementTrimCommand({
 			elementId,
@@ -87,6 +89,7 @@ export class TimelineManager {
 			trimEnd,
 			startTime,
 			duration,
+			rippleEnabled,
 		});
 		if (pushHistory) {
 			this.editor.command.execute({ command });

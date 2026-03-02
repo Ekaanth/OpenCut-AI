@@ -2,6 +2,7 @@ import { Command } from "@/lib/commands/base-command";
 import type { TimelineTrack } from "@/types/timeline";
 import { EditorCore } from "@/core";
 import { clampAnimationsToDuration } from "@/lib/animation";
+import { rippleShiftElements } from "@/lib/timeline";
 
 export class UpdateElementTrimCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
@@ -10,6 +11,7 @@ export class UpdateElementTrimCommand extends Command {
 	private readonly trimEnd: number;
 	private readonly startTime: number | undefined;
 	private readonly duration: number | undefined;
+	private readonly rippleEnabled: boolean;
 
 	constructor({
 		elementId,
@@ -17,12 +19,14 @@ export class UpdateElementTrimCommand extends Command {
 		trimEnd,
 		startTime,
 		duration,
+		rippleEnabled = false,
 	}: {
 		elementId: string;
 		trimStart: number;
 		trimEnd: number;
 		startTime?: number;
 		duration?: number;
+		rippleEnabled?: boolean;
 	}) {
 		super();
 		this.elementId = elementId;
@@ -30,6 +34,7 @@ export class UpdateElementTrimCommand extends Command {
 		this.trimEnd = trimEnd;
 		this.startTime = startTime;
 		this.duration = duration;
+		this.rippleEnabled = rippleEnabled;
 	}
 
 	execute(): void {
@@ -37,25 +42,52 @@ export class UpdateElementTrimCommand extends Command {
 		this.savedState = editor.timeline.getTracks();
 
 		const updatedTracks = this.savedState.map((track) => {
-			const newElements = track.elements.map((element) => {
-				if (element.id !== this.elementId) {
-					return element;
-				}
+			const targetElement = track.elements.find(
+				(element) => element.id === this.elementId,
+			);
+			if (!targetElement) return track;
 
-				const nextDuration = this.duration ?? element.duration;
-				return {
-					...element,
-					trimStart: this.trimStart,
-					trimEnd: this.trimEnd,
-					startTime: this.startTime ?? element.startTime,
+			const nextDuration = this.duration ?? targetElement.duration;
+			const nextStartTime = this.startTime ?? targetElement.startTime;
+
+			const oldEndTime = targetElement.startTime + targetElement.duration;
+			const newEndTime = nextStartTime + nextDuration;
+			const shiftAmount = oldEndTime - newEndTime;
+
+			const updatedElement = {
+				...targetElement,
+				trimStart: this.trimStart,
+				trimEnd: this.trimEnd,
+				startTime: nextStartTime,
+				duration: nextDuration,
+				animations: clampAnimationsToDuration({
+					animations: targetElement.animations,
 					duration: nextDuration,
-					animations: clampAnimationsToDuration({
-						animations: element.animations,
-						duration: nextDuration,
-					}),
-				};
-			});
-			return { ...track, elements: newElements } as typeof track;
+				}),
+			};
+
+			if (this.rippleEnabled && Math.abs(shiftAmount) > 0) {
+				const shiftedOthers = rippleShiftElements({
+					elements: track.elements.filter((element) => element.id !== this.elementId),
+					afterTime: oldEndTime,
+					shiftAmount,
+				});
+				return {
+					...track,
+					elements: track.elements.map((element) =>
+						element.id === this.elementId
+							? updatedElement
+							: (shiftedOthers.find((shifted) => shifted.id === element.id) ?? element)
+					),
+				} as typeof track;
+			}
+
+			return {
+				...track,
+				elements: track.elements.map((element) =>
+					element.id === this.elementId ? updatedElement : element
+				),
+			} as typeof track;
 		});
 
 		editor.timeline.updateTracks(updatedTracks);
