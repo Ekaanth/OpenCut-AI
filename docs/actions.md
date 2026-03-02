@@ -17,6 +17,29 @@ Add an entry to the `ACTIONS` object:
 },
 ```
 
+**If your shortcut uses a special key** (not a letter/digit), check `getPressedKey` in `src/stores/keybindings-store.ts` and add a case if it's missing:
+
+```typescript
+if (key === "escape") return "escape";
+```
+
+**If your action has a `defaultShortcuts`**, also add a keybindings migration so existing users get it (keybindings are persisted in localStorage — new defaults only apply to fresh installs):
+
+1. Create `src/stores/keybindings/migrations/vN-to-vN+1.ts`:
+
+```typescript
+export function vNToVN1({ state }: { state: unknown }): unknown {
+    const s = state as { keybindings: Record<string, string>; isCustomized: boolean };
+    const keybindings = { ...s.keybindings };
+    if (!keybindings["my-key"]) {
+        keybindings["my-key"] = "my-action";
+    }
+    return { ...s, keybindings };
+}
+```
+
+2. Register it in `src/stores/keybindings/migrations/index.ts` and bump `CURRENT_VERSION`.
+
 ### 2. Register the handler — `src/hooks/actions/use-editor-actions.ts`
 
 ```typescript
