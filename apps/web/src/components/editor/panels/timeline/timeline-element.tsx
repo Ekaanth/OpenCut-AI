@@ -566,7 +566,7 @@ function KeyframeIndicators({
 				<HugeiconsIcon
 					icon={KeyframeIcon}
 					className={cn(
-						"size-3.5 text-black",
+						"size-3.5 mt-1.5 text-black",
 						isIndicatorSelected ? "fill-primary" : "fill-white",
 					)}
 					strokeWidth={1.5}
