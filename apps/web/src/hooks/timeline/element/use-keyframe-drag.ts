@@ -201,7 +201,8 @@ export function useKeyframeDrag({
 			isKeyframeSelected({ keyframe }),
 		);
 
-		if (!anySelected) {
+		const isModifierKey = event.shiftKey || event.metaKey || event.ctrlKey;
+		if (!anySelected && !isModifierKey) {
 			setKeyframeSelection({ keyframes });
 		}
 
@@ -233,21 +234,21 @@ export function useKeyframeDrag({
 				Math.abs(event.clientX - mouseDownXRef.current) > DRAG_THRESHOLD_PX;
 			mouseDownXRef.current = null;
 
-			if (wasDrag) return;
+		if (wasDrag) return;
 
-			if (event.shiftKey) {
-				selectKeyframeRange({
-					orderedKeyframes,
-					targetKeyframes: keyframes,
-					isAdditive: event.metaKey || event.ctrlKey,
-				});
-				return;
-			}
-
-			toggleKeyframeSelection({
-				keyframes,
-				isMultiKey: event.metaKey || event.ctrlKey,
+		if (event.shiftKey) {
+			selectKeyframeRange({
+				orderedKeyframes,
+				targetKeyframes: keyframes,
+				isAdditive: event.metaKey || event.ctrlKey,
 			});
+			return;
+		}
+
+		toggleKeyframeSelection({
+			keyframes,
+			isMultiKey: event.metaKey || event.ctrlKey,
+		});
 		},
 		[toggleKeyframeSelection, selectKeyframeRange],
 	);
