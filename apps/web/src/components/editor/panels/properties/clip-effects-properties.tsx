@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Effect } from "@/types/effects";
 import type { VisualElement } from "@/types/timeline";
 import { getEffect } from "@/lib/effects/registry";
@@ -36,6 +36,10 @@ export function ClipEffectsProperties({
 	);
 	const editor = useEditor();
 	const effects = element.effects ?? [];
+
+	useEffect(() => {
+		if (effects.length === 0) closeClipEffects();
+	}, [effects.length, closeClipEffects]);
 
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -163,7 +167,7 @@ function ClipEffectSection({
 			<SectionHeader
 				className="cursor-move"
 				trailing={
-					<>
+					<div className="flex items-center gap-1">
 						<Button
 							variant={effect.enabled ? "secondary" : "ghost"}
 							size="icon"
@@ -182,7 +186,7 @@ function ClipEffectSection({
 						>
 							<HugeiconsIcon icon={Delete02Icon} />
 						</Button>
-					</>
+					</div>
 				}
 			>
 				<SectionTitle
