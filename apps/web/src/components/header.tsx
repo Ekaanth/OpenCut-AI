@@ -18,6 +18,10 @@ export function Header() {
 
 	const links = [
 		{
+			label: "Roadmap",
+			href: "/roadmap",
+		},
+		{
 			label: "Contributors",
 			href: "/contributors",
 		},
