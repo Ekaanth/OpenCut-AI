@@ -112,7 +112,7 @@ export default function RoadmapPage() {
 function RoadmapItem({ item, index }: { item: RoadmapItem; index: number }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="flex items-center gap-2 text-lg font-medium">
+			<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-medium">
 				<span className="leading-normal select-none">{index + 1}</span>
 				<h3>{item.title}</h3>
 				<StatusBadge status={item.status} className="ml-1" />
