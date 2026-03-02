@@ -12,11 +12,25 @@ import {
 
 export const metadata: Metadata = {
 	title: "Changelog - OpenCut",
-	description: "Every update, improvement, and fix to OpenCut — documented.",
+	description: "What's new in OpenCut",
 	openGraph: {
 		title: "Changelog - OpenCut",
 		description: "Every update, improvement, and fix to OpenCut — documented.",
 		type: "website",
+		images: [
+			{
+				url: "/open-graph/changlog.jpg",
+				width: 1200,
+				height: 630,
+				alt: "OpenCut Changelog",
+			},
+		],
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "Changelog - OpenCut",
+		description: "What's new in OpenCut",
+		images: ["/open-graph/changlog.jpg"],
 	},
 };
 
