@@ -28,6 +28,11 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<BotIdClient protect={protectedRoutes} />
+				<Script
+					src="//unpkg.com/react-scan/dist/auto.global.js"
+					crossOrigin="anonymous"
+					strategy="beforeInteractive"
+				/>
 			</head>
 			<body className={`${siteFont.className} font-sans antialiased`}>
 				<ThemeProvider
