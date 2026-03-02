@@ -54,7 +54,7 @@ export function CopyMarkdownButton({
 			size="sm"
 			variant="text"
 			onClick={handleCopy}
-			className={cn("flex items-center gap-1.5", copied && "!text-green-500 pointer-events-none")}
+			className={cn("flex items-center gap-1.5", copied && "pointer-events-none")}
 			title="Copy as markdown"
 		>
 			{copied ? (
