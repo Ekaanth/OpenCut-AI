@@ -129,7 +129,7 @@ export function MediaView() {
 		});
 	};
 
-	const handleSort = ({ key }: { key: SortKey }) => {
+	const handleSort = ({ key }: { key: MediaSortKey }) => {
 		if (mediaSortBy === key) {
 			setMediaSort(key, mediaSortOrder === "asc" ? "desc" : "asc");
 		} else {
