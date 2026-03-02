@@ -441,7 +441,7 @@ function ElementInner({
 			</div>
 
 			{element.type !== "audio" && element.type !== "effect" && (
-				<div className="sticky left-1 z-10 mt-1 ml-1 w-fit">
+				<div className="sticky left-1 mt-1 ml-1 w-fit">
 					<EffectsButton
 						element={element as VisualElement}
 						trackId={track.id}
@@ -555,13 +555,13 @@ function KeyframeIndicators({
 				onMouseDown={(event) =>
 					onKeyframeMouseDown({ event, keyframes: indicator.keyframes })
 				}
-			onClick={(event) =>
-				onKeyframeClick({
-					event,
-					keyframes: indicator.keyframes,
-					orderedKeyframes,
-					indicatorTime: indicator.time,
-				})
+				onClick={(event) =>
+					onKeyframeClick({
+						event,
+						keyframes: indicator.keyframes,
+						orderedKeyframes,
+						indicatorTime: indicator.time,
+					})
 				}
 				aria-label="Select keyframe"
 			>
