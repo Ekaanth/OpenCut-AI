@@ -1,5 +1,5 @@
 import { DEFAULT_TEXT_BACKGROUND } from "@/constants/text-constants";
-import type { TextElement } from "@/types/timeline";
+import type { TextBackground, TextElement } from "@/types/timeline";
 
 type TextRect = {
 	left: number;
@@ -74,8 +74,12 @@ function getTextRect({
 	textAlign: TextElement["textAlign"];
 	block: TextBlockMeasurement;
 }): TextRect {
-	const left =
-		textAlign === "left" ? 0 : textAlign === "right" ? -block.maxWidth : -block.maxWidth / 2;
+	const textAlignToLeft: Record<typeof textAlign, number> = {
+		left: 0,
+		right: -block.maxWidth,
+		center: -block.maxWidth / 2,
+	};
+	const left = textAlignToLeft[textAlign];
 
 	return {
 		left,
@@ -88,9 +92,13 @@ function getTextRect({
 function isTextBackgroundVisible({
 	background,
 }: {
-	background: TextElement["background"];
+	background: TextBackground;
 }): boolean {
-	return Boolean(background.color) && background.color !== "transparent";
+	return (
+		background.enabled &&
+		Boolean(background.color) &&
+		background.color !== "transparent"
+	);
 }
 
 export function getTextBackgroundRect({
@@ -101,7 +109,7 @@ export function getTextBackgroundRect({
 }: {
 	textAlign: TextElement["textAlign"];
 	block: TextBlockMeasurement;
-	background: TextElement["background"];
+	background: TextBackground;
 	fontSizeRatio?: number;
 }): TextRect | null {
 	if (!isTextBackgroundVisible({ background })) {
@@ -132,7 +140,7 @@ export function getTextVisualRect({
 }: {
 	textAlign: TextElement["textAlign"];
 	block: TextBlockMeasurement;
-	background: TextElement["background"];
+	background: TextBackground;
 	fontSizeRatio?: number;
 }): TextRect {
 	const textRect = getTextRect({ textAlign, block });

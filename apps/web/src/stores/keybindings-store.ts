@@ -39,8 +39,8 @@ interface KeybindingsState {
 	getKeybindingString: (ev: KeyboardEvent) => ShortcutKey | null;
 }
 
-function isDOMElement(el: EventTarget | null): el is HTMLElement {
-	return !!el && (el instanceof Element || el instanceof HTMLElement);
+function isDOMElement(element: EventTarget | null): element is HTMLElement {
+	return element instanceof HTMLElement;
 }
 
 export const useKeybindingsStore = create<KeybindingsState>()(
@@ -90,11 +90,9 @@ export const useKeybindingsStore = create<KeybindingsState>()(
 				set({ keybindingsEnabled: false });
 			},
 
-			importKeybindings: (config: KeybindingConfig) => {
-				// Validate all keys and actions
-				for (const [key] of Object.entries(config)) {
-					// Validate the key format
-					if (typeof key !== "string" || key.length === 0) {
+		importKeybindings: (config: KeybindingConfig) => {
+			for (const [key] of Object.entries(config)) {
+				if (typeof key !== "string" || key.length === 0) {
 						throw new Error(`Invalid key format: ${key}`);
 					}
 				}
@@ -153,20 +151,13 @@ export const useKeybindingsStore = create<KeybindingsState>()(
 	),
 );
 
-// Utility functions
 function generateKeybindingString(ev: KeyboardEvent): ShortcutKey | null {
 	const target = ev.target;
-
-	// We may or may not have a modifier key
 	const modifierKey = getActiveModifier(ev);
-
-	// We will always have a non-modifier key
 	const key = getPressedKey(ev);
 	if (!key) return null;
 
-	// All key combos backed by modifiers are valid shortcuts (whether currently typing or not)
 	if (modifierKey) {
-		// If the modifier is shift and the target is an input, we ignore
 		if (
 			modifierKey === "shift" &&
 			isDOMElement(target) &&
@@ -178,61 +169,44 @@ function generateKeybindingString(ev: KeyboardEvent): ShortcutKey | null {
 		return `${modifierKey}+${key}` as ShortcutKey;
 	}
 
-	// no modifier key here then we do not do anything while on input
-	if (
-		isDOMElement(target) &&
-		isTypableDOMElement({ element: target as HTMLElement })
-	)
+	if (isDOMElement(target) && isTypableDOMElement({ element: target as HTMLElement }))
 		return null;
 
-	// single key while not input
 	return `${key}` as ShortcutKey;
 }
 
 function getPressedKey(ev: KeyboardEvent): string | null {
-	// Sometimes the property code is not available on the KeyboardEvent object
 	const key = (ev.key ?? "").toLowerCase();
 	const code = ev.code ?? "";
 
 	if (code === "Space" || key === " " || key === "spacebar" || key === "space")
 		return "space";
 
-	// Check arrow keys
-	if (key.startsWith("arrow")) {
-		return key.slice(5);
-	}
+	if (key.startsWith("arrow")) return key.slice(5);
 
-	// Check for special keys
+	if (key === "escape") return "escape";
 	if (key === "tab") return "tab";
 	if (key === "home") return "home";
 	if (key === "end") return "end";
 	if (key === "delete") return "delete";
 	if (key === "backspace") return "backspace";
 
-	// Check letter keys
 	if (code.startsWith("Key")) {
 		const letter = code.slice(3).toLowerCase();
-		if (letter.length === 1 && letter >= "a" && letter <= "z") {
-			return letter;
-		}
+		if (letter.length === 1 && letter >= "a" && letter <= "z") return letter;
 	}
 
-	// Check number keys using physical position for AZERTY support
+	// Use physical key position for AZERTY and other non-QWERTY layouts
 	if (code.startsWith("Digit")) {
 		const digit = code.slice(5);
-		if (digit.length === 1 && digit >= "0" && digit <= "9") {
-			return digit;
-		}
+		if (digit.length === 1 && digit >= "0" && digit <= "9") return digit;
 	}
 
-	// Fallback for other layouts
 	const isDigit = key.length === 1 && key >= "0" && key <= "9";
 	if (isDigit) return key;
 
-	// Check if slash, period or enter
 	if (key === "/" || key === "." || key === "enter") return key;
 
-	// If no other cases match, this is not a valid key
 	return null;
 }
 
@@ -243,8 +217,6 @@ function getActiveModifier(ev: KeyboardEvent): string | null {
 		shift: ev.shiftKey,
 	};
 
-	// active modifier: ctrl | alt | ctrl+alt | ctrl+shift | ctrl+alt+shift | alt+shift
-	// modiferKeys object's keys are sorted to match the above order
 	const activeModifier = Object.keys(modifierKeys)
 		.filter((key) => modifierKeys[key as keyof typeof modifierKeys])
 		.join("+");

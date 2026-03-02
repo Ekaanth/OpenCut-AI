@@ -127,7 +127,9 @@ function buildKeyframe({
 	}
 
 	if (typeof value !== "string" && typeof value !== "boolean") {
-		throw new Error("Discrete channel keyframes require boolean or string values");
+		throw new Error(
+			"Discrete channel keyframes require boolean or string values",
+		);
 	}
 
 	return {
@@ -145,14 +147,23 @@ function createEmptyChannel({
 }): AnimationChannel {
 	const propertyDefinition = getAnimationPropertyDefinition({ propertyPath });
 	if (propertyDefinition.valueKind === "number") {
-		return { valueKind: "number", keyframes: [] } satisfies NumberAnimationChannel;
+		return {
+			valueKind: "number",
+			keyframes: [],
+		} satisfies NumberAnimationChannel;
 	}
 
 	if (propertyDefinition.valueKind === "color") {
-		return { valueKind: "color", keyframes: [] } satisfies ColorAnimationChannel;
+		return {
+			valueKind: "color",
+			keyframes: [],
+		} satisfies ColorAnimationChannel;
 	}
 
-	return { valueKind: "discrete", keyframes: [] } satisfies DiscreteAnimationChannel;
+	return {
+		valueKind: "discrete",
+		keyframes: [],
+	} satisfies DiscreteAnimationChannel;
 }
 
 export function upsertKeyframe({
@@ -432,7 +443,10 @@ export function splitAnimationsAtTime({
 		const hasBoundaryOnRight = rightKeyframes.some((keyframe) =>
 			isNearlySameTime({ leftTime: keyframe.time, rightTime: 0 }),
 		);
-		if (shouldIncludeSplitBoundary && (!hasBoundaryOnLeft || !hasBoundaryOnRight)) {
+		if (
+			shouldIncludeSplitBoundary &&
+			(!hasBoundaryOnLeft || !hasBoundaryOnRight)
+		) {
 			const boundaryValue = getChannelValueAtTime({
 				channel: normalizedChannel,
 				time: splitTime,
@@ -442,7 +456,9 @@ export function splitAnimationsAtTime({
 				? (propertyPath as AnimationPropertyPath)
 				: null;
 			const boundaryInterpolation = knownPropertyPath
-				? getDefaultInterpolationForProperty({ propertyPath: knownPropertyPath })
+				? getDefaultInterpolationForProperty({
+						propertyPath: knownPropertyPath,
+					})
 				: normalizedChannel.valueKind === "discrete"
 					? "hold"
 					: "linear";
@@ -523,7 +539,9 @@ export function upsertElementKeyframe({
 		return animations;
 	}
 
-	const defaultInterpolation = getDefaultInterpolationForProperty({ propertyPath });
+	const defaultInterpolation = getDefaultInterpolationForProperty({
+		propertyPath,
+	});
 	const propertyDefinition = getAnimationPropertyDefinition({ propertyPath });
 	const channel = getChannel({ animations, propertyPath });
 	const targetChannel =

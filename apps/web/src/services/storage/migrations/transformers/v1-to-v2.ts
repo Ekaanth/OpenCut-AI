@@ -388,7 +388,7 @@ async function transformMediaTrack({
 	);
 
 	const validElements = transformedElements.filter(
-		(el): el is VideoElement | ImageElement => el !== null,
+		(element): element is VideoElement | ImageElement => element !== null,
 	);
 
 	return {
@@ -450,17 +450,18 @@ function transformTextTrack({
 					value: textElement.color,
 					fallback: "#000000",
 				}),
-			background: {
-				color: getStringValue({
-					value: textElement.backgroundColor,
-					fallback: "transparent",
-				}),
-				cornerRadius: 0,
-				paddingX: 8,
-				paddingY: 4,
-				offsetX: 0,
-				offsetY: 0,
-			},
+				background: {
+					enabled: false,
+					color: getStringValue({
+						value: textElement.backgroundColor,
+						fallback: "transparent",
+					}),
+					cornerRadius: 0,
+					paddingX: 8,
+					paddingY: 4,
+					offsetX: 0,
+					offsetY: 0,
+				},
 				textAlign: (getStringValue({
 					value: textElement.textAlign,
 					fallback: "left",
@@ -486,7 +487,7 @@ function transformTextTrack({
 				trimEnd: getNumberValue({ value: element.trimEnd, fallback: 0 }),
 			};
 		})
-		.filter((el): el is TextElement => el !== null);
+		.filter((element): element is TextElement => element !== null);
 
 	return {
 		id: getStringValue({ value: track.id, fallback: "" }),
@@ -529,7 +530,7 @@ function transformAudioTrack({
 				trimEnd: getNumberValue({ value: element.trimEnd, fallback: 0 }),
 			};
 		})
-		.filter((el): el is AudioElement => el !== null);
+		.filter((element): element is AudioElement => element !== null);
 
 	return {
 		id: getStringValue({ value: track.id, fallback: "" }),

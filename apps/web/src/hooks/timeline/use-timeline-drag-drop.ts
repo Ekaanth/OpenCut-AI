@@ -26,12 +26,14 @@ import type {
 interface UseTimelineDragDropProps {
 	containerRef: RefObject<HTMLDivElement | null>;
 	headerRef?: RefObject<HTMLElement | null>;
+	tracksScrollRef?: RefObject<HTMLDivElement | null>;
 	zoomLevel: number;
 }
 
 export function useTimelineDragDrop({
 	containerRef,
 	headerRef,
+	tracksScrollRef,
 	zoomLevel,
 }: UseTimelineDragDropProps) {
 	const editor = useEditor();
@@ -104,11 +106,16 @@ export function useTimelineDragDrop({
 		(e: React.DragEvent) => {
 			e.preventDefault();
 
-			const rect = containerRef.current?.getBoundingClientRect();
-			if (!rect) return;
+			const scrollContainer = tracksScrollRef?.current;
+			const referenceRect =
+				scrollContainer?.getBoundingClientRect() ??
+				containerRef.current?.getBoundingClientRect();
+			if (!referenceRect) return;
 
 			const headerHeight =
 				headerRef?.current?.getBoundingClientRect().height ?? 0;
+			const scrollLeft = scrollContainer?.scrollLeft ?? 0;
+			const scrollTop = scrollContainer?.scrollTop ?? 0;
 			const hasFiles = e.dataTransfer.types.includes("Files");
 			const isExternal =
 				hasFiles && !hasDragData({ dataTransfer: e.dataTransfer });
@@ -131,8 +138,8 @@ export function useTimelineDragDrop({
 				mediaId: dragData?.type === "media" ? dragData.id : undefined,
 			});
 
-			const mouseX = e.clientX - rect.left;
-			const mouseY = Math.max(0, e.clientY - rect.top - headerHeight);
+			const mouseX = e.clientX - referenceRect.left + scrollLeft;
+			const mouseY = e.clientY - referenceRect.top + scrollTop - headerHeight;
 
 			const targetElementTypes =
 				dragData?.type === "effect"
@@ -162,6 +169,7 @@ export function useTimelineDragDrop({
 		[
 			containerRef,
 			headerRef,
+			tracksScrollRef,
 			tracks,
 			currentTime,
 			zoomLevel,
@@ -200,19 +208,6 @@ export function useTimelineDragDrop({
 			target: DropTarget;
 			dragData: { name?: string; content?: string };
 		}) => {
-			let trackId: string;
-
-			if (target.isNewTrack) {
-				trackId = editor.timeline.addTrack({
-					type: "text",
-					index: target.trackIndex,
-				});
-			} else {
-				const track = tracks[target.trackIndex];
-				if (!track) return;
-				trackId = track.id;
-			}
-
 			const element = buildTextElement({
 				raw: {
 					name: dragData.name ?? "",
@@ -221,12 +216,26 @@ export function useTimelineDragDrop({
 				startTime: target.xPosition,
 			});
 
+			if (target.isNewTrack) {
+				const addTrackCmd = new AddTrackCommand("text", target.trackIndex);
+				const insertCmd = new InsertElementCommand({
+					element,
+					placement: { mode: "explicit", trackId: addTrackCmd.getTrackId() },
+				});
+				editor.command.execute({
+					command: new BatchCommand([addTrackCmd, insertCmd]),
+				});
+				return;
+			}
+
+			const track = tracks[target.trackIndex];
+			if (!track) return;
 			editor.timeline.insertElement({
-				placement: { mode: "explicit", trackId },
+				placement: { mode: "explicit", trackId: track.id },
 				element,
 			});
 		},
-		[editor.timeline, tracks],
+		[editor.command, editor.timeline, tracks],
 	);
 
 	const executeStickerDrop = useCallback(
@@ -237,31 +246,32 @@ export function useTimelineDragDrop({
 			target: DropTarget;
 			dragData: StickerDragData;
 		}) => {
-			let trackId: string;
-
-			if (target.isNewTrack) {
-				trackId = editor.timeline.addTrack({
-					type: "sticker",
-					index: target.trackIndex,
-				});
-			} else {
-				const track = tracks[target.trackIndex];
-				if (!track) return;
-				trackId = track.id;
-			}
-
 			const element = buildStickerElement({
 				stickerId: dragData.stickerId,
 				name: dragData.name,
 				startTime: target.xPosition,
 			});
 
+			if (target.isNewTrack) {
+				const addTrackCmd = new AddTrackCommand("sticker", target.trackIndex);
+				const insertCmd = new InsertElementCommand({
+					element,
+					placement: { mode: "explicit", trackId: addTrackCmd.getTrackId() },
+				});
+				editor.command.execute({
+					command: new BatchCommand([addTrackCmd, insertCmd]),
+				});
+				return;
+			}
+
+			const track = tracks[target.trackIndex];
+			if (!track) return;
 			editor.timeline.insertElement({
-				placement: { mode: "explicit", trackId },
+				placement: { mode: "explicit", trackId: track.id },
 				element,
 			});
 		},
-		[editor.timeline, tracks],
+		[editor.command, editor.timeline, tracks],
 	);
 
 	const executeMediaDrop = useCallback(
@@ -276,18 +286,6 @@ export function useTimelineDragDrop({
 
 			const trackType: TrackType =
 				dragData.mediaType === "audio" ? "audio" : "video";
-			let trackId: string;
-
-			if (target.isNewTrack) {
-				trackId = editor.timeline.addTrack({
-					type: trackType,
-					index: target.trackIndex,
-				});
-			} else {
-				const track = tracks[target.trackIndex];
-				if (!track) return;
-				trackId = track.id;
-			}
 
 			const duration =
 				mediaAsset.duration ?? TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION;
@@ -299,31 +297,63 @@ export function useTimelineDragDrop({
 				startTime: target.xPosition,
 			});
 
+			if (target.isNewTrack) {
+				const addTrackCmd = new AddTrackCommand(trackType, target.trackIndex);
+				const insertCmd = new InsertElementCommand({
+					element,
+					placement: { mode: "explicit", trackId: addTrackCmd.getTrackId() },
+				});
+				editor.command.execute({
+					command: new BatchCommand([addTrackCmd, insertCmd]),
+				});
+				return;
+			}
+
+			const track = tracks[target.trackIndex];
+			if (!track) return;
 			editor.timeline.insertElement({
-				placement: { mode: "explicit", trackId },
+				placement: { mode: "explicit", trackId: track.id },
 				element,
 			});
 		},
-		[editor.timeline, mediaAssets, tracks],
+		[editor.command, editor.timeline, mediaAssets, tracks],
 	);
 
 	const executeEffectDrop = useCallback(
-		({ target, dragData }: { target: DropTarget; dragData: EffectDragData }) => {
+		({
+			target,
+			dragData,
+		}: {
+			target: DropTarget;
+			dragData: EffectDragData;
+		}) => {
+			if (target.targetElement) {
+				editor.timeline.addClipEffect({
+					trackId: target.targetElement.trackId,
+					elementId: target.targetElement.elementId,
+					effectType: dragData.effectType,
+				});
+				return;
+			}
+
 			const effectTrack = tracks.find((t) => t.type === "effect");
 			let trackId: string;
 
-			if (effectTrack && !target.targetElement) {
+			if (effectTrack) {
 				trackId = effectTrack.id;
-			} else if (target.targetElement) {
-				trackId = effectTrack?.id ?? editor.timeline.addTrack({
-					type: "effect",
-					index: 0,
-				});
 			} else if (target.isNewTrack) {
-				trackId = editor.timeline.addTrack({
-					type: "effect",
-					index: target.trackIndex,
+				const addTrackCmd = new AddTrackCommand("effect", target.trackIndex);
+				const insertCmd = new InsertElementCommand({
+					element: buildEffectElement({
+						effectType: dragData.effectType,
+						startTime: target.xPosition,
+					}),
+					placement: { mode: "explicit", trackId: addTrackCmd.getTrackId() },
 				});
+				editor.command.execute({
+					command: new BatchCommand([addTrackCmd, insertCmd]),
+				});
+				return;
 			} else {
 				const track = tracks[target.trackIndex];
 				if (!track || track.type !== "effect") return;
@@ -340,7 +370,7 @@ export function useTimelineDragDrop({
 				element,
 			});
 		},
-		[editor.timeline, tracks],
+		[editor.command, editor.timeline, tracks],
 	);
 
 	const executeFileDrop = useCallback(
@@ -452,12 +482,18 @@ export function useTimelineDragDrop({
 						executeMediaDrop({ target: currentTarget, dragData });
 					}
 				} else if (hasFiles) {
-					const rect = containerRef.current?.getBoundingClientRect();
-					if (!rect) return;
-					const mouseX = e.clientX - rect.left;
+					const scrollContainer = tracksScrollRef?.current;
+					const referenceRect =
+						scrollContainer?.getBoundingClientRect() ??
+						containerRef.current?.getBoundingClientRect();
+					if (!referenceRect) return;
+					const scrollLeft = scrollContainer?.scrollLeft ?? 0;
+					const scrollTop = scrollContainer?.scrollTop ?? 0;
+					const mouseX = e.clientX - referenceRect.left + scrollLeft;
 					const headerHeight =
 						headerRef?.current?.getBoundingClientRect().height ?? 0;
-					const mouseY = Math.max(0, e.clientY - rect.top - headerHeight);
+					const mouseY =
+						e.clientY - referenceRect.top + scrollTop - headerHeight;
 					await executeFileDrop({
 						files: Array.from(e.dataTransfer.files),
 						mouseX,
@@ -478,6 +514,7 @@ export function useTimelineDragDrop({
 			executeFileDrop,
 			containerRef,
 			headerRef,
+			tracksScrollRef,
 		],
 	);
 

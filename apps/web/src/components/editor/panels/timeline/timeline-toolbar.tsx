@@ -78,7 +78,7 @@ export function TimelineToolbar({
 function ToolbarLeftSection() {
 	const editor = useEditor();
 	const currentTime = editor.playback.getCurrentTime();
-	const currentBookmarked = editor.scenes.isBookmarked({ time: currentTime });
+	const isCurrentlyBookmarked = editor.scenes.isBookmarked({ time: currentTime });
 
 	const handleAction = ({
 		action,
@@ -116,7 +116,7 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<SplitSquareHorizontal />}
-					tooltip="Coming soon" /* separate audio */
+					tooltip="Separate audio (coming soon)"
 					disabled={true}
 					onClick={({ event: _event }) => {}}
 				/>
@@ -131,7 +131,7 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={SnowIcon} />}
-					tooltip="Coming soon" /* freeze frame */
+					tooltip="Freeze frame (coming soon)"
 					disabled={true}
 					onClick={({ event: _event }) => {}}
 				/>
@@ -149,8 +149,8 @@ function ToolbarLeftSection() {
 				<Tooltip>
 					<ToolbarButton
 						icon={<HugeiconsIcon icon={Bookmark02Icon} />}
-						isActive={currentBookmarked}
-						tooltip={currentBookmarked ? "Remove bookmark" : "Add bookmark"}
+				isActive={isCurrentlyBookmarked}
+					tooltip={isCurrentlyBookmarked ? "Remove bookmark" : "Add bookmark"}
 						onClick={({ event }) =>
 							handleAction({ action: "toggle-bookmark", event })
 						}
@@ -191,12 +191,10 @@ function ToolbarRightSection({
 	onZoomChange: (zoom: number) => void;
 	onZoom: (options: { direction: "in" | "out" }) => void;
 }) {
-	const {
-		snappingEnabled,
-		rippleEditingEnabled,
-		toggleSnapping,
-		toggleRippleEditing,
-	} = useTimelineStore();
+	const snappingEnabled = useTimelineStore((s) => s.snappingEnabled);
+	const rippleEditingEnabled = useTimelineStore((s) => s.rippleEditingEnabled);
+	const toggleSnapping = useTimelineStore((s) => s.toggleSnapping);
+	const toggleRippleEditing = useTimelineStore((s) => s.toggleRippleEditing);
 
 	return (
 		<div className="flex items-center gap-1">

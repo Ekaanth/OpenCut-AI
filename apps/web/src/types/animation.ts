@@ -13,12 +13,10 @@ export type AnimationValueKind = "number" | "color" | "discrete";
 export type DiscreteValue = boolean | string;
 export type AnimationValue = number | string | boolean;
 
-export type NumberKeyframeInterpolation = "linear" | "hold";
-export type ColorKeyframeInterpolation = "linear" | "hold";
+export type ContinuousKeyframeInterpolation = "linear" | "hold";
 export type DiscreteKeyframeInterpolation = "hold";
 export type AnimationInterpolation =
-	| NumberKeyframeInterpolation
-	| ColorKeyframeInterpolation
+	| ContinuousKeyframeInterpolation
 	| DiscreteKeyframeInterpolation;
 
 interface BaseAnimationKeyframe<
@@ -32,15 +30,18 @@ interface BaseAnimationKeyframe<
 }
 
 export interface NumberKeyframe
-	extends BaseAnimationKeyframe<number, NumberKeyframeInterpolation> {}
+	extends BaseAnimationKeyframe<number, ContinuousKeyframeInterpolation> {}
 
 export interface ColorKeyframe
-	extends BaseAnimationKeyframe<string, ColorKeyframeInterpolation> {}
+	extends BaseAnimationKeyframe<string, ContinuousKeyframeInterpolation> {}
 
 export interface DiscreteKeyframe
 	extends BaseAnimationKeyframe<DiscreteValue, DiscreteKeyframeInterpolation> {}
 
-export type AnimationKeyframe = NumberKeyframe | ColorKeyframe | DiscreteKeyframe;
+export type AnimationKeyframe =
+	| NumberKeyframe
+	| ColorKeyframe
+	| DiscreteKeyframe;
 
 interface BaseAnimationChannel<
 	TValueKind extends AnimationValueKind,

@@ -56,7 +56,7 @@ export function TextEditOverlay({
 	}, [editor.timeline, trackId, elementId]);
 
 	const handleKeyDown = useCallback(
-		(event: React.KeyboardEvent) => {
+		({ event }: { event: React.KeyboardEvent }) => {
 			const { key } = event;
 			if (key === "Escape") {
 				event.preventDefault();
@@ -98,10 +98,13 @@ export function TextEditOverlay({
 	const fontWeight = element.fontWeight === "bold" ? "bold" : "normal";
 	const fontStyle = element.fontStyle === "italic" ? "italic" : "normal";
 	const letterSpacing = element.letterSpacing ?? 0;
-	const backgroundColor =
-		element.background.color === "transparent"
-			? "transparent"
-			: element.background.color;
+	const shouldShowBackground =
+		element.background.enabled &&
+		element.background.color &&
+		element.background.color !== "transparent";
+	const backgroundColor = shouldShowBackground
+		? element.background.color
+		: "transparent";
 
 	return (
 		<div
@@ -134,13 +137,12 @@ export function TextEditOverlay({
 					backgroundColor,
 					minHeight: displayFontSize * lineHeight,
 					textDecoration: element.textDecoration ?? "none",
-					padding:
-						backgroundColor === "transparent" ? 0 : TEXT_BACKGROUND_PADDING,
+					padding: shouldShowBackground ? TEXT_BACKGROUND_PADDING : 0,
 					minWidth: 1,
 				}}
 				onInput={handleInput}
 				onBlur={onCommit}
-				onKeyDown={handleKeyDown}
+				onKeyDown={(event) => handleKeyDown({ event })}
 			>
 				{element.content || ""}
 			</div>

@@ -1,10 +1,12 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { cn } from "@/utils/ui";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowDownIcon } from "@hugeicons/core-free-icons";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 const sectionExpandedCache = new Map<string, boolean>();
+const mountedSectionKeys = new Set<string>();
 
 interface SectionContext {
 	isOpen: boolean;
@@ -24,8 +26,8 @@ interface SectionProps {
 	defaultOpen?: boolean;
 	sectionKey?: string;
 	className?: string;
-	hasBorderTop?: boolean;
-	hasBorderBottom?: boolean;
+	showTopBorder?: boolean;
+	showBottomBorder?: boolean;
 }
 
 export function Section({
@@ -34,11 +36,20 @@ export function Section({
 	defaultOpen = true,
 	sectionKey,
 	className,
-	hasBorderTop = true,
-	hasBorderBottom = true,
+	showTopBorder = true,
+	showBottomBorder = true,
 }: SectionProps) {
 	const cached = sectionKey ? sectionExpandedCache.get(sectionKey) : undefined;
 	const [isOpen, setIsOpen] = useState(cached ?? defaultOpen);
+
+	useEffect(() => {
+		if (!sectionKey) return;
+		if (process.env.NODE_ENV !== "production" && mountedSectionKeys.has(sectionKey)) {
+			console.error(`[Section] duplicate sectionKey mounted simultaneously: "${sectionKey}"`);
+		}
+		mountedSectionKeys.add(sectionKey);
+		return () => { mountedSectionKeys.delete(sectionKey); };
+	}, [sectionKey]);
 
 	const toggle = () => {
 		const next = !isOpen;
@@ -51,8 +62,8 @@ export function Section({
 			<div
 				className={cn(
 					"flex flex-col",
-					hasBorderTop && "border-t",
-					hasBorderBottom && "last:border-b",
+				showTopBorder && "border-t",
+				showBottomBorder && "last:border-b",
 					className,
 				)}
 			>
@@ -63,15 +74,19 @@ export function Section({
 }
 
 interface SectionHeaderProps {
-	title: string;
 	children?: React.ReactNode;
+	trailing?: React.ReactNode;
+	leading?: React.ReactNode;
+	actions?: React.ReactNode;
 	onClick?: () => void;
 	className?: string;
 }
 
 export function SectionHeader({
-	title,
 	children,
+	trailing,
+	leading,
+	actions,
 	onClick,
 	className,
 }: SectionHeaderProps) {
@@ -79,57 +94,108 @@ export function SectionHeader({
 	const isCollapsible = ctx?.collapsible ?? false;
 	const isOpen = ctx?.isOpen ?? true;
 	const isInteractive = isCollapsible || !!onClick;
-
 	const handleClick = isCollapsible ? ctx?.toggle : onClick;
 
-	const content = (
+	const chevronIcon = isCollapsible ? (
+		<HugeiconsIcon
+			icon={ArrowDownIcon}
+			className={cn(
+				"size-4 shrink-0 transition-transform duration-200 ease-out",
+				isOpen ? "rotate-0 text-foreground" : "-rotate-90 text-muted-foreground",
+			)}
+		/>
+	) : null;
+
+	const headerContent = (
 		<>
-			<span
-				className={cn(
-					"text-sm font-medium",
-					isOpen ? "text-foreground" : "text-muted-foreground",
-				)}
-			>
-				{title}
-			</span>
-			<div className="flex items-center gap-1">
-				{children}
-				{isCollapsible && (
-					<HugeiconsIcon
-						icon={ArrowDownIcon}
-						className={cn(
-							"size-3 shrink-0 transition-transform duration-200 ease-out",
-							isOpen
-								? "rotate-0 text-foreground"
-								: "-rotate-90 text-muted-foreground",
-						)}
-					/>
-				)}
-			</div>
+			{leading}
+			<div className="min-w-0 flex-1">{children}</div>
+			{(trailing || chevronIcon) && (
+				<div className="flex items-center">
+					{trailing}
+					{chevronIcon && (
+						<Button
+							variant="ghost"
+							size="icon"
+							aria-label={isOpen ? "Collapse section" : "Expand section"}
+							onClick={(event) => {
+								event.stopPropagation();
+								handleClick?.();
+							}}
+						>
+							{chevronIcon}
+						</Button>
+					)}
+				</div>
+			)}
+			{actions}
 		</>
 	);
 
-	const baseClassName = cn(
-		"flex w-full items-center justify-between h-11 px-3.5",
-		className,
-	);
+	if (!isInteractive) {
+		return (
+			<div className={cn("flex h-11 w-full items-center gap-2 px-3.5", className)}>
+				{headerContent}
+			</div>
+		);
+	}
 
-	if (isInteractive) {
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: outer div intentionally wraps a nested <Button> (chevron), making <button> invalid HTML here
+		<div
+			role="button"
+			tabIndex={0}
+			className={cn(
+				"flex h-11 w-full cursor-pointer items-center gap-2 px-3.5",
+				className,
+			)}
+			onClick={handleClick}
+			onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") handleClick?.(); }}
+		>
+			{headerContent}
+		</div>
+	);
+}
+
+export function SectionTitle({
+	children,
+	className,
+	onClick,
+}: {
+	children: React.ReactNode;
+	className?: string;
+	onClick?: () => void;
+}) {
+	const ctx = useSectionContext();
+	const isOpen = ctx?.isOpen ?? true;
+
+	if (onClick) {
 		return (
 			<button
 				type="button"
-				className={cn(baseClassName, "cursor-pointer text-left")}
-				onClick={(event) => {
-					handleClick?.();
-					event.currentTarget.blur();
-				}}
+				className={cn(
+					"cursor-pointer text-sm font-medium",
+					isOpen ? "text-foreground" : "text-muted-foreground",
+					className,
+				)}
+				onClick={onClick}
 			>
-				{content}
+				{children}
 			</button>
 		);
 	}
 
-	return <div className={baseClassName}>{content}</div>;
+	return (
+		<span
+			className={cn(
+				"text-sm font-medium",
+				isOpen ? "text-foreground" : "text-muted-foreground",
+				className,
+			)}
+		>
+			{children}
+		</span>
+	);
 }
 
 export function SectionFields({

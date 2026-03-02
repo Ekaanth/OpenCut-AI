@@ -23,7 +23,7 @@ const CORNERS: Corner[] = [
 	"bottom-right",
 ];
 
-function getCornerPosition({
+export function getCornerPosition({
 	bounds,
 	corner,
 }: {
@@ -47,7 +47,7 @@ function getCornerPosition({
 	};
 }
 
-function getRotationHandlePosition({ bounds }: { bounds: ElementBounds }): {
+export function getRotationHandlePosition({ bounds }: { bounds: ElementBounds }): {
 	x: number;
 	y: number;
 } {
@@ -61,7 +61,7 @@ function getRotationHandlePosition({ bounds }: { bounds: ElementBounds }): {
 	};
 }
 
-function getOverlayContext({
+export function getOverlayContext({
 	canvasRef,
 	containerRef,
 }: {
@@ -196,7 +196,7 @@ function BoundingBoxOutline({
 				height: outlineHeight,
 				transform: `rotate(${rotation}deg)`,
 				transformOrigin: "center center",
-				border: "1px solid white",
+				border: "1px dashed white",
 				boxSizing: "border-box",
 				opacity: 0.75,
 			}}

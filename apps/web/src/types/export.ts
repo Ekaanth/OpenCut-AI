@@ -15,8 +15,6 @@ export interface ExportOptions {
 	quality: ExportQuality;
 	fps?: number;
 	includeAudio?: boolean;
-	onProgress?: ({ progress }: { progress: number }) => void;
-	onCancel?: () => boolean;
 }
 
 export interface ExportResult {
@@ -24,4 +22,10 @@ export interface ExportResult {
 	buffer?: ArrayBuffer;
 	error?: string;
 	cancelled?: boolean;
+}
+
+export interface ExportState {
+	isExporting: boolean;
+	progress: number;
+	result: ExportResult | null;
 }

@@ -118,20 +118,23 @@ export interface ImageElement extends BaseTimelineElement {
 	effects?: Effect[];
 }
 
+export interface TextBackground {
+	enabled: boolean;
+	color: string;
+	cornerRadius?: number;
+	paddingX?: number;
+	paddingY?: number;
+	offsetX?: number;
+	offsetY?: number;
+}
+
 export interface TextElement extends BaseTimelineElement {
 	type: "text";
 	content: string;
 	fontSize: number;
 	fontFamily: string;
 	color: string;
-	background: {
-		color: string;
-		cornerRadius?: number;
-		paddingX?: number;
-		paddingY?: number;
-		offsetX?: number;
-		offsetY?: number;
-	};
+	background: TextBackground;
 	textAlign: "left" | "center" | "right";
 	fontWeight: "normal" | "bold";
 	fontStyle: "normal" | "italic";

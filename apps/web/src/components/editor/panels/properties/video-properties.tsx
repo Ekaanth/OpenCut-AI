@@ -1,4 +1,8 @@
-import type { ImageElement, StickerElement, VideoElement } from "@/types/timeline";
+import type {
+	ImageElement,
+	StickerElement,
+	VideoElement,
+} from "@/types/timeline";
 import { BlendingSection, TransformSection } from "./sections";
 
 export function VideoProperties({
@@ -10,7 +14,11 @@ export function VideoProperties({
 }) {
 	return (
 		<div className="flex h-full flex-col">
-			<TransformSection element={element} trackId={trackId} />
+			<TransformSection
+				element={element}
+				trackId={trackId}
+				showTopBorder={false}
+			/>
 			<BlendingSection element={element} trackId={trackId} />
 		</div>
 	);

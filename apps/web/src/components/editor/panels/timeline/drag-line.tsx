@@ -21,7 +21,7 @@ export function DragLine({
 
 	return (
 		<div
-			className="bg-primary pointer-events-none absolute right-0 left-0 z-50 h-0.5"
+			className="bg-primary pointer-events-none absolute right-0 left-0 h-0.5"
 			style={{ top: `${lineTop}px` }}
 		/>
 	);

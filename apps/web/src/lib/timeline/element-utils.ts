@@ -13,6 +13,7 @@ import type {
 	CreateStickerElement,
 	CreateUploadAudioElement,
 	CreateLibraryAudioElement,
+	TextBackground,
 	TextElement,
 	TimelineElement,
 	TimelineTrack,
@@ -46,7 +47,7 @@ export function isVisualElement(
 export function canElementBeHidden(
 	element: TimelineElement,
 ): element is VisualElement {
-	return element.type !== "audio";
+	return isVisualElement(element);
 }
 
 export function hasMediaId(
@@ -127,11 +128,28 @@ export function wouldElementOverlap({
 	endTime: number;
 	excludeElementId?: string;
 }): boolean {
-	return elements.some((el) => {
-		if (excludeElementId && el.id === excludeElementId) return false;
-		const elEnd = el.startTime + el.duration;
-		return startTime < elEnd && endTime > el.startTime;
+	return elements.some((element) => {
+		if (excludeElementId && element.id === excludeElementId) return false;
+		const elementEnd = element.startTime + element.duration;
+		return startTime < elementEnd && endTime > element.startTime;
 	});
+}
+
+function buildTextBackground(
+	raw: Partial<TextBackground> | undefined,
+): TextBackground {
+	const color = raw?.color ?? DEFAULT_TEXT_ELEMENT.background.color;
+	const enabled =
+		typeof raw?.enabled === "boolean" ? raw.enabled : color !== "transparent";
+	return {
+		enabled,
+		color,
+		cornerRadius: raw?.cornerRadius,
+		paddingX: raw?.paddingX,
+		paddingY: raw?.paddingY,
+		offsetX: raw?.offsetX,
+		offsetY: raw?.offsetY,
+	};
 }
 
 export function buildTextElement({
@@ -157,14 +175,7 @@ export function buildTextElement({
 				: DEFAULT_TEXT_ELEMENT.fontSize,
 		fontFamily: t.fontFamily ?? DEFAULT_TEXT_ELEMENT.fontFamily,
 		color: t.color ?? DEFAULT_TEXT_ELEMENT.color,
-		background: {
-			color: t.background?.color ?? DEFAULT_TEXT_ELEMENT.background.color,
-			cornerRadius: t.background?.cornerRadius,
-			paddingX: t.background?.paddingX,
-			paddingY: t.background?.paddingY,
-			offsetX: t.background?.offsetX,
-			offsetY: t.background?.offsetY,
-		},
+		background: buildTextBackground(t.background),
 		textAlign: t.textAlign ?? DEFAULT_TEXT_ELEMENT.textAlign,
 		fontWeight: t.fontWeight ?? DEFAULT_TEXT_ELEMENT.fontWeight,
 		fontStyle: t.fontStyle ?? DEFAULT_TEXT_ELEMENT.fontStyle,

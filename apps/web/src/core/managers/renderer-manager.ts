@@ -88,11 +88,14 @@ export class RendererManager {
 
 	async exportProject({
 		options,
+		onProgress,
+		onCancel,
 	}: {
 		options: ExportOptions;
+		onProgress?: ({ progress }: { progress: number }) => void;
+		onCancel?: () => boolean;
 	}): Promise<ExportResult> {
-		const { format, quality, fps, includeAudio, onProgress, onCancel } =
-			options;
+		const { format, quality, fps, includeAudio } = options;
 
 		try {
 			const tracks = this.editor.timeline.getTracks();

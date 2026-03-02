@@ -1,5 +1,6 @@
 import type { ElementType } from "react";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import {
 	ArrowRightDoubleIcon,
 	ClosedCaptionIcon,
@@ -81,7 +82,9 @@ export const tabs = {
 	{ icon: ElementType<{ className?: string }>; label: string }
 >;
 
-type MediaViewMode = "grid" | "list";
+export type MediaViewMode = "grid" | "list";
+export type MediaSortKey = "name" | "type" | "duration" | "size";
+export type MediaSortOrder = "asc" | "desc";
 
 interface AssetsPanelStore {
 	activeTab: Tab;
@@ -93,15 +96,34 @@ interface AssetsPanelStore {
 	/* Media */
 	mediaViewMode: MediaViewMode;
 	setMediaViewMode: (mode: MediaViewMode) => void;
+	mediaSortBy: MediaSortKey;
+	mediaSortOrder: MediaSortOrder;
+	setMediaSort: (key: MediaSortKey, order: MediaSortOrder) => void;
 }
 
-export const useAssetsPanelStore = create<AssetsPanelStore>((set) => ({
-	activeTab: "media",
-	setActiveTab: (tab) => set({ activeTab: tab }),
-	highlightMediaId: null,
-	requestRevealMedia: (mediaId) =>
-		set({ activeTab: "media", highlightMediaId: mediaId }),
-	clearHighlight: () => set({ highlightMediaId: null }),
-	mediaViewMode: "grid",
-	setMediaViewMode: (mode) => set({ mediaViewMode: mode }),
-}));
+export const useAssetsPanelStore = create<AssetsPanelStore>()(
+	persist(
+		(set) => ({
+			activeTab: "media",
+			setActiveTab: (tab) => set({ activeTab: tab }),
+			highlightMediaId: null,
+			requestRevealMedia: (mediaId) =>
+				set({ activeTab: "media", highlightMediaId: mediaId }),
+			clearHighlight: () => set({ highlightMediaId: null }),
+			mediaViewMode: "grid",
+			setMediaViewMode: (mode) => set({ mediaViewMode: mode }),
+			mediaSortBy: "name",
+			mediaSortOrder: "asc",
+			setMediaSort: (key, order) =>
+				set({ mediaSortBy: key, mediaSortOrder: order }),
+		}),
+		{
+			name: "assets-panel",
+			partialize: (state) => ({
+				mediaViewMode: state.mediaViewMode,
+				mediaSortBy: state.mediaSortBy,
+				mediaSortOrder: state.mediaSortOrder,
+			}),
+		},
+	),
+);

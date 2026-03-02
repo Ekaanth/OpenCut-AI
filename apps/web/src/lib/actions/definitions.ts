@@ -114,6 +114,11 @@ export const ACTIONS = {
 		category: "selection",
 		defaultShortcuts: ["ctrl+a"],
 	},
+	"deselect-all": {
+		description: "Deselect all elements",
+		category: "selection",
+		defaultShortcuts: ["escape"],
+	},
 	"duplicate-selected": {
 		description: "Duplicate selected element",
 		category: "selection",
@@ -145,7 +150,7 @@ export const ACTIONS = {
 
 export type TAction = keyof typeof ACTIONS;
 
-export function getActionDefinition(action: TAction): TActionDefinition {
+export function getActionDefinition({ action }: { action: TAction }): TActionDefinition {
 	return ACTIONS[action];
 }
 

@@ -31,7 +31,12 @@ import { useFileUpload } from "@/hooks/use-file-upload";
 import { useRevealItem } from "@/hooks/use-reveal-item";
 import { processMediaAssets } from "@/lib/media/processing";
 import { buildElementFromMedia } from "@/lib/timeline/element-utils";
-import { useAssetsPanelStore } from "@/stores/assets-panel-store";
+import {
+	type MediaSortKey,
+	type MediaSortOrder,
+	type MediaViewMode,
+	useAssetsPanelStore,
+} from "@/stores/assets-panel-store";
 import type { MediaAsset } from "@/types/assets";
 import { cn } from "@/utils/ui";
 import {
@@ -50,8 +55,15 @@ export function MediaView() {
 	const mediaFiles = editor.media.getAssets();
 	const activeProject = editor.project.getActive();
 
-	const { mediaViewMode, setMediaViewMode, highlightMediaId, clearHighlight } =
-		useAssetsPanelStore();
+	const {
+		mediaViewMode,
+		setMediaViewMode,
+		highlightMediaId,
+		clearHighlight,
+		mediaSortBy,
+		mediaSortOrder,
+		setMediaSort,
+	} = useAssetsPanelStore();
 	const { highlightedId, registerElement } = useRevealItem(
 		highlightMediaId,
 		clearHighlight,
@@ -59,10 +71,6 @@ export function MediaView() {
 
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [progress, setProgress] = useState(0);
-	const [sortBy, setSortBy] = useState<"name" | "type" | "duration" | "size">(
-		"name",
-	);
-	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
 	const processFiles = async ({ files }: { files: FileList }) => {
 		if (!files || files.length === 0) return;
@@ -121,27 +129,12 @@ export function MediaView() {
 		});
 	};
 
-	const addElementAtTime = ({
-		asset,
-		startTime,
-	}: {
-		asset: MediaAsset;
-		startTime: number;
-	}): boolean => {
-		const duration =
-			asset.duration ?? TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION;
-		const element = buildElementFromMedia({
-			mediaId: asset.id,
-			mediaType: asset.type,
-			name: asset.name,
-			duration,
-			startTime,
-		});
-		editor.timeline.insertElement({
-			element,
-			placement: { mode: "auto" },
-		});
-		return true;
+	const handleSort = ({ key }: { key: SortKey }) => {
+		if (mediaSortBy === key) {
+			setMediaSort(key, mediaSortOrder === "asc" ? "desc" : "asc");
+		} else {
+			setMediaSort(key, "asc");
+		}
 	};
 
 	const filteredMediaItems = useMemo(() => {
@@ -151,7 +144,7 @@ export function MediaView() {
 			let valueA: string | number;
 			let valueB: string | number;
 
-			switch (sortBy) {
+			switch (mediaSortBy) {
 				case "name":
 					valueA = a.name.toLowerCase();
 					valueB = b.name.toLowerCase();
@@ -172,154 +165,13 @@ export function MediaView() {
 					return 0;
 			}
 
-			if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
-			if (valueA > valueB) return sortOrder === "asc" ? 1 : -1;
+			if (valueA < valueB) return mediaSortOrder === "asc" ? -1 : 1;
+			if (valueA > valueB) return mediaSortOrder === "asc" ? 1 : -1;
 			return 0;
 		});
 
 		return filtered;
-	}, [mediaFiles, sortBy, sortOrder]);
-
-	const previewComponents = useMemo(() => {
-		const previews = new Map<string, React.ReactNode>();
-
-		filteredMediaItems.forEach((item) => {
-			previews.set(item.id, <MediaPreview item={item} />);
-			previews.set(
-				`compact-${item.id}`,
-				<MediaPreview item={item} variant="compact" />,
-			);
-		});
-
-		return previews;
-	}, [filteredMediaItems]);
-
-	const renderPreview = (item: MediaAsset) => previewComponents.get(item.id);
-	const renderCompactPreview = (item: MediaAsset) =>
-		previewComponents.get(`compact-${item.id}`);
-
-	const mediaActions = (
-		<div>
-			<TooltipProvider>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							size="icon"
-							variant="ghost"
-							onClick={() =>
-								setMediaViewMode(mediaViewMode === "grid" ? "list" : "grid")
-							}
-							disabled={isProcessing}
-							className="items-center justify-center"
-						>
-							{mediaViewMode === "grid" ? (
-								<HugeiconsIcon icon={LeftToRightListDashIcon} />
-							) : (
-								<HugeiconsIcon icon={GridViewIcon} />
-							)}
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>
-						<p>
-							{mediaViewMode === "grid"
-								? "Switch to list view"
-								: "Switch to grid view"}
-						</p>
-					</TooltipContent>
-					<Tooltip>
-						<DropdownMenu>
-							<TooltipTrigger asChild>
-								<DropdownMenuTrigger asChild>
-									<Button
-										size="icon"
-										variant="ghost"
-										disabled={isProcessing}
-										className="items-center justify-center"
-									>
-										<HugeiconsIcon icon={SortingOneNineIcon} />
-									</Button>
-								</DropdownMenuTrigger>
-							</TooltipTrigger>
-							<DropdownMenuContent align="end">
-								<SortMenuItem
-									label="Name"
-									sortKey="name"
-									currentSortBy={sortBy}
-									currentSortOrder={sortOrder}
-									onSort={({ key }) => {
-										if (sortBy === key) {
-											setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-										} else {
-											setSortBy(key);
-											setSortOrder("asc");
-										}
-									}}
-								/>
-								<SortMenuItem
-									label="Type"
-									sortKey="type"
-									currentSortBy={sortBy}
-									currentSortOrder={sortOrder}
-									onSort={({ key }) => {
-										if (sortBy === key) {
-											setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-										} else {
-											setSortBy(key);
-											setSortOrder("asc");
-										}
-									}}
-								/>
-								<SortMenuItem
-									label="Duration"
-									sortKey="duration"
-									currentSortBy={sortBy}
-									currentSortOrder={sortOrder}
-									onSort={({ key }) => {
-										if (sortBy === key) {
-											setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-										} else {
-											setSortBy(key);
-											setSortOrder("asc");
-										}
-									}}
-								/>
-								<SortMenuItem
-									label="File size"
-									sortKey="size"
-									currentSortBy={sortBy}
-									currentSortOrder={sortOrder}
-									onSort={({ key }) => {
-										if (sortBy === key) {
-											setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-										} else {
-											setSortBy(key);
-											setSortOrder("asc");
-										}
-									}}
-								/>
-							</DropdownMenuContent>
-						</DropdownMenu>
-						<TooltipContent>
-							<p>
-								Sort by {sortBy} (
-								{sortOrder === "asc" ? "ascending" : "descending"})
-							</p>
-						</TooltipContent>
-					</Tooltip>
-				</Tooltip>
-			</TooltipProvider>
-			<Button
-				variant="outline"
-				onClick={openFilePicker}
-				disabled={isProcessing}
-				size="sm"
-				className="items-center justify-center gap-1.5 ml-1.5"
-			>
-				<HugeiconsIcon icon={CloudUploadIcon} />
-				Import
-			</Button>
-		</div>
-	);
+	}, [mediaFiles, mediaSortBy, mediaSortOrder]);
 
 	return (
 		<>
@@ -327,8 +179,18 @@ export function MediaView() {
 
 			<PanelView
 				title="Assets"
-				actions={mediaActions}
-				className={isDragOver ? "bg-accent/30" : ""}
+				actions={
+					<MediaActions
+						mediaViewMode={mediaViewMode}
+						setMediaViewMode={setMediaViewMode}
+						isProcessing={isProcessing}
+						sortBy={mediaSortBy}
+						sortOrder={mediaSortOrder}
+						onSort={handleSort}
+						onImport={openFilePicker}
+					/>
+				}
+				className={cn(isDragOver && "bg-accent/30")}
 				{...dragProps}
 			>
 				{isDragOver || filteredMediaItems.length === 0 ? (
@@ -338,27 +200,78 @@ export function MediaView() {
 						progress={progress}
 						onClick={openFilePicker}
 					/>
-				) : mediaViewMode === "grid" ? (
-					<GridView
-						items={filteredMediaItems}
-						renderPreview={renderPreview}
-						onRemove={handleRemove}
-						onAddToTimeline={addElementAtTime}
-						highlightedId={highlightedId}
-						registerElement={registerElement}
-					/>
 				) : (
-					<ListView
+					<MediaItemList
 						items={filteredMediaItems}
-						renderPreview={renderCompactPreview}
+						mode={mediaViewMode}
 						onRemove={handleRemove}
-						onAddToTimeline={addElementAtTime}
 						highlightedId={highlightedId}
 						registerElement={registerElement}
 					/>
 				)}
 			</PanelView>
 		</>
+	);
+}
+
+function MediaAssetDraggable({
+	item,
+	preview,
+	isHighlighted,
+	variant,
+	isRounded,
+}: {
+	item: MediaAsset;
+	preview: React.ReactNode;
+	isHighlighted: boolean;
+	variant: "card" | "compact";
+	isRounded?: boolean;
+}) {
+	const editor = useEditor();
+
+	const addElementAtTime = ({
+		asset,
+		startTime,
+	}: {
+		asset: MediaAsset;
+		startTime: number;
+	}) => {
+		const duration =
+			asset.duration ?? TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION;
+		const element = buildElementFromMedia({
+			mediaId: asset.id,
+			mediaType: asset.type,
+			name: asset.name,
+			duration,
+			startTime,
+		});
+		editor.timeline.insertElement({
+			element,
+			placement: { mode: "auto" },
+		});
+	};
+
+	return (
+		<DraggableItem
+			name={item.name}
+			preview={preview}
+			dragData={{
+				id: item.id,
+				type: "media",
+				mediaType: item.type,
+				name: item.name,
+				...(item.type !== "audio" && {
+					targetElementTypes: ["video", "image"] as const,
+				}),
+			}}
+			shouldShowPlusOnDrag={false}
+			onAddToTimeline={({ currentTime }) =>
+				addElementAtTime({ asset: item, startTime: currentTime })
+			}
+			variant={variant}
+			isRounded={isRounded}
+			isHighlighted={isHighlighted}
+		/>
 	);
 }
 
@@ -387,55 +300,41 @@ function MediaItemWithContextMenu({
 	);
 }
 
-function GridView({
+function MediaItemList({
 	items,
-	renderPreview,
+	mode,
 	onRemove,
-	onAddToTimeline,
 	highlightedId,
 	registerElement,
 }: {
 	items: MediaAsset[];
-	renderPreview: (item: MediaAsset) => React.ReactNode;
+	mode: MediaViewMode;
 	onRemove: ({ event, id }: { event: React.MouseEvent; id: string }) => void;
-	onAddToTimeline: ({
-		asset,
-		startTime,
-	}: {
-		asset: MediaAsset;
-		startTime: number;
-	}) => boolean;
 	highlightedId: string | null;
 	registerElement: (id: string, element: HTMLElement | null) => void;
 }) {
+	const isGrid = mode === "grid";
+
 	return (
 		<div
-			className="grid gap-2"
-			style={{
-				gridTemplateColumns: "repeat(auto-fill, 160px)",
-			}}
+			className={cn(isGrid ? "grid gap-2" : "flex flex-col gap-1")}
+			style={
+				isGrid ? { gridTemplateColumns: "repeat(auto-fill, 160px)" } : undefined
+			}
 		>
 			{items.map((item) => (
-				<div key={item.id} ref={(el) => registerElement(item.id, el)}>
+				<div key={item.id} ref={(element) => registerElement(item.id, element)}>
 					<MediaItemWithContextMenu item={item} onRemove={onRemove}>
-						<DraggableItem
-							name={item.name}
-							preview={renderPreview(item)}
-							dragData={{
-								id: item.id,
-								type: "media",
-								mediaType: item.type,
-								name: item.name,
-								...(item.type !== "audio" && {
-									targetElementTypes: ["video", "image"] as const,
-								}),
-							}}
-							shouldShowPlusOnDrag={false}
-							onAddToTimeline={({ currentTime }) =>
-								onAddToTimeline({ asset: item, startTime: currentTime })
+						<MediaAssetDraggable
+							item={item}
+							preview={
+								<MediaPreview
+									item={item}
+									variant={isGrid ? "grid" : "compact"}
+								/>
 							}
-							isRounded={false}
-							variant="card"
+							variant={isGrid ? "card" : "compact"}
+							isRounded={isGrid ? false : undefined}
 							isHighlighted={highlightedId === item.id}
 						/>
 					</MediaItemWithContextMenu>
@@ -445,63 +344,11 @@ function GridView({
 	);
 }
 
-function ListView({
-	items,
-	renderPreview,
-	onRemove,
-	onAddToTimeline,
-	highlightedId,
-	registerElement,
-}: {
-	items: MediaAsset[];
-	renderPreview: (item: MediaAsset) => React.ReactNode;
-	onRemove: ({ event, id }: { event: React.MouseEvent; id: string }) => void;
-	onAddToTimeline: ({
-		asset,
-		startTime,
-	}: {
-		asset: MediaAsset;
-		startTime: number;
-	}) => boolean;
-	highlightedId: string | null;
-	registerElement: (id: string, element: HTMLElement | null) => void;
-}) {
-	return (
-		<div className="space-y-1">
-			{items.map((item) => (
-				<div key={item.id} ref={(el) => registerElement(item.id, el)}>
-					<MediaItemWithContextMenu item={item} onRemove={onRemove}>
-						<DraggableItem
-							name={item.name}
-							preview={renderPreview(item)}
-							dragData={{
-								id: item.id,
-								type: "media",
-								mediaType: item.type,
-								name: item.name,
-								...(item.type !== "audio" && {
-									targetElementTypes: ["video", "image"] as const,
-								}),
-							}}
-							shouldShowPlusOnDrag={false}
-							onAddToTimeline={({ currentTime }) =>
-								onAddToTimeline({ asset: item, startTime: currentTime })
-							}
-							variant="compact"
-							isHighlighted={highlightedId === item.id}
-						/>
-					</MediaItemWithContextMenu>
-				</div>
-			))}
-		</div>
-	);
-}
-
-const formatDuration = ({ duration }: { duration: number }) => {
+export function formatDuration({ duration }: { duration: number }) {
 	const min = Math.floor(duration / 60);
 	const sec = Math.floor(duration % 60);
 	return `${min}:${sec.toString().padStart(2, "0")}`;
-};
+}
 
 function MediaDurationBadge({ duration }: { duration?: number }) {
 	if (!duration) return null;
@@ -619,6 +466,119 @@ function MediaPreview({
 	);
 }
 
+function MediaActions({
+	mediaViewMode,
+	setMediaViewMode,
+	isProcessing,
+	sortBy,
+	sortOrder,
+	onSort,
+	onImport,
+}: {
+	mediaViewMode: MediaViewMode;
+	setMediaViewMode: (mode: MediaViewMode) => void;
+	isProcessing: boolean;
+	sortBy: MediaSortKey;
+	sortOrder: MediaSortOrder;
+	onSort: ({ key }: { key: MediaSortKey }) => void;
+	onImport: () => void;
+}) {
+	return (
+		<div className="flex gap-1.5">
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							size="icon"
+							variant="ghost"
+							onClick={() =>
+								setMediaViewMode(mediaViewMode === "grid" ? "list" : "grid")
+							}
+							disabled={isProcessing}
+							className="items-center justify-center"
+						>
+							{mediaViewMode === "grid" ? (
+								<HugeiconsIcon icon={LeftToRightListDashIcon} />
+							) : (
+								<HugeiconsIcon icon={GridViewIcon} />
+							)}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>
+							{mediaViewMode === "grid"
+								? "Switch to list view"
+								: "Switch to grid view"}
+						</p>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<DropdownMenu>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<Button
+									size="icon"
+									variant="ghost"
+									disabled={isProcessing}
+									className="items-center justify-center"
+								>
+									<HugeiconsIcon icon={SortingOneNineIcon} />
+								</Button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<DropdownMenuContent align="end">
+							<SortMenuItem
+								label="Name"
+								sortKey="name"
+								currentSortBy={sortBy}
+								currentSortOrder={sortOrder}
+								onSort={onSort}
+							/>
+							<SortMenuItem
+								label="Type"
+								sortKey="type"
+								currentSortBy={sortBy}
+								currentSortOrder={sortOrder}
+								onSort={onSort}
+							/>
+							<SortMenuItem
+								label="Duration"
+								sortKey="duration"
+								currentSortBy={sortBy}
+								currentSortOrder={sortOrder}
+								onSort={onSort}
+							/>
+							<SortMenuItem
+								label="File size"
+								sortKey="size"
+								currentSortBy={sortBy}
+								currentSortOrder={sortOrder}
+								onSort={onSort}
+							/>
+						</DropdownMenuContent>
+					</DropdownMenu>
+					<TooltipContent>
+						<p>
+							Sort by {sortBy} (
+							{sortOrder === "asc" ? "ascending" : "descending"})
+						</p>
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+			<Button
+				variant="outline"
+				onClick={onImport}
+				disabled={isProcessing}
+				size="sm"
+				className="items-center justify-center gap-1.5"
+			>
+				<HugeiconsIcon icon={CloudUploadIcon} />
+				Import
+			</Button>
+		</div>
+	);
+}
+
 function SortMenuItem({
 	label,
 	sortKey,
@@ -627,10 +587,10 @@ function SortMenuItem({
 	onSort,
 }: {
 	label: string;
-	sortKey: "name" | "type" | "duration" | "size";
-	currentSortBy: string;
-	currentSortOrder: "asc" | "desc";
-	onSort: ({ key }: { key: "name" | "type" | "duration" | "size" }) => void;
+	sortKey: MediaSortKey;
+	currentSortBy: MediaSortKey;
+	currentSortOrder: MediaSortOrder;
+	onSort: ({ key }: { key: MediaSortKey }) => void;
 }) {
 	const isActive = currentSortBy === sortKey;
 	const arrow = isActive ? (currentSortOrder === "asc" ? "↑" : "↓") : "";

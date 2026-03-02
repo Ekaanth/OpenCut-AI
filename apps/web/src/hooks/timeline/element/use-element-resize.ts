@@ -137,18 +137,52 @@ export function useTimelineElementResize({
 			}
 			onSnapPointChange?.(resizeSnapPoint);
 
+			const otherElements = track.elements.filter(({ id }) => id !== element.id);
+			const initialEndTime = resizing.initialStartTime + resizing.initialDuration;
+
+			const rightNeighborBound =
+				resizing.side === "right"
+					? otherElements
+							.filter(({ startTime }) => startTime >= initialEndTime)
+							.reduce((min, { startTime }) => Math.min(min, startTime), Infinity)
+					: Infinity;
+
+			const leftNeighborBound =
+				resizing.side === "left"
+					? otherElements
+							.filter(
+								({ startTime, duration }) =>
+									startTime + duration <= resizing.initialStartTime,
+							)
+							.reduce(
+								(max, { startTime, duration }) =>
+									Math.max(max, startTime + duration),
+								-Infinity,
+							)
+					: -Infinity;
+
 			if (resizing.side === "left") {
 				const sourceDuration =
 					resizing.initialTrimStart +
 					resizing.initialDuration +
 					resizing.initialTrimEnd;
+				const minTrimStartForNeighbor = Number.isFinite(leftNeighborBound)
+					? Math.max(
+							0,
+							resizing.initialTrimStart +
+								(leftNeighborBound - resizing.initialStartTime),
+						)
+					: 0;
 				const maxAllowed =
 					sourceDuration - resizing.initialTrimEnd - minDurationSeconds;
 				const calculated = resizing.initialTrimStart + deltaTime;
 
 				if (calculated >= 0 && calculated <= maxAllowed) {
 					const newTrimStart = snapTimeToFrame({
-						time: Math.min(maxAllowed, calculated),
+						time: Math.min(
+							maxAllowed,
+							Math.max(minTrimStartForNeighbor, calculated),
+						),
 						fps: projectFps,
 					});
 					const trimDelta = newTrimStart - resizing.initialTrimStart;
@@ -171,7 +205,16 @@ export function useTimelineElementResize({
 					if (canExtendElementDuration()) {
 						const extensionAmount = Math.abs(calculated);
 						const maxExtension = resizing.initialStartTime;
-						const actualExtension = Math.min(extensionAmount, maxExtension);
+						const actualExtension = Math.max(
+							0,
+							Number.isFinite(leftNeighborBound)
+								? Math.min(
+										extensionAmount,
+										maxExtension,
+										resizing.initialStartTime - leftNeighborBound,
+									)
+								: Math.min(extensionAmount, maxExtension),
+						);
 						const newStartTime = snapTimeToFrame({
 							time: resizing.initialStartTime - actualExtension,
 							fps: projectFps,
@@ -188,7 +231,8 @@ export function useTimelineElementResize({
 						currentStartTimeRef.current = newStartTime;
 						currentDurationRef.current = newDuration;
 					} else {
-						const trimDelta = 0 - resizing.initialTrimStart;
+						const trimDelta =
+							minTrimStartForNeighbor - resizing.initialTrimStart;
 						const newStartTime = snapTimeToFrame({
 							time: resizing.initialStartTime + trimDelta,
 							fps: projectFps,
@@ -198,10 +242,10 @@ export function useTimelineElementResize({
 							fps: projectFps,
 						});
 
-						setCurrentTrimStart(0);
+						setCurrentTrimStart(minTrimStartForNeighbor);
 						setCurrentStartTime(newStartTime);
 						setCurrentDuration(newDuration);
-						currentTrimStartRef.current = 0;
+						currentTrimStartRef.current = minTrimStartForNeighbor;
 						currentStartTimeRef.current = newStartTime;
 						currentDurationRef.current = newDuration;
 					}
@@ -212,6 +256,9 @@ export function useTimelineElementResize({
 					resizing.initialDuration +
 					resizing.initialTrimEnd;
 				const newTrimEnd = resizing.initialTrimEnd - deltaTime;
+				const maxAllowedDuration = Number.isFinite(rightNeighborBound)
+					? rightNeighborBound - resizing.initialStartTime
+					: Infinity;
 
 				if (newTrimEnd < 0) {
 					if (canExtendElementDuration()) {
@@ -219,7 +266,7 @@ export function useTimelineElementResize({
 						const baseDuration =
 							resizing.initialDuration + resizing.initialTrimEnd;
 						const newDuration = snapTimeToFrame({
-							time: baseDuration + extensionNeeded,
+							time: Math.min(baseDuration + extensionNeeded, maxAllowedDuration),
 							fps: projectFps,
 						});
 
@@ -230,7 +277,10 @@ export function useTimelineElementResize({
 					} else {
 						const extensionToLimit = resizing.initialTrimEnd;
 						const newDuration = snapTimeToFrame({
-							time: resizing.initialDuration + extensionToLimit,
+							time: Math.min(
+								resizing.initialDuration + extensionToLimit,
+								maxAllowedDuration,
+							),
 							fps: projectFps,
 						});
 
@@ -240,9 +290,20 @@ export function useTimelineElementResize({
 						currentTrimEndRef.current = 0;
 					}
 				} else {
+					const minTrimEndForNeighbor = Number.isFinite(maxAllowedDuration)
+						? Math.max(
+								0,
+								resizing.initialDuration +
+									resizing.initialTrimEnd -
+									maxAllowedDuration,
+							)
+						: 0;
 					const maxTrimEnd =
 						sourceDuration - resizing.initialTrimStart - minDurationSeconds;
-					const clampedTrimEnd = Math.min(maxTrimEnd, Math.max(0, newTrimEnd));
+					const clampedTrimEnd = Math.min(
+						maxTrimEnd,
+						Math.max(minTrimEndForNeighbor, newTrimEnd),
+					);
 					const finalTrimEnd = snapTimeToFrame({
 						time: clampedTrimEnd,
 						fps: projectFps,
@@ -267,6 +328,7 @@ export function useTimelineElementResize({
 			snappingEnabled,
 			editor,
 			element.id,
+			track.elements,
 			onSnapPointChange,
 			canExtendElementDuration,
 			isShiftHeldRef,
@@ -285,26 +347,13 @@ export function useTimelineElementResize({
 		const startTimeChanged = finalStartTime !== resizing.initialStartTime;
 		const durationChanged = finalDuration !== resizing.initialDuration;
 
-		if (trimStartChanged || trimEndChanged) {
+		if (trimStartChanged || trimEndChanged || startTimeChanged || durationChanged) {
 			editor.timeline.updateElementTrim({
 				elementId: element.id,
 				trimStart: finalTrimStart,
 				trimEnd: finalTrimEnd,
-			});
-		}
-
-		if (startTimeChanged) {
-			editor.timeline.updateElementStartTime({
-				elements: [{ trackId: track.id, elementId: element.id }],
-				startTime: finalStartTime,
-			});
-		}
-
-		if (durationChanged) {
-			editor.timeline.updateElementDuration({
-				trackId: track.id,
-				elementId: element.id,
-				duration: finalDuration,
+				startTime: startTimeChanged ? finalStartTime : undefined,
+				duration: durationChanged ? finalDuration : undefined,
 			});
 		}
 
@@ -315,7 +364,6 @@ export function useTimelineElementResize({
 		resizing,
 		editor.timeline,
 		element.id,
-		track.id,
 		onResizeStateChange,
 		onSnapPointChange,
 	]);

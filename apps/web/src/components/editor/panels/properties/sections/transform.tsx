@@ -9,6 +9,7 @@ import {
 	SectionField,
 	SectionFields,
 	SectionHeader,
+	SectionTitle,
 } from "../section";
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -24,12 +25,12 @@ import { getElementLocalTime, resolveTransformAtTime } from "@/lib/animation";
 import { KeyframeToggle } from "../keyframe-toggle";
 import { useKeyframedNumberProperty } from "../hooks/use-keyframed-number-property";
 
-function parseNumericInput({ input }: { input: string }): number | null {
+export function parseNumericInput({ input }: { input: string }): number | null {
 	const parsed = parseFloat(input);
 	return Number.isNaN(parsed) ? null : parsed;
 }
 
-function isPropertyAtDefault({
+export function isPropertyAtDefault({
 	hasAnimatedKeyframes,
 	isPlayheadWithinElementRange,
 	resolvedValue,
@@ -55,9 +56,11 @@ function isPropertyAtDefault({
 export function TransformSection({
 	element,
 	trackId,
+	showTopBorder = true,
 }: {
 	element: VisualElement;
 	trackId: string;
+	showTopBorder?: boolean;
 }) {
 	const editor = useEditor();
 	const [isScaleLocked, setIsScaleLocked] = useState(false);
@@ -239,8 +242,12 @@ export function TransformSection({
 	};
 
 	return (
-		<Section collapsible sectionKey={`${element.type}:transform`}>
-			<SectionHeader title="Transform" />
+		<Section
+			collapsible
+			sectionKey={`${element.type}:transform`}
+			showTopBorder={showTopBorder}
+		>
+			<SectionHeader><SectionTitle>Transform</SectionTitle></SectionHeader>
 			<SectionContent>
 				<SectionFields>
 					<SectionField
@@ -261,11 +268,11 @@ export function TransformSection({
 									<NumberField icon="H" {...scaleFieldProps} />
 								</>
 							) : (
-									<NumberField
-										icon={<HugeiconsIcon icon={ArrowExpandIcon} />}
-										{...scaleFieldProps}
-										className="flex-1"
-									/>
+								<NumberField
+									icon={<HugeiconsIcon icon={ArrowExpandIcon} />}
+									{...scaleFieldProps}
+									className="flex-1"
+								/>
 							)}
 							<Button
 								type="button"

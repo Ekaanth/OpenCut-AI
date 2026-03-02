@@ -52,7 +52,7 @@ export function TimelineTrackContent({
 	targetElementId = null,
 }: TimelineTrackContentProps) {
 	const editor = useEditor();
-	const { isElementSelected, clearElementSelection } = useElementSelection();
+	const { isElementSelected } = useElementSelection();
 
 	const duration = editor.timeline.getTotalDuration();
 
@@ -69,7 +69,6 @@ export function TimelineTrackContent({
 			className="size-full"
 			onClick={(event) => {
 				if (shouldIgnoreClick?.()) return;
-				clearElementSelection();
 				onTrackClick?.(event);
 			}}
 			onMouseDown={(event) => {

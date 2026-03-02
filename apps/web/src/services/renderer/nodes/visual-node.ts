@@ -10,6 +10,7 @@ import {
 	resolveOpacityAtTime,
 	resolveTransformAtTime,
 } from "@/lib/animation";
+import { resolveEffectParamsAtTime } from "@/lib/animation/effect-param-channel";
 import { TIME_EPSILON_SECONDS } from "@/constants/animation-constants";
 import { getEffect } from "@/lib/effects";
 import { webglEffectRenderer } from "../webgl-effect-renderer";
@@ -127,11 +128,16 @@ export abstract class VisualNode<
 		let currentResult: CanvasImageSource = elementCanvas;
 
 		for (const effect of enabledEffects) {
+			const resolvedParams = resolveEffectParamsAtTime({
+				effect,
+				animations: this.params.animations,
+				localTime: animationLocalTime,
+			});
 			const definition = getEffect({ effectType: effect.type });
 			const passes = definition.renderer.passes.map((pass) => ({
 				fragmentShader: pass.fragmentShader,
 				uniforms: pass.uniforms({
-					effectParams: effect.params,
+					effectParams: resolvedParams,
 					width: scaledWidth,
 					height: scaledHeight,
 				}),

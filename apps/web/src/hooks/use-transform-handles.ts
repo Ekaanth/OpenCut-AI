@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { useShiftKey } from "@/hooks/use-shift-key";
-import { useSyncExternalStore } from "react";
 import {
 	getVisibleElementsWithBounds,
 	type ElementWithBounds,
@@ -18,7 +17,13 @@ import {
 	type SnapLine,
 } from "@/lib/preview/preview-snap";
 import { isVisualElement } from "@/lib/timeline/element-utils";
+import {
+	getElementLocalTime,
+	resolveTransformAtTime,
+	setChannel,
+} from "@/lib/animation";
 import type { Transform } from "@/types/timeline";
+import type { ElementAnimations } from "@/types/animation";
 
 type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 type HandleType = Corner | "rotation";
@@ -32,6 +37,8 @@ interface ScaleState {
 	initialBoundsCy: number;
 	baseWidth: number;
 	baseHeight: number;
+	shouldClearScaleAnimation: boolean;
+	animationsWithoutScale: ElementAnimations | undefined;
 }
 
 interface RotationState {
@@ -78,16 +85,16 @@ function getCornerDistance({
 	};
 	corner: Corner;
 }): number {
-	const halfW = bounds.width / 2;
-	const halfH = bounds.height / 2;
+	const halfWidth = bounds.width / 2;
+	const halfHeight = bounds.height / 2;
 	const angleRad = (bounds.rotation * Math.PI) / 180;
 	const cos = Math.cos(angleRad);
 	const sin = Math.sin(angleRad);
 
 	const localX =
-		corner === "top-left" || corner === "bottom-left" ? -halfW : halfW;
+		corner === "top-left" || corner === "bottom-left" ? -halfWidth : halfWidth;
 	const localY =
-		corner === "top-left" || corner === "top-right" ? -halfH : halfH;
+		corner === "top-left" || corner === "top-right" ? -halfHeight : halfHeight;
 
 	const rotatedX = localX * cos - localY * sin;
 	const rotatedY = localX * sin + localY * cos;
@@ -114,6 +121,8 @@ export function useTransformHandles({
 
 	const tracks = editor.timeline.getTracks();
 	const currentTime = editor.playback.getCurrentTime();
+	const currentTimeRef = useRef(currentTime);
+	currentTimeRef.current = currentTime;
 	const mediaAssets = editor.media.getAssets();
 	const canvasSize = editor.project.getActive().settings.canvasSize;
 
@@ -144,19 +153,41 @@ export function useTransformHandles({
 			const { bounds, trackId, elementId, element } = selectedWithBounds;
 			if (!isVisualElement(element)) return;
 
+			const localTime = getElementLocalTime({
+				timelineTime: currentTimeRef.current,
+				elementStartTime: element.startTime,
+				elementDuration: element.duration,
+			});
+			const resolvedTransform = resolveTransformAtTime({
+				baseTransform: element.transform,
+				animations: element.animations,
+				localTime,
+			});
+
 			const initialDistance = getCornerDistance({ bounds, corner });
-			const baseWidth = bounds.width / element.transform.scale;
-			const baseHeight = bounds.height / element.transform.scale;
+			const baseWidth = bounds.width / resolvedTransform.scale;
+			const baseHeight = bounds.height / resolvedTransform.scale;
+			const shouldClearScaleAnimation =
+				!!element.animations?.channels["transform.scale"];
+			const animationsWithoutScale = shouldClearScaleAnimation
+				? setChannel({
+						animations: element.animations,
+						propertyPath: "transform.scale",
+						channel: undefined,
+					})
+				: element.animations;
 
 			scaleStateRef.current = {
 				trackId,
 				elementId,
-				initialTransform: element.transform,
+				initialTransform: resolvedTransform,
 				initialDistance,
 				initialBoundsCx: bounds.cx,
 				initialBoundsCy: bounds.cy,
 				baseWidth,
 				baseHeight,
+				shouldClearScaleAnimation,
+				animationsWithoutScale,
 			};
 			setActiveHandle(corner);
 			(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
@@ -172,19 +203,30 @@ export function useTransformHandles({
 			const { bounds, trackId, elementId, element } = selectedWithBounds;
 			if (!isVisualElement(element)) return;
 
+			const localTime = getElementLocalTime({
+				timelineTime: currentTimeRef.current,
+				elementStartTime: element.startTime,
+				elementDuration: element.duration,
+			});
+			const resolvedTransform = resolveTransformAtTime({
+				baseTransform: element.transform,
+				animations: element.animations,
+				localTime,
+			});
+
 			const position = screenToCanvas({
 				clientX: event.clientX,
 				clientY: event.clientY,
 				canvas: canvasRef.current,
 			});
-			const dx = position.x - bounds.cx;
-			const dy = position.y - bounds.cy;
-			const initialAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
+		const deltaX = position.x - bounds.cx;
+		const deltaY = position.y - bounds.cy;
+		const initialAngle = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
 
 			rotationStateRef.current = {
 				trackId,
 				elementId,
-				initialTransform: element.transform,
+				initialTransform: resolvedTransform,
 				initialAngle,
 				initialBoundsCx: bounds.cx,
 				initialBoundsCy: bounds.cy,
@@ -220,11 +262,13 @@ export function useTransformHandles({
 					initialBoundsCy,
 					baseWidth,
 					baseHeight,
+					shouldClearScaleAnimation,
+					animationsWithoutScale,
 				} = scaleStateRef.current;
 
-				const dx = position.x - initialBoundsCx;
-				const dy = position.y - initialBoundsCy;
-				const currentDistance = Math.sqrt(dx * dx + dy * dy) || 1;
+			const deltaX = position.x - initialBoundsCx;
+			const deltaY = position.y - initialBoundsCy;
+			const currentDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY) || 1;
 				const scaleFactor = currentDistance / initialDistance;
 				const proposedScale = Math.max(
 					MIN_SCALE,
@@ -258,14 +302,22 @@ export function useTransformHandles({
 					setSnapLines(activeLines);
 				}
 
+				const updates: {
+					transform: Transform;
+					animations?: ElementAnimations;
+				} = {
+					transform: { ...initialTransform, scale: snappedScale },
+				};
+				if (shouldClearScaleAnimation) {
+					updates.animations = animationsWithoutScale;
+				}
+
 				editor.timeline.previewElements({
 					updates: [
 						{
 							trackId,
 							elementId,
-							updates: {
-								transform: { ...initialTransform, scale: snappedScale },
-							},
+							updates,
 						},
 					],
 				});
@@ -282,9 +334,9 @@ export function useTransformHandles({
 					initialBoundsCy,
 				} = rotationStateRef.current;
 
-				const dx = position.x - initialBoundsCx;
-				const dy = position.y - initialBoundsCy;
-				const currentAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
+			const deltaX = position.x - initialBoundsCx;
+			const deltaY = position.y - initialBoundsCy;
+			const currentAngle = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
 				let deltaAngle = currentAngle - initialAngle;
 				if (deltaAngle > 180) deltaAngle -= 360;
 				if (deltaAngle < -180) deltaAngle += 360;

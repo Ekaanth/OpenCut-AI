@@ -5,9 +5,12 @@ import { AudioProperties } from "./audio-properties";
 import { VideoProperties } from "./video-properties";
 import { TextProperties } from "./text-properties";
 import { EffectProperties } from "./effect-properties";
+import { ClipEffectsProperties } from "./clip-effects-properties";
 import { EmptyView } from "./empty-view";
 import { useEditor } from "@/hooks/use-editor";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
+import { usePropertiesStore } from "@/stores/properties-store";
+import { isVisualElement } from "@/lib/timeline";
 import type { TimelineElement, TimelineTrack } from "@/types/timeline";
 
 function ElementProperties({
@@ -21,7 +24,7 @@ function ElementProperties({
 		return <TextProperties element={element} trackId={track.id} />;
 	}
 	if (element.type === "audio") {
-		return <AudioProperties _element={element} />;
+		return <AudioProperties />;
 	}
 	if (
 		element.type === "video" ||
@@ -39,16 +42,33 @@ function ElementProperties({
 export function PropertiesPanel() {
 	const editor = useEditor();
 	const { selectedElements } = useElementSelection();
+	const clipEffectsTarget = usePropertiesStore(
+		(state) => state.clipEffectsTarget,
+	);
+
+	const clipEffectsTrack = clipEffectsTarget
+		? editor.timeline.getTrackById({ trackId: clipEffectsTarget.trackId })
+		: null;
+	const clipEffectsElement = clipEffectsTrack?.elements.find(
+		(element) => element.id === clipEffectsTarget?.elementId,
+	);
+	const isShowingClipEffects =
+		clipEffectsTrack &&
+		clipEffectsElement &&
+		isVisualElement(clipEffectsElement);
 
 	const elementsWithTracks = editor.timeline.getElementsWithTracks({
 		elements: selectedElements,
 	});
 
-	const hasSelection = selectedElements.length > 0;
-
 	return (
 		<div className="panel bg-background h-full rounded-sm border overflow-hidden">
-			{hasSelection ? (
+			{isShowingClipEffects ? (
+				<ClipEffectsProperties
+					element={clipEffectsElement}
+					trackId={clipEffectsTrack.id}
+				/>
+			) : selectedElements.length > 0 ? (
 				<ScrollArea className="h-full scrollbar-hidden">
 					{elementsWithTracks.map(({ track, element }) => (
 						<ElementProperties

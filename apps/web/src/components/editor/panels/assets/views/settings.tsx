@@ -16,6 +16,7 @@ import {
 	Section,
 	SectionContent,
 	SectionHeader,
+	SectionTitle,
 } from "@/components/editor/panels/properties/section";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,25 +24,46 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
+
+const ORIGINAL_PRESET_VALUE = "original";
+
+export function findPresetIndexByAspectRatio({
+	presets,
+	targetAspectRatio,
+}: {
+	presets: Array<{ width: number; height: number }>;
+	targetAspectRatio: string;
+}) {
+	for (let index = 0; index < presets.length; index++) {
+		const preset = presets[index];
+		const presetAspectRatio = dimensionToAspectRatio({
+			width: preset.width,
+			height: preset.height,
+		});
+		if (presetAspectRatio === targetAspectRatio) {
+			return index;
+		}
+	}
+	return -1;
+}
 
 export function SettingsView() {
-	const [open, setOpen] = useState(false);
-
 	return (
 		<PanelView contentClassName="px-0" hideHeader>
 			<div className="flex flex-col">
-				<Section hasBorderTop={false}>
+				<Section showTopBorder={false}>
 					<SectionContent>
 						<ProjectInfoContent />
 					</SectionContent>
 				</Section>
-				<Popover open={open} onOpenChange={setOpen}>
+				<Popover>
 					<Section className="cursor-pointer">
 						<PopoverTrigger asChild>
 							<div>
-								<SectionHeader title="Background">
-									<div className="size-4 rounded-sm bg-red-500" />
+								<SectionHeader
+									trailing={<div className="size-4 rounded-sm bg-red-500" />}
+								>
+									<SectionTitle>Background</SectionTitle>
 								</SectionHeader>
 							</div>
 						</PopoverTrigger>
@@ -60,26 +82,6 @@ function ProjectInfoContent() {
 	const activeProject = editor.project.getActive();
 	const { canvasPresets } = useEditorStore();
 
-	const findPresetIndexByAspectRatio = ({
-		presets,
-		targetAspectRatio,
-	}: {
-		presets: Array<{ width: number; height: number }>;
-		targetAspectRatio: string;
-	}) => {
-		for (let index = 0; index < presets.length; index++) {
-			const preset = presets[index];
-			const presetAspectRatio = dimensionToAspectRatio({
-				width: preset.width,
-				height: preset.height,
-			});
-			if (presetAspectRatio === targetAspectRatio) {
-				return index;
-			}
-		}
-		return -1;
-	};
-
 	const currentCanvasSize = activeProject.settings.canvasSize;
 	const currentAspectRatio = dimensionToAspectRatio(currentCanvasSize);
 	const originalCanvasSize = activeProject.settings.originalCanvasSize ?? null;
@@ -87,12 +89,11 @@ function ProjectInfoContent() {
 		presets: canvasPresets,
 		targetAspectRatio: currentAspectRatio,
 	});
-	const originalPresetValue = "original";
 	const selectedPresetValue =
-		presetIndex !== -1 ? presetIndex.toString() : originalPresetValue;
+		presetIndex !== -1 ? presetIndex.toString() : ORIGINAL_PRESET_VALUE;
 
 	const handleAspectRatioChange = ({ value }: { value: string }) => {
-		if (value === originalPresetValue) {
+		if (value === ORIGINAL_PRESET_VALUE) {
 			const canvasSize = originalCanvasSize ?? currentCanvasSize;
 			editor.project.updateSettings({
 				settings: { canvasSize },
@@ -106,7 +107,7 @@ function ProjectInfoContent() {
 		}
 	};
 
-	const handleFpsChange = (value: string) => {
+	const handleFpsChange = ({ value }: { value: string }) => {
 		const fps = parseFloat(value);
 		editor.project.updateSettings({ settings: { fps } });
 	};
@@ -129,7 +130,7 @@ function ProjectInfoContent() {
 						<SelectValue placeholder="Select an aspect ratio" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={originalPresetValue}>Original</SelectItem>
+						<SelectItem value={ORIGINAL_PRESET_VALUE}>Original</SelectItem>
 						{canvasPresets.map((preset, index) => {
 							const label = dimensionToAspectRatio({
 								width: preset.width,
@@ -148,7 +149,7 @@ function ProjectInfoContent() {
 				<Label>Frame rate</Label>
 				<Select
 					value={activeProject.settings.fps.toString()}
-					onValueChange={handleFpsChange}
+					onValueChange={(value) => handleFpsChange({ value })}
 				>
 					<SelectTrigger className="w-fit">
 						<SelectValue placeholder="Select a frame rate" />

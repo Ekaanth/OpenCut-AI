@@ -7,7 +7,7 @@ import type {
 	TProjectSettings,
 	TTimelineViewState,
 } from "@/types/project";
-import type { ExportOptions, ExportResult } from "@/types/export";
+import type { ExportOptions, ExportResult, ExportState } from "@/types/export";
 import { storageService } from "@/services/storage/service";
 import { toast } from "sonner";
 import { generateUUID } from "@/utils/id";
@@ -51,6 +51,12 @@ export class ProjectManager {
 		toVersion: null,
 		projectName: null,
 	};
+	private exportState: ExportState = {
+		isExporting: false,
+		progress: 0,
+		result: null,
+	};
+	private exportCancelRequested = false;
 
 	constructor(private editor: EditorCore) {}
 
@@ -191,7 +197,40 @@ export class ProjectManager {
 	}
 
 	async export({ options }: { options: ExportOptions }): Promise<ExportResult> {
-		return this.editor.renderer.exportProject({ options });
+		this.exportCancelRequested = false;
+		this.exportState = { isExporting: true, progress: 0, result: null };
+		this.notify();
+
+		const result = await this.editor.renderer.exportProject({
+			options,
+			onProgress: ({ progress }) => {
+				this.exportState = { ...this.exportState, progress };
+				this.notify();
+			},
+			onCancel: () => this.exportCancelRequested,
+		});
+
+		this.exportState = {
+			isExporting: false,
+			progress: this.exportState.progress,
+			result,
+		};
+		this.notify();
+
+		return result;
+	}
+
+	cancelExport(): void {
+		this.exportCancelRequested = true;
+	}
+
+	clearExportState(): void {
+		this.exportState = { isExporting: false, progress: 0, result: null };
+		this.notify();
+	}
+
+	getExportState(): ExportState {
+		return this.exportState;
 	}
 
 	async loadAllProjects(): Promise<void> {

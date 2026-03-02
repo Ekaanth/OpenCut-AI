@@ -1,4 +1,5 @@
 import type { EditorCore } from "@/core";
+import type { EffectParamValues } from "@/types/effects";
 import type {
 	TrackType,
 	TimelineTrack,
@@ -32,6 +33,13 @@ import {
 	UpsertKeyframeCommand,
 	RemoveKeyframeCommand,
 	RetimeKeyframeCommand,
+	AddClipEffectCommand,
+	RemoveClipEffectCommand,
+	UpdateClipEffectParamsCommand,
+	ToggleClipEffectCommand,
+	ReorderClipEffectsCommand,
+	UpsertEffectParamKeyframeCommand,
+	RemoveEffectParamKeyframeCommand,
 } from "@/lib/commands/timeline";
 import { BatchCommand, PreviewTracker } from "@/lib/commands";
 import type { InsertElementParams } from "@/lib/commands/timeline/element/insert-element";
@@ -62,17 +70,23 @@ export class TimelineManager {
 		elementId,
 		trimStart,
 		trimEnd,
+		startTime,
+		duration,
 		pushHistory = true,
 	}: {
 		elementId: string;
 		trimStart: number;
 		trimEnd: number;
+		startTime?: number;
+		duration?: number;
 		pushHistory?: boolean;
 	}): void {
 		const command = new UpdateElementTrimCommand({
 			elementId,
 			trimStart,
 			trimEnd,
+			startTime,
+			duration,
 		});
 		if (pushHistory) {
 			this.editor.command.execute({ command });
@@ -124,12 +138,14 @@ export class TimelineManager {
 		elementId,
 		newStartTime,
 		createTrack,
+		rippleEnabled = false,
 	}: {
 		sourceTrackId: string;
 		targetTrackId: string;
 		elementId: string;
 		newStartTime: number;
 		createTrack?: { type: TrackType; index: number };
+		rippleEnabled?: boolean;
 	}): void {
 		const command = new MoveElementCommand({
 			sourceTrackId,
@@ -137,6 +153,7 @@ export class TimelineManager {
 			elementId,
 			newStartTime,
 			createTrack,
+			rippleEnabled,
 		});
 		this.editor.command.execute({ command });
 	}
@@ -253,6 +270,104 @@ export class TimelineManager {
 		}
 	}
 
+	addClipEffect({
+		trackId,
+		elementId,
+		effectType,
+	}: {
+		trackId: string;
+		elementId: string;
+		effectType: string;
+	}): string {
+		const command = new AddClipEffectCommand({
+			trackId,
+			elementId,
+			effectType,
+		});
+		this.editor.command.execute({ command });
+		return command.getEffectId() ?? "";
+	}
+
+	removeClipEffect({
+		trackId,
+		elementId,
+		effectId,
+	}: {
+		trackId: string;
+		elementId: string;
+		effectId: string;
+	}): void {
+		const command = new RemoveClipEffectCommand({
+			trackId,
+			elementId,
+			effectId,
+		});
+		this.editor.command.execute({ command });
+	}
+
+	updateClipEffectParams({
+		trackId,
+		elementId,
+		effectId,
+		params,
+		pushHistory = true,
+	}: {
+		trackId: string;
+		elementId: string;
+		effectId: string;
+		params: Partial<EffectParamValues>;
+		pushHistory?: boolean;
+	}): void {
+		const command = new UpdateClipEffectParamsCommand({
+			trackId,
+			elementId,
+			effectId,
+			params,
+		});
+		if (pushHistory) {
+			this.editor.command.execute({ command });
+		} else {
+			command.execute();
+		}
+	}
+
+	toggleClipEffect({
+		trackId,
+		elementId,
+		effectId,
+	}: {
+		trackId: string;
+		elementId: string;
+		effectId: string;
+	}): void {
+		const command = new ToggleClipEffectCommand({
+			trackId,
+			elementId,
+			effectId,
+		});
+		this.editor.command.execute({ command });
+	}
+
+	reorderClipEffects({
+		trackId,
+		elementId,
+		fromIndex,
+		toIndex,
+	}: {
+		trackId: string;
+		elementId: string;
+		fromIndex: number;
+		toIndex: number;
+	}): void {
+		const command = new ReorderClipEffectsCommand({
+			trackId,
+			elementId,
+			fromIndex,
+			toIndex,
+		});
+		this.editor.command.execute({ command });
+	}
+
 	upsertKeyframes({
 		keyframes,
 	}: {
@@ -342,6 +457,61 @@ export class TimelineManager {
 			propertyPath,
 			keyframeId,
 			nextTime: time,
+		});
+		this.editor.command.execute({ command });
+	}
+
+	upsertEffectParamKeyframe({
+		trackId,
+		elementId,
+		effectId,
+		paramKey,
+		time,
+		value,
+		interpolation,
+		keyframeId,
+	}: {
+		trackId: string;
+		elementId: string;
+		effectId: string;
+		paramKey: string;
+		time: number;
+		value: number;
+		interpolation?: "linear" | "hold";
+		keyframeId?: string;
+	}): void {
+		const command = new UpsertEffectParamKeyframeCommand({
+			trackId,
+			elementId,
+			effectId,
+			paramKey,
+			time,
+			value,
+			interpolation,
+			keyframeId,
+		});
+		this.editor.command.execute({ command });
+	}
+
+	removeEffectParamKeyframe({
+		trackId,
+		elementId,
+		effectId,
+		paramKey,
+		keyframeId,
+	}: {
+		trackId: string;
+		elementId: string;
+		effectId: string;
+		paramKey: string;
+		keyframeId: string;
+	}): void {
+		const command = new RemoveEffectParamKeyframeCommand({
+			trackId,
+			elementId,
+			effectId,
+			paramKey,
+			keyframeId,
 		});
 		this.editor.command.execute({ command });
 	}

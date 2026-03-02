@@ -4,19 +4,19 @@ import { useTimelineStore } from "@/stores/timeline-store";
 import { useActionHandler } from "@/hooks/actions/use-action-handler";
 import { useEditor } from "../use-editor";
 import { useElementSelection } from "../timeline/element/use-element-selection";
+import { useKeyframeSelection } from "../timeline/element/use-keyframe-selection";
 import { getElementsAtTime } from "@/lib/timeline";
 
 export function useEditorActions() {
 	const editor = useEditor();
 	const activeProject = editor.project.getActive();
 	const { selectedElements, setElementSelection } = useElementSelection();
-	const {
-		clipboard,
-		setClipboard,
-		toggleSnapping,
-		rippleEditingEnabled,
-		toggleRippleEditing,
-	} = useTimelineStore();
+	const { selectedKeyframes, clearKeyframeSelection } = useKeyframeSelection();
+	const clipboard = useTimelineStore((s) => s.clipboard);
+	const setClipboard = useTimelineStore((s) => s.setClipboard);
+	const toggleSnapping = useTimelineStore((s) => s.toggleSnapping);
+	const rippleEditingEnabled = useTimelineStore((s) => s.rippleEditingEnabled);
+	const toggleRippleEditing = useTimelineStore((s) => s.toggleRippleEditing);
 
 	useActionHandler(
 		"toggle-play",
@@ -209,6 +209,11 @@ export function useEditorActions() {
 	useActionHandler(
 		"delete-selected",
 		() => {
+			if (selectedKeyframes.length > 0) {
+				editor.timeline.removeKeyframes({ keyframes: selectedKeyframes });
+				clearKeyframeSelection();
+				return;
+			}
 			if (selectedElements.length === 0) {
 				return;
 			}
@@ -231,6 +236,19 @@ export function useEditorActions() {
 				})),
 			);
 			setElementSelection({ elements: allElements });
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"deselect-all",
+		() => {
+			setElementSelection({ elements: [] });
+			clearKeyframeSelection();
+			const activeElement = document.activeElement;
+			if (activeElement instanceof HTMLButtonElement) {
+				activeElement.blur();
+			}
 		},
 		undefined,
 	);
@@ -278,7 +296,7 @@ export function useEditorActions() {
 				elements: selectedElements,
 			});
 			const items = results.map(({ track, element }) => {
-				const { ...elementWithoutId } = element;
+				const { id: _, ...elementWithoutId } = element;
 				return {
 					trackId: track.id,
 					trackType: track.type,

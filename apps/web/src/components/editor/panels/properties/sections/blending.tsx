@@ -8,7 +8,7 @@ import {
 } from "@/constants/timeline-constants";
 import { OcCheckerboardIcon } from "@opencut/ui/icons";
 import { Fragment, useRef } from "react";
-import { Section, SectionContent, SectionField, SectionHeader } from "../section";
+import { Section, SectionContent, SectionField, SectionHeader, SectionTitle } from "../section";
 import {
 	Select,
 	SelectContent,
@@ -74,7 +74,7 @@ export function BlendingSection({
 		committedBlendModeRef.current = blendMode;
 	}
 
-	const previewBlendMode = (value: BlendMode) =>
+	const previewBlendMode = ({ value }: { value: BlendMode }) =>
 		editor.timeline.previewElements({
 			updates: [
 				{ trackId, elementId: element.id, updates: { blendMode: value } },
@@ -123,7 +123,7 @@ export function BlendingSection({
 
 	return (
 		<Section collapsible sectionKey={`${element.type}:blending`}>
-			<SectionHeader title="Blending" />
+			<SectionHeader><SectionTitle>Blending</SectionTitle></SectionHeader>
 		<SectionContent>
 			<div className="flex items-start gap-2">
 				<SectionField label="Opacity" className="w-1/2">
@@ -175,7 +175,7 @@ export function BlendingSection({
 											key={option.value}
 											value={option.value}
 											onPointerEnter={() =>
-												previewBlendMode(option.value as BlendMode)
+												previewBlendMode({ value: option.value as BlendMode })
 											}
 										>
 											{option.label}
