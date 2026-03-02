@@ -16,22 +16,25 @@ import { Onboarding } from "@/components/editor/onboarding";
 import { MigrationDialog } from "@/components/editor/dialogs/migration-dialog";
 import { usePanelStore } from "@/stores/panel-store";
 import { usePasteMedia } from "@/hooks/use-paste-media";
+import { MobileGate } from "@/components/editor/mobile-gate";
 
 export default function Editor() {
 	const params = useParams();
 	const projectId = params.project_id as string;
 
 	return (
-		<EditorProvider projectId={projectId}>
-			<div className="bg-background flex h-screen w-screen flex-col overflow-hidden">
-				<EditorHeader />
-				<div className="min-h-0 min-w-0 flex-1">
-					<EditorLayout />
+		<MobileGate>
+			<EditorProvider projectId={projectId}>
+				<div className="bg-background flex h-screen w-screen flex-col overflow-hidden">
+					<EditorHeader />
+					<div className="min-h-0 min-w-0 flex-1">
+						<EditorLayout />
+					</div>
+					<Onboarding />
+					<MigrationDialog />
 				</div>
-				<Onboarding />
-				<MigrationDialog />
-			</div>
-		</EditorProvider>
+			</EditorProvider>
+		</MobileGate>
 	);
 }
 
