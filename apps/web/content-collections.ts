@@ -6,6 +6,7 @@ const changelog = defineCollection({
 	directory: "content/changelog",
 	include: "*.md",
 	schema: z.object({
+		content: z.string(),
 		version: z.string(),
 		date: z.string(),
 		title: z.string(),
