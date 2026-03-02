@@ -54,6 +54,14 @@ Review every point below carefully to ensure files follow consistent code style 
 
 ## Tailwind & Styling
 
+- [ ] Always use `cn()` for `className` — never string interpolation with `${}` or ternaries inline
+  ```tsx
+  // ❌ wrong
+  className={`base-class ${isActive && "active"} ${someHelper()}`}
+
+  // ✅ correct
+  className={cn("base-class", isActive && "active", someHelper())}
+  ```
 - [ ] Use `gap-*` instead of `mb-*` or `mt-*` for consistent spacing
 - [ ] Use `size-*` instead of `h-* w-*` when width and height are the same
 - [ ] When using `size-*` on icons inside `<Button>`, use `!` modifier to override default `size-4`
