@@ -650,7 +650,7 @@ function EffectsButton({
 		<Button
 			variant="text"
 			size="icon"
-			className={cn("rounded-sm !size-5 bg-background/50", className)}
+			className={cn("rounded-sm !size-5 bg-black/50 text-white", className)}
 			onClick={handleClick}
 			onMouseDown={(event) => event.stopPropagation()}
 		>
