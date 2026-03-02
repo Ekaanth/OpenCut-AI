@@ -19,32 +19,32 @@ export const blurEffectDefinition: EffectDefinition = {
 	renderer: {
 		type: "webgl",
 		passes: [
-			{
-				fragmentShader: blurFragmentShader,
-				uniforms: ({ effectParams }) => {
-					const intensity =
-						typeof effectParams.intensity === "number"
-							? effectParams.intensity
-							: Number.parseFloat(String(effectParams.intensity));
-					return {
-						u_sigma: Math.max(intensity / 5, 0.001),
-						u_direction: [1, 0],
-					};
-				},
+		{
+			fragmentShader: blurFragmentShader,
+			uniforms: ({ effectParams, width }) => {
+				const intensity =
+					typeof effectParams.intensity === "number"
+						? effectParams.intensity
+						: Number.parseFloat(String(effectParams.intensity));
+				return {
+					u_sigma: Math.max((intensity / 5) * (width / 1920), 0.001),
+					u_direction: [1, 0],
+				};
 			},
-			{
-				fragmentShader: blurFragmentShader,
-				uniforms: ({ effectParams }) => {
-					const intensity =
-						typeof effectParams.intensity === "number"
-							? effectParams.intensity
-							: Number.parseFloat(String(effectParams.intensity));
-					return {
-						u_sigma: Math.max(intensity / 5, 0.001),
-						u_direction: [0, 1],
-					};
-				},
+		},
+		{
+			fragmentShader: blurFragmentShader,
+			uniforms: ({ effectParams, height }) => {
+				const intensity =
+					typeof effectParams.intensity === "number"
+						? effectParams.intensity
+						: Number.parseFloat(String(effectParams.intensity));
+				return {
+					u_sigma: Math.max((intensity / 5) * (height / 1080), 0.001),
+					u_direction: [0, 1],
+				};
 			},
+		},
 		],
 	},
 };
