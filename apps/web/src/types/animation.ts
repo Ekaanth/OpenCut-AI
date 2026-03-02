@@ -5,6 +5,8 @@ export const ANIMATION_PROPERTY_PATHS = [
 	"transform.rotate",
 	"opacity",
 	"volume",
+	"color",
+	"background.color",
 ] as const;
 
 export type AnimationPropertyPath = (typeof ANIMATION_PROPERTY_PATHS)[number];

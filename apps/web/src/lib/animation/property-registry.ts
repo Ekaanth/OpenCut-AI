@@ -19,13 +19,13 @@ interface AnimationPropertyDefinition {
 	defaultInterpolation: AnimationInterpolation;
 	numericRange?: NumericRange;
 	supportsElement: ({ element }: { element: TimelineElement }) => boolean;
-	getValue: ({ element }: { element: TimelineElement }) => number | null;
+	getValue: ({ element }: { element: TimelineElement }) => AnimationValue | null;
 	setValue: ({
 		element,
 		value,
 	}: {
 		element: TimelineElement;
-		value: number;
+		value: AnimationValue;
 	}) => TimelineElement;
 }
 
@@ -45,7 +45,7 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 						...element,
 						transform: {
 							...element.transform,
-							position: { ...element.transform.position, x: value },
+							position: { ...element.transform.position, x: value as number },
 						},
 					}
 				: element,
@@ -62,7 +62,7 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 						...element,
 						transform: {
 							...element.transform,
-							position: { ...element.transform.position, y: value },
+							position: { ...element.transform.position, y: value as number },
 						},
 					}
 				: element,
@@ -76,7 +76,10 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 			isVisualElement(element) ? element.transform.scale : null,
 		setValue: ({ element, value }) =>
 			isVisualElement(element)
-				? { ...element, transform: { ...element.transform, scale: value } }
+				? {
+						...element,
+						transform: { ...element.transform, scale: value as number },
+					}
 				: element,
 	},
 	"transform.rotate": {
@@ -87,7 +90,10 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 			isVisualElement(element) ? element.transform.rotate : null,
 		setValue: ({ element, value }) =>
 			isVisualElement(element)
-				? { ...element, transform: { ...element.transform, rotate: value } }
+				? {
+						...element,
+						transform: { ...element.transform, rotate: value as number },
+					}
 				: element,
 	},
 	opacity: {
@@ -98,7 +104,9 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 		getValue: ({ element }) =>
 			isVisualElement(element) ? element.opacity : null,
 		setValue: ({ element, value }) =>
-			isVisualElement(element) ? { ...element, opacity: value } : element,
+			isVisualElement(element)
+				? { ...element, opacity: value as number }
+				: element,
 	},
 	volume: {
 		valueKind: "number",
@@ -108,7 +116,33 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 		getValue: ({ element }) =>
 			element.type === "audio" ? element.volume : null,
 		setValue: ({ element, value }) =>
-			element.type === "audio" ? { ...element, volume: value } : element,
+			element.type === "audio"
+				? { ...element, volume: value as number }
+				: element,
+	},
+	color: {
+		valueKind: "color",
+		defaultInterpolation: "linear",
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) => (element.type === "text" ? element.color : null),
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? { ...element, color: value as string }
+				: element,
+	},
+	"background.color": {
+		valueKind: "color",
+		defaultInterpolation: "linear",
+		supportsElement: ({ element }) => element.type === "text",
+		getValue: ({ element }) =>
+			element.type === "text" ? element.background.color : null,
+		setValue: ({ element, value }) =>
+			element.type === "text"
+				? {
+						...element,
+						background: { ...element.background, color: value as string },
+					}
+				: element,
 	},
 };
 
@@ -163,7 +197,7 @@ export function withElementBaseValueForProperty({
 	value: AnimationValue;
 }): TimelineElement {
 	const coercedValue = coerceAnimationValueForProperty({ propertyPath, value });
-	if (coercedValue === null || typeof coercedValue !== "number") {
+	if (coercedValue === null) {
 		return element;
 	}
 	const definition = getAnimationPropertyDefinition({ propertyPath });

@@ -1,6 +1,7 @@
-import type { ElementAnimations } from "@/types/animation";
+import type { AnimationPropertyPath, ElementAnimations } from "@/types/animation";
 import type { Transform } from "@/types/timeline";
-import { getNumberChannelValueAtTime } from "./interpolation";
+import { getColorValueAtTime, getNumberChannelValueAtTime } from "./interpolation";
+import { getColorChannelForPath } from "./color-channel";
 import { getNumberChannelForPath } from "./number-channel";
 
 export function getElementLocalTime({
@@ -88,6 +89,24 @@ export function resolveOpacityAtTime({
 		}),
 		time: Math.max(0, localTime),
 		fallbackValue: baseOpacity,
+	});
+}
+
+export function resolveColorAtTime({
+	baseColor,
+	animations,
+	propertyPath,
+	localTime,
+}: {
+	baseColor: string;
+	animations: ElementAnimations | undefined;
+	propertyPath: AnimationPropertyPath;
+	localTime: number;
+}): string {
+	return getColorValueAtTime({
+		channel: getColorChannelForPath({ animations, propertyPath }),
+		time: Math.max(0, localTime),
+		fallbackValue: baseColor,
 	});
 }
 

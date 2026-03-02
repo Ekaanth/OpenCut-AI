@@ -17,6 +17,7 @@ import {
 } from "@/lib/text/layout";
 import {
 	getElementLocalTime,
+	resolveColorAtTime,
 	resolveOpacityAtTime,
 	resolveTransformAtTime,
 } from "@/lib/animation";
@@ -150,11 +151,24 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const lineCount = lines.length;
 		const block = measureTextBlock({ lineMetrics, lineHeightPx, fallbackFontSize: scaledFontSize });
 
+	const textColor = resolveColorAtTime({
+			baseColor: this.params.color,
+			animations: this.params.animations,
+			propertyPath: "color",
+			localTime,
+		});
+		const backgroundColor = resolveColorAtTime({
+			baseColor: this.params.background.color,
+			animations: this.params.animations,
+			propertyPath: "background.color",
+			localTime,
+		});
+
 	const drawContent = (ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) => {
 			ctx.font = fontString;
 			ctx.textAlign = this.params.textAlign;
 			ctx.textBaseline = baseline;
-			ctx.fillStyle = this.params.color;
+			ctx.fillStyle = textColor;
 			if ("letterSpacing" in ctx) {
 				(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${letterSpacing}px`;
 			}
@@ -165,7 +179,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				this.params.background.color !== "transparent" &&
 				lineCount > 0
 			) {
-				const { color, cornerRadius = 0 } = this.params.background;
+				const { cornerRadius = 0 } = this.params.background;
 				const backgroundRect = getTextBackgroundRect({
 					textAlign: this.params.textAlign,
 					block,
@@ -175,11 +189,11 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				if (backgroundRect) {
 					const p = clamp({ value: cornerRadius, min: CORNER_RADIUS_MIN, max: CORNER_RADIUS_MAX }) / 100;
 					const radius = Math.min(backgroundRect.width, backgroundRect.height) / 2 * p;
-					ctx.fillStyle = color;
-					ctx.beginPath();
-					ctx.roundRect(backgroundRect.left, backgroundRect.top, backgroundRect.width, backgroundRect.height, radius);
-					ctx.fill();
-					ctx.fillStyle = this.params.color;
+				ctx.fillStyle = backgroundColor;
+				ctx.beginPath();
+				ctx.roundRect(backgroundRect.left, backgroundRect.top, backgroundRect.width, backgroundRect.height, radius);
+				ctx.fill();
+				ctx.fillStyle = textColor;
 				}
 			}
 

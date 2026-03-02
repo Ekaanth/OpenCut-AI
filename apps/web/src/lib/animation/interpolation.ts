@@ -277,7 +277,7 @@ export function getNumberChannelValueAtTime({
 	});
 }
 
-function getColorValueAtTime({
+export function getColorValueAtTime({
 	channel,
 	time,
 	fallbackValue,
