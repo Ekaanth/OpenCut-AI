@@ -9,7 +9,10 @@ import { useEditor } from "@/hooks/use-editor";
 import { useKeyframeSelection } from "./use-keyframe-selection";
 import { snapTimeToFrame } from "@/lib/time";
 import { timelineTimeToSnappedPixels } from "@/lib/timeline";
-import { DRAG_THRESHOLD_PX, TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
+import {
+	DRAG_THRESHOLD_PX,
+	TIMELINE_CONSTANTS,
+} from "@/constants/timeline-constants";
 import { RetimeKeyframeCommand } from "@/lib/commands/timeline/element/keyframes/retime-keyframe";
 import { BatchCommand } from "@/lib/commands";
 import type { SelectedKeyframeRef } from "@/types/animation";
@@ -44,6 +47,7 @@ export function useKeyframeDrag({
 	const {
 		selectedKeyframes,
 		isKeyframeSelected,
+		setKeyframeSelection,
 		toggleKeyframeSelection,
 		selectKeyframeRange,
 	} = useKeyframeSelection();
@@ -74,9 +78,9 @@ export function useKeyframeDrag({
 		}) => {
 			const commands: Command[] = keyframeRefs.flatMap((keyframeRef) => {
 				const channel = element.animations?.channels[keyframeRef.propertyPath];
-			const keyframe = channel?.keyframes.find(
-				(keyframe) => keyframe.id === keyframeRef.keyframeId,
-			);
+				const keyframe = channel?.keyframes.find(
+					(keyframe) => keyframe.id === keyframeRef.keyframeId,
+				);
 				if (!keyframe) return [];
 				const nextTime = Math.max(
 					0,
@@ -115,9 +119,9 @@ export function useKeyframeDrag({
 				setIsPendingDrag(false);
 				setDragState({
 					isDragging: true,
-				draggingKeyframeIds: new Set(
-					pending.keyframeRefs.map((keyframe) => keyframe.keyframeId),
-				),
+					draggingKeyframeIds: new Set(
+						pending.keyframeRefs.map((keyframe) => keyframe.keyframeId),
+					),
 					deltaTime: 0,
 				});
 				return;
@@ -140,11 +144,11 @@ export function useKeyframeDrag({
 		if (!dragState.isDragging) return;
 
 		const handleMouseUp = () => {
-		const draggingRefs = selectedKeyframes.filter(
-			(keyframe) =>
-				keyframe.elementId === element.id &&
-				dragState.draggingKeyframeIds.has(keyframe.keyframeId),
-		);
+			const draggingRefs = selectedKeyframes.filter(
+				(keyframe) =>
+					keyframe.elementId === element.id &&
+					dragState.draggingKeyframeIds.has(keyframe.keyframeId),
+			);
 
 			if (draggingRefs.length > 0 && dragState.deltaTime !== 0) {
 				commitDrag({
@@ -191,21 +195,26 @@ export function useKeyframeDrag({
 			event.preventDefault();
 			event.stopPropagation();
 
-			mouseDownXRef.current = event.clientX;
+		mouseDownXRef.current = event.clientX;
 
 		const anySelected = keyframes.some((keyframe) =>
 			isKeyframeSelected({ keyframe }),
 		);
-			const keyframeRefsToTrack = anySelected ? selectedKeyframes : keyframes;
 
-			pendingDragRef.current = {
-				keyframeRefs: keyframeRefsToTrack,
-				startMouseX: event.clientX,
-			};
-			setIsPendingDrag(true);
-		},
-		[isKeyframeSelected, selectedKeyframes],
-	);
+		if (!anySelected) {
+			setKeyframeSelection({ keyframes });
+		}
+
+		const keyframeRefsToTrack = anySelected ? selectedKeyframes : keyframes;
+
+		pendingDragRef.current = {
+			keyframeRefs: keyframeRefsToTrack,
+			startMouseX: event.clientX,
+		};
+		setIsPendingDrag(true);
+	},
+	[isKeyframeSelected, selectedKeyframes, setKeyframeSelection],
+);
 
 	const handleKeyframeClick = useCallback(
 		({
