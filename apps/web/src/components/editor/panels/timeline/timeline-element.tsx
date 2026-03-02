@@ -259,7 +259,7 @@ export function TimelineElement({
 		handleKeyframeMouseDown,
 		handleKeyframeClick,
 		getVisualOffsetPx,
-	} = useKeyframeDrag({ zoomLevel, element });
+	} = useKeyframeDrag({ zoomLevel, element, displayedStartTime });
 	const handleRevealInMedia = ({ event }: { event: React.MouseEvent }) => {
 		event.stopPropagation();
 		if (hasMediaId(element)) {
@@ -516,6 +516,7 @@ function KeyframeIndicators({
 		event: React.MouseEvent;
 		keyframes: SelectedKeyframeRef[];
 		orderedKeyframes: SelectedKeyframeRef[];
+		indicatorTime: number;
 	}) => void;
 	getVisualOffsetPx: (params: {
 		indicatorTime: number;
@@ -554,12 +555,13 @@ function KeyframeIndicators({
 				onMouseDown={(event) =>
 					onKeyframeMouseDown({ event, keyframes: indicator.keyframes })
 				}
-				onClick={(event) =>
-					onKeyframeClick({
-						event,
-						keyframes: indicator.keyframes,
-						orderedKeyframes,
-					})
+			onClick={(event) =>
+				onKeyframeClick({
+					event,
+					keyframes: indicator.keyframes,
+					orderedKeyframes,
+					indicatorTime: indicator.time,
+				})
 				}
 				aria-label="Select keyframe"
 			>

@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { useKeyframeSelection } from "./use-keyframe-selection";
-import { snapTimeToFrame } from "@/lib/time";
+import { snapTimeToFrame, getSnappedSeekTime } from "@/lib/time";
 import { timelineTimeToSnappedPixels } from "@/lib/timeline";
 import {
 	DRAG_THRESHOLD_PX,
@@ -18,7 +18,6 @@ import { BatchCommand } from "@/lib/commands";
 import type { SelectedKeyframeRef } from "@/types/animation";
 import type { TimelineElement } from "@/types/timeline";
 import type { Command } from "@/lib/commands/base-command";
-
 export interface KeyframeDragState {
 	isDragging: boolean;
 	draggingKeyframeIds: Set<string>;
@@ -39,9 +38,11 @@ interface PendingKeyframeDrag {
 export function useKeyframeDrag({
 	zoomLevel,
 	element,
+	displayedStartTime,
 }: {
 	zoomLevel: number;
 	element: TimelineElement;
+	displayedStartTime: number;
 }) {
 	const editor = useEditor();
 	const {
@@ -222,10 +223,12 @@ export function useKeyframeDrag({
 			event,
 			keyframes,
 			orderedKeyframes,
+			indicatorTime,
 		}: {
 			event: ReactMouseEvent;
 			keyframes: SelectedKeyframeRef[];
 			orderedKeyframes: SelectedKeyframeRef[];
+			indicatorTime: number;
 		}) => {
 			event.stopPropagation();
 
@@ -234,23 +237,31 @@ export function useKeyframeDrag({
 				Math.abs(event.clientX - mouseDownXRef.current) > DRAG_THRESHOLD_PX;
 			mouseDownXRef.current = null;
 
-		if (wasDrag) return;
+			if (wasDrag) return;
 
-		if (event.shiftKey) {
-			selectKeyframeRange({
-				orderedKeyframes,
-				targetKeyframes: keyframes,
-				isAdditive: event.metaKey || event.ctrlKey,
+			const duration = editor.timeline.getTotalDuration();
+			const seekTime = getSnappedSeekTime({
+				rawTime: displayedStartTime + indicatorTime,
+				duration,
+				fps,
 			});
-			return;
-		}
+			editor.playback.seek({ time: seekTime });
 
-		toggleKeyframeSelection({
-			keyframes,
-			isMultiKey: event.metaKey || event.ctrlKey,
-		});
+			if (event.shiftKey) {
+				selectKeyframeRange({
+					orderedKeyframes,
+					targetKeyframes: keyframes,
+					isAdditive: event.metaKey || event.ctrlKey,
+				});
+				return;
+			}
+
+			toggleKeyframeSelection({
+				keyframes,
+				isMultiKey: event.metaKey || event.ctrlKey,
+			});
 		},
-		[toggleKeyframeSelection, selectKeyframeRange],
+		[toggleKeyframeSelection, selectKeyframeRange, editor, displayedStartTime, fps],
 	);
 
 	const getVisualOffsetPx = useCallback(
