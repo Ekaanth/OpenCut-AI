@@ -514,6 +514,7 @@ function NewProjectButton() {
 
 	return (
 		<Button
+			variant="foreground"
 			size="lg"
 			className="flex px-5 md:px-6"
 			onClick={handleCreateProject}
@@ -644,8 +645,9 @@ function ProjectItem({
 
 	const listContent = (
 		<div
-			className={`flex items-center gap-4 py-2 px-4 border-b border-border/50 ${isSelected ? "bg-primary/5" : ""
-				}`}
+			className={`flex items-center gap-4 py-2 px-4 border-b border-border/50 ${
+				isSelected ? "bg-primary/5" : ""
+			}`}
 		>
 			<Checkbox
 				checked={isSelected}
@@ -656,7 +658,7 @@ function ProjectItem({
 						shiftKey: event.shiftKey,
 					});
 				}}
-				onCheckedChange={() => { }}
+				onCheckedChange={() => {}}
 				className="size-5 shrink-0"
 			/>
 
@@ -664,17 +666,17 @@ function ProjectItem({
 				{listRowContent}
 			</Link>
 
-		{!isMultiSelect && (
-			<ProjectMenu
-				isOpen={isDropdownOpen}
-				onOpenChange={setIsDropdownOpen}
-				variant="list"
-				onRenameClick={handleRename}
-				onDuplicateClick={handleDuplicate}
-				onDeleteClick={handleDeleteClick}
-				onInfoClick={handleInfoClick}
-			/>
-		)}
+			{!isMultiSelect && (
+				<ProjectMenu
+					isOpen={isDropdownOpen}
+					onOpenChange={setIsDropdownOpen}
+					variant="list"
+					onRenameClick={handleRename}
+					onDuplicateClick={handleDuplicate}
+					onDeleteClick={handleDeleteClick}
+					onInfoClick={handleInfoClick}
+				/>
+			)}
 		</div>
 	);
 
