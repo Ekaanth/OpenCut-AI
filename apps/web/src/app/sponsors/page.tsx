@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SPONSORS, type Sponsor } from "@/constants/site-constants";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { LinkSquare02Icon } from "@hugeicons/core-free-icons";
+import { cn } from "@/utils/ui";
 
 export const metadata: Metadata = {
 	title: "Sponsors - OpenCut",
@@ -61,7 +62,10 @@ function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
 						alt={`${sponsor.name} logo`}
 						width={50}
 						height={50}
-						className="object-contain"
+						className={cn(
+							"object-contain",
+							sponsor.invertOnDark && "invert-0 dark:invert",
+						)}
 					/>
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center gap-2">
