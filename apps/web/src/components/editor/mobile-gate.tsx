@@ -58,7 +58,7 @@ export function MobileGate({ children }: MobileGateProps) {
 					</p>
 				</div>
 				<div className="flex items-center gap-3">
-					<Button variant="foreground" onClick={handleContinue}>
+					<Button onClick={handleContinue}>
 						Take a look anyway
 					</Button>
 					<Button variant="ghost" asChild>

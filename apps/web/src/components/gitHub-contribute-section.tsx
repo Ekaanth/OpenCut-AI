@@ -23,7 +23,7 @@ export function GitHubContributeSection({
 					target="_blank"
 					rel="noopener noreferrer"
 				>
-					<Button variant="foreground" className="w-full" size="lg">
+					<Button className="w-full" size="lg">
 						<HugeiconsIcon icon={GithubIcon} />
 						Start contributing
 					</Button>

@@ -514,7 +514,6 @@ function NewProjectButton() {
 
 	return (
 		<Button
-			variant="foreground"
 			size="lg"
 			className="flex px-5 md:px-6"
 			onClick={handleCreateProject}
