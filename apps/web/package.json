@@ -77,7 +77,7 @@
     "rehype-slug": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "sonner": "^1.7.1",
-    "tailwind-merge": "^2.5.5",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "unified": "^11.0.5",
     "use-deep-compare-effect": "^1.8.1",
@@ -90,8 +90,8 @@
     "@content-collections/core": "^0.14.1",
     "@content-collections/next": "^0.2.11",
     "@napi-rs/canvas": "^0.1.92",
-    "@tailwindcss/postcss": "^4.1.11",
-    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/bun": "latest",
     "@types/node": "^24.2.1",
     "@types/pg": "^8.15.4",
@@ -103,7 +103,7 @@
     "postcss": "^8",
     "raw-loader": "^4.0.2",
     "sharp": "^0.34.5",
-    "tailwindcss": "^4.1.11",
+    "tailwindcss": "^4.2.1",
     "tsx": "^4.7.1",
     "typescript": "^5.8.3"
   }
