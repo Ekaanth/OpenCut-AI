@@ -71,7 +71,7 @@ const DialogBody = ({
 	className,
 	...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-	<div className={cn("p-6 flex flex-col gap-6", className)} {...props} />
+	<div className={cn("p-6 flex flex-col gap-4", className)} {...props} />
 );
 DialogBody.displayName = "DialogBody";
 
