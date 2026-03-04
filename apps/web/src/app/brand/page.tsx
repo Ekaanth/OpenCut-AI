@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Copy, Download } from "lucide-react";
@@ -24,8 +25,7 @@ async function copyAsset(src: string) {
 	await navigator.clipboard.writeText(text);
 }
 
-const ALL_ASSETS = () =>
-	ASSET_SECTIONS.flatMap((s) => s.assets);
+const ALL_ASSETS = () => ASSET_SECTIONS.flatMap((s) => s.assets);
 
 type AssetTheme = "dark" | "light" | "icon";
 
@@ -118,21 +118,21 @@ export default function BrandPage() {
 					</Link>
 				</>
 			}
-		action={
-			<Button
-				variant="outline"
-				size="lg"
-				className="mx-auto gap-2"
-				onClick={() => {
-					ALL_ASSETS().forEach((asset, i) => {
-						setTimeout(() => downloadAsset(asset.src), i * 200);
-					});
-				}}
-			>
-				<Download />
-				Download all
-			</Button>
-		}
+			action={
+				<Button
+					variant="outline"
+					size="lg"
+					className="mx-auto gap-2"
+					onClick={() => {
+						ALL_ASSETS().forEach((asset, i) => {
+							setTimeout(() => downloadAsset(asset.src), i * 200);
+						});
+					}}
+				>
+					<Download />
+					Download all
+				</Button>
+			}
 		>
 			<div className="flex flex-col gap-10">
 				{ASSET_SECTIONS.map((section) => (
@@ -202,6 +202,23 @@ export default function BrandPage() {
 	);
 }
 
+const CHECKER_STYLES: Record<"dark" | "light", CSSProperties> = {
+	light: {
+		backgroundImage:
+			"linear-gradient(45deg, #292929 25%, transparent 25%), linear-gradient(-45deg, #292929 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #292929 75%), linear-gradient(-45deg, transparent 75%, #292929 75%)",
+		backgroundSize: "18px 18px",
+		backgroundPosition: "0 0, 0 9px, 9px -9px, -9px 0px",
+		backgroundColor: "#000",
+	},
+	dark: {
+		backgroundImage:
+			"linear-gradient(45deg, #e0e0e0 25%, transparent 25%), linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e0e0e0 75%), linear-gradient(-45deg, transparent 75%, #e0e0e0 75%)",
+		backgroundSize: "18px 18px",
+		backgroundPosition: "0 0, 0 9px, 9px -9px, -9px 0px",
+		backgroundColor: "#f5f5f5",
+	},
+};
+
 function AssetCard({ variant }: { variant: AssetVariant }) {
 	const [copied, setCopied] = useState(false);
 
@@ -213,10 +230,10 @@ function AssetCard({ variant }: { variant: AssetVariant }) {
 
 	return (
 		<Card
-			className={cn(
-				"group relative overflow-hidden",
-				variant.theme === "light" ? "bg-black" : "bg-white",
-			)}
+			className="group relative overflow-hidden"
+			style={
+				variant.theme === "icon" ? undefined : CHECKER_STYLES[variant.theme]
+			}
 		>
 			<div className="flex h-56 items-center justify-center px-12 py-8">
 				<Image
@@ -230,7 +247,7 @@ function AssetCard({ variant }: { variant: AssetVariant }) {
 				/>
 			</div>
 
-		<Button
+			<Button
 				variant="outline"
 				size="icon"
 				className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 size-9"
