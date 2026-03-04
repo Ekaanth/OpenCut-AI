@@ -105,7 +105,7 @@ const ASSET_SECTIONS: AssetSection[] = [
 	},
 ];
 
-export default function BrandingPage() {
+export default function BrandPage() {
 	return (
 		<BasePage
 			maxWidth="6xl"

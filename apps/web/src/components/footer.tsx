@@ -25,7 +25,7 @@ const links: CategoryLinks = {
 	company: [
 		{ label: "Contributors", href: "/contributors" },
 		{ label: "Sponsors", href: "/sponsors" },
-		{ label: "Branding", href: "/branding" },
+		{ label: "Brand", href: "/brand" },
 		{ label: "About", href: `${SOCIAL_LINKS.github}/blob/main/README.md` },
 	],
 };
