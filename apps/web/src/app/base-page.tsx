@@ -8,7 +8,8 @@ interface BasePageProps {
 	mainClassName?: string;
 	maxWidth?: "3xl" | "6xl" | "full";
 	title?: string;
-	description?: string;
+	description?: React.ReactNode;
+	action?: React.ReactNode;
 }
 
 export function BasePage({
@@ -18,6 +19,7 @@ export function BasePage({
 	maxWidth = "3xl",
 	title,
 	description,
+	action,
 }: BasePageProps) {
 	const maxWidthClass = {
 		"3xl": "max-w-3xl",
@@ -43,6 +45,7 @@ export function BasePage({
 						<p className="text-muted-foreground mx-auto max-w-2xl text-xl leading-relaxed">
 							{description}
 						</p>
+						{action}
 					</div>
 				)}
 				{children}
