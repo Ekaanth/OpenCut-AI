@@ -113,7 +113,15 @@ export default function BrandPage() {
 			description={
 				<>
 					Download OpenCut brand assets for use in your projects.{" "}
-					<Link href="#guidelines" className="underline underline-offset-4">
+					<Link
+						href="#guidelines"
+						className="underline underline-offset-4"
+						onClick={() =>
+							document
+								.getElementById("guidelines")
+								?.scrollIntoView({ behavior: "smooth" })
+						}
+					>
 						Read the brand guidelines.
 					</Link>
 				</>
