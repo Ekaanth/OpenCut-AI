@@ -100,8 +100,21 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 
 		let audioSource: AudioBufferSource | null = null;
 		if (this.shouldIncludeAudio && this.audioBuffer) {
+			let audioCodec: "aac" | "opus" =
+				this.format === "webm" ? "opus" : "aac";
+
+			if (audioCodec === "aac" && typeof AudioEncoder !== "undefined") {
+				const { supported } = await AudioEncoder.isConfigSupported({
+					codec: "mp4a.40.2",
+					sampleRate: this.audioBuffer.sampleRate,
+					numberOfChannels: this.audioBuffer.numberOfChannels,
+					bitrate: 192000,
+				});
+				if (!supported) audioCodec = "opus";
+			}
+
 			audioSource = new AudioBufferSource({
-				codec: this.format === "webm" ? "opus" : "aac",
+				codec: audioCodec,
 				bitrate: qualityMap[this.quality],
 			});
 			output.addAudioTrack(audioSource);
