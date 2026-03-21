@@ -1,5 +1,5 @@
 
-export const SITE_URL = "https://opencut.app";
+export const SITE_URL = "";
 
 export const SITE_INFO = {
 	title: "OpenCut AI",
