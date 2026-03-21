@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "../ui/button";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -13,19 +13,51 @@ import Link from "next/link";
 import { RenameProjectDialog } from "./dialogs/rename-project-dialog";
 import { DeleteProjectDialog } from "./dialogs/delete-project-dialog";
 import { useRouter } from "next/navigation";
-import { FaDiscord } from "react-icons/fa6";
+
 import { ExportButton } from "./export-button";
 import { ThemeToggle } from "../theme-toggle";
-import { DEFAULT_LOGO_URL, SOCIAL_LINKS } from "@/constants/site-constants";
+import { SOCIAL_LINKS } from "@/constants/site-constants";
 import { toast } from "sonner";
 import { useEditor } from "@/hooks/use-editor";
 import { CommandIcon, Logout05Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShortcutsDialog } from "./dialogs/shortcuts-dialog";
-import Image from "next/image";
+import { OpenCutAILogo } from "@/components/footer";
 import { cn } from "@/utils/ui";
+import { AIStatusIndicator, type AIStatusInfo } from "@/components/editor/ai/ai-status-indicator";
+import { useAIStatus } from "@/hooks/use-ai-status";
+import { useAIStore } from "@/stores/ai-store";
+import { aiClient } from "@/lib/ai-client";
+import { MemoryStatusBar, type MemoryStatusInfo } from "@/components/editor/ai/memory-status-bar";
 
 export function EditorHeader() {
+	const { isConnected, backendStatus, error, errorType, refresh } = useAIStatus();
+	const toggleSetupGuide = useAIStore((s) => s.toggleSetupGuide);
+
+	const memoryStatus: MemoryStatusInfo = useMemo(
+		() => ({
+			gpuUsedMb: backendStatus?.memoryUsage?.gpu?.usedMb ?? 0,
+			gpuTotalMb: backendStatus?.memoryUsage?.gpu?.totalMb ?? 0,
+			ramUsedMb: backendStatus?.memoryUsage?.ram?.usedMb ?? 0,
+			ramTotalMb: backendStatus?.memoryUsage?.ram?.totalMb ?? 0,
+		}),
+		[backendStatus],
+	);
+
+	const aiStatusInfo: AIStatusInfo = useMemo(
+		() => ({
+			connected: isConnected,
+			modelsLoaded: backendStatus?.models ?? [],
+			memoryUsageMb: backendStatus?.memoryUsage?.ram?.usedMb ?? 0,
+			memoryTotalMb: backendStatus?.memoryUsage?.ram?.totalMb ?? 0,
+			gpuAvailable: backendStatus?.gpuAvailable ?? false,
+			error: error ?? undefined,
+			errorType: errorType ?? undefined,
+			backendUrl: aiClient.getBaseUrl(),
+		}),
+		[isConnected, backendStatus, error, errorType],
+	);
+
 	return (
 		<header className="bg-background flex h-[3.4rem] items-center justify-between px-3 pt-0.5">
 			<div className="flex items-center gap-1">
@@ -33,6 +65,12 @@ export function EditorHeader() {
 				<EditableProjectName />
 			</div>
 			<nav className="flex items-center gap-2">
+				{isConnected && <MemoryStatusBar status={memoryStatus} />}
+				<AIStatusIndicator
+					status={aiStatusInfo}
+					onSetupClick={toggleSetupGuide}
+					onRefresh={refresh}
+				/>
 				<ExportButton />
 				<ThemeToggle />
 			</nav>
@@ -108,14 +146,8 @@ function ProjectDropdown() {
 		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon" className="p-1 rounded-sm size-8">
-						<Image
-							src={DEFAULT_LOGO_URL}
-							alt="Project thumbnail"
-							width={32}
-							height={32}
-							className="invert dark:invert-0 size-5"
-						/>
+					<Button variant="ghost" className="p-0 rounded-sm size-10 [&_svg]:!size-auto">
+						<OpenCutAILogo size={36} />
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="start" className="z-100 w-44">
@@ -136,16 +168,7 @@ function ProjectDropdown() {
 
 					<DropdownMenuSeparator />
 
-					<DropdownMenuItem asChild icon={<FaDiscord className="!size-4" />}>
-						<Link
-							href={SOCIAL_LINKS.discord}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							Discord
-						</Link>
-					</DropdownMenuItem>
-				</DropdownMenuContent>
+					</DropdownMenuContent>
 			</DropdownMenu>
 			<RenameProjectDialog
 				isOpen={openDialog === "rename"}

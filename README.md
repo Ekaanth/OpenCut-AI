@@ -1,50 +1,55 @@
 <table width="100%">
   <tr>
     <td align="left" width="120">
-      <img src="apps/web/public/logos/opencut/1k/logo-white-black.png" alt="OpenCut Logo" width="100" />
+      <img src="apps/web/public/logos/opencut/1k/logo-white-black.png" alt="OpenCut AI Logo" width="100" />
     </td>
     <td align="right">
-      <h1>OpenCut</span></h1>
-      <h3 style="margin-top: -10px;">A free, open-source video editor for web, desktop, and mobile.</h3>
+      <h1>OpenCut AI</h1>
+      <h3 style="margin-top: -10px;">A fork of <a href="https://github.com/OpenCut-app/OpenCut">OpenCut</a> with AI added on top.</h3>
+      <p>Transcribe, generate, edit by text, clone voices — install locally and run everything on your machine.</p>
     </td>
   </tr>
 </table>
 
-## Sponsors
+## What is this?
 
-Thanks to [Vercel](https://vercel.com?utm_source=github-opencut&utm_campaign=oss) and [fal.ai](https://fal.ai?utm_source=github-opencut&utm_campaign=oss) for their support of open-source software.
+This project is a fork of [OpenCut](https://github.com/OpenCut-app/OpenCut), the open-source video editor. We've added a full suite of AI capabilities on top of the core editor — transcription, image generation, voice cloning, filler removal, natural language commands, and more. Everything runs locally on your machine. No cloud, no API keys, no subscriptions.
 
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
+## AI Features (added on top of OpenCut)
 
-<a href="https://fal.ai">
-  <img alt="Powered by fal.ai" src="https://img.shields.io/badge/Powered%20by-fal.ai-000000?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCAxMEwxMy4wOSAxNS43NEwxMiAyMkwxMC45MSAxNS43NEw0IDEwTDEwLjkxIDguMjZMMTIgMloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" />
-</a>
+- **Edit by text** — Transcribe your video, then edit it like a document. Delete a sentence and the video cuts itself.
+- **AI transcription** — Whisper-powered speech-to-text with word-level timestamps, running locally on GPU or CPU.
+- **Filler word removal** — Detect and remove "um", "uh", "like", and "you know" in one click.
+- **AI image generation** — Generate images from text prompts via Stable Diffusion and place them on the timeline.
+- **Voice cloning & TTS** — Clone any voice from a 6-second sample. Generate voiceovers in that voice.
+- **Smart subtitles** — One-click subtitle generation with karaoke, pill, and classic styles.
+- **Natural language commands** — Control the editor in plain English: "remove the intro", "speed up the middle".
+- **Audio denoising** — Clean up background noise from audio tracks.
 
-## Why?
+## Editor Features (from OpenCut + our additions)
 
-- **Privacy**: Your videos stay on your device
-- **Free features**: Most basic CapCut features are now paywalled 
-- **Simple**: People want editors that are easy to use - CapCut proved that
-
-## Features
-
-- Timeline-based editing
-- Multi-track support
-- Real-time preview
-- No watermarks or subscriptions
-- Analytics provided by [Databuddy](https://www.databuddy.cc?utm_source=opencut), 100% Anonymized & Non-invasive.
-- Blog powered by [Marble](https://marblecms.com?utm_source=opencut), Headless CMS.
+- **Multi-track timeline** — Video, audio, text, sticker, and effect tracks with drag-and-drop.
+- **Separate audio** — Extract audio from video into its own track with independent volume control.
+- **Freeze frame** — Capture any frame at the playhead and insert it as a still image.
+- **Audio properties panel** — Per-element volume (0–200%) with dB readout, mute toggle, and keyframe animation.
+- **Frame size presets** — Toggle between 16:9 (YouTube), 9:16 (TikTok/Reels), 1:1 (Instagram), 4:3 above the preview.
+- **Real-time preview** — Live canvas rendering with transform and effect support.
+- **No watermarks or subscriptions** — Free and open-source.
 
 ## Project Structure
 
-- `apps/web/` – Main Next.js web application
-- `src/components/` – UI and editor components
-- `src/hooks/` – Custom React hooks
-- `src/lib/` – Utility and API logic
-- `src/stores/` – State management (Zustand, etc.)
-- `src/types/` – TypeScript types
+```
+apps/web/             — Next.js web application
+  src/components/     — UI and editor components
+  src/hooks/          — Custom React hooks
+  src/lib/            — Utility, command, and API logic
+  src/stores/         — State management (Zustand)
+  src/core/           — Editor core (managers, commands)
+  src/services/       — Renderer, storage, video cache
+  src/types/          — TypeScript type definitions
+services/ai-backend/  — FastAPI AI backend (Whisper, TTS, Ollama, Stable Diffusion)
+packages/             — Shared packages (env, UI)
+```
 
 ## Getting Started
 
@@ -53,26 +58,27 @@ Thanks to [Vercel](https://vercel.com?utm_source=github-opencut&utm_campaign=oss
 - [Bun](https://bun.sh/docs/installation)
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
-> **Note:** Docker is optional but recommended for running the local database and Redis. If you only want to work on frontend features, you can skip it.
+> Docker is optional but recommended for running the database, Redis, and AI backend. Frontend-only development works without it.
 
-### Setup
+### Install and Run Locally
 
-1. Fork and clone the repository
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/Ekaanth/OpenCut-AI.git
+   cd OpenCut-AI
+   ```
 
 2. Copy the environment file:
 
    ```bash
-   # Unix/Linux/Mac
    cp apps/web/.env.example apps/web/.env.local
-
-   # Windows PowerShell
-   Copy-Item apps/web/.env.example apps/web/.env.local
    ```
 
-3. Start the database and Redis:
+3. Start the database, Redis, and AI backend:
 
    ```bash
-   docker compose up -d db redis serverless-redis-http
+   docker compose up -d
    ```
 
 4. Install dependencies and start the dev server:
@@ -82,13 +88,24 @@ Thanks to [Vercel](https://vercel.com?utm_source=github-opencut&utm_campaign=oss
    bun dev:web
    ```
 
-The application will be available at [http://localhost:3000](http://localhost:3000).
+The editor will be available at [http://localhost:3000](http://localhost:3000).
 
-The `.env.example` has sensible defaults that match the Docker Compose config — it should work out of the box.
+### AI Backend
 
-### Self-Hosting with Docker
+The AI backend runs as a FastAPI service on port 8420. It powers transcription, image generation, voice cloning, TTS, audio analysis, and LLM commands.
 
-To run everything (including a production build of the app) in Docker:
+```bash
+# Start with Docker (recommended)
+docker compose up -d
+
+# Or run standalone
+cd services/ai-backend
+python run.py
+```
+
+Configure AI models in the **Settings > AI Models** panel inside the editor.
+
+### Self-Hosting
 
 ```bash
 docker compose up -d
@@ -96,26 +113,63 @@ docker compose up -d
 
 The app will be available at [http://localhost:3100](http://localhost:3100).
 
-## Contributing
+## Self-Hosting Costs
 
-We welcome contributions! While we're actively developing and refactoring certain areas, there are plenty of opportunities to contribute effectively.
+OpenCut AI runs entirely on your own infrastructure — no per-seat fees, no API metering, no usage limits. The only cost is the server itself.
 
-**🎯 Focus areas:** Timeline functionality, project management, performance, bug fixes, and UI improvements outside the preview panel.
+### Recommended Configurations
 
-**⚠️ Avoid for now:** Preview panel enhancements (fonts, stickers, effects) and export functionality - we're refactoring these with a new binary rendering approach.
+| Setup | Spec | Monthly Cost | Best For |
+|-------|------|-------------|----------|
+| **Starter** | 4 vCPU, 8 GB RAM, CPU-only | **$20–40/mo** | Light editing, transcription, text commands |
+| **Standard** | 4 vCPU, 16 GB RAM, CPU-only | **$40–80/mo** | Full editing workflow with TTS and transcription |
+| **Performance** | 8 vCPU, 32 GB RAM, NVIDIA T4 GPU | **$150–250/mo** | Fast transcription, image generation, voice cloning |
+| **Production** | 8 vCPU, 64 GB RAM, NVIDIA A10G GPU | **$300–500/mo** | Teams, concurrent users, all AI features at speed |
 
-See our [Contributing Guide](.github/CONTRIBUTING.md) for detailed setup instructions, development guidelines, and complete focus area guidance.
+### Where to Host
 
-**Quick start for contributors:**
+| Provider | Starter | With GPU | Notes |
+|----------|---------|----------|-------|
+| **Hetzner** | $15/mo | $120/mo (A100 hourly) | Best value for CPU instances in EU |
+| **DigitalOcean** | $24/mo | N/A | Simple setup, no GPU options |
+| **Vultr** | $24/mo | $180/mo (A100 hourly) | GPU cloud available |
+| **AWS EC2** | $35/mo (t3.xlarge) | $150/mo (g4dn.xlarge) | Widest GPU selection |
+| **GCP** | $35/mo (e2-standard-4) | $200/mo (T4 GPU) | Good for teams on Google Cloud |
+| **Lambda Cloud** | N/A | $130/mo (A10 GPU) | GPU-first cloud, best GPU value |
+| **RunPod** | N/A | $80/mo (A4000 GPU) | Cheapest GPU cloud, community templates |
 
-- Fork the repo and clone locally
-- Follow the setup instructions in CONTRIBUTING.md
-- Create a feature branch and submit a PR
+### What Uses Resources
+
+| Service | RAM Usage | CPU Usage | GPU Benefit | Notes |
+|---------|-----------|-----------|-------------|-------|
+| Web app (Next.js) | ~200 MB | Low | None | Serves the UI |
+| PostgreSQL + Redis | ~300 MB | Low | None | Project storage |
+| AI Backend (FastAPI) | ~200 MB | Low | None | API gateway |
+| Ollama (LLM) | 1–5 GB | Medium | 2–5x faster | Depends on model size |
+| Whisper (transcription) | ~1 GB | High during transcription | 10x faster | `base` model uses ~1 GB |
+| TTS (voice generation) | ~2 GB | High during generation | 5x faster | XTTS v2 is ~1.8 GB |
+| Image generation | ~3 GB | Very high | Required practically | Stable Diffusion needs GPU |
+
+### Minimum Requirements
+
+- **CPU-only (all features except image gen):** 4 vCPU, 8 GB RAM, 20 GB disk — ~$20/mo
+- **With GPU (all features):** 4 vCPU, 16 GB RAM, NVIDIA T4 (16 GB VRAM), 40 GB disk — ~$150/mo
+- **Local machine:** Any modern laptop with 16 GB RAM runs everything except image generation comfortably
+
+### Cost Comparison
+
+| | OpenCut AI (self-hosted) | Descript | Kapwing | Runway |
+|---|---|---|---|---|
+| Monthly cost | **$20–150** (server only) | $24–33/user | $24–79/user | $12–76/user |
+| Per-seat pricing | **No** | Yes | Yes | Yes |
+| Usage limits | **None** | Minutes-based | Credits-based | Credits-based |
+| Data privacy | **100% on your server** | Cloud | Cloud | Cloud |
+| AI models | **Open-source, swappable** | Proprietary | Proprietary | Proprietary |
+
+## Attribution
+
+This project is a fork of [OpenCut](https://github.com/OpenCut-app/OpenCut). We gratefully acknowledge the OpenCut team and all upstream contributors for the core video editor that makes this possible.
 
 ## License
 
 [MIT LICENSE](LICENSE)
-
----
-
-![Star History Chart](https://api.star-history.com/svg?repos=opencut-app/opencut&type=Date)

@@ -18,3 +18,18 @@ bun.lockb
 
 # Twiggy
 .cursor/rules/file-structure.mdc
+
+# BlamePrompt staging (auto-generated)
+.blameprompt/
+
+# AI Backend
+services/ai-backend/.venv/
+services/ai-backend/__pycache__/
+services/ai-backend/**/__pycache__/
+services/ai-backend/*.pyc
+services/ai-backend/generated/
+services/ai-backend/*.egg-info/
+
+# AI models and generated content
+ai-models/
+ai-generated/

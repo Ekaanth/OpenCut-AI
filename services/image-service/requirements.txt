@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+aiofiles==24.1.0
+Pillow>=10.0.0
+torch>=2.1.0
+diffusers>=0.30.0
+transformers>=4.40.0
+accelerate>=0.30.0
+safetensors>=0.4.0
+rembg[cpu]>=2.0.50

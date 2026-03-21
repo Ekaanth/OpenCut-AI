@@ -4,7 +4,8 @@ import { SITE_INFO, SITE_URL } from "@/constants/site-constants";
 
 export async function GET() {
 	try {
-		const { posts } = await getPosts();
+		const data = await getPosts();
+		const posts = data?.posts ?? [];
 
 		const feed = new Feed({
 			title: `${SITE_INFO.title} Blog`,

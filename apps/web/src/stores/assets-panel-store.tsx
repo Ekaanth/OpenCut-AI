@@ -12,17 +12,23 @@ import {
 	Settings01Icon,
 	SlidersHorizontalIcon,
 	ColorsIcon,
+	SparklesIcon,
+	CheckmarkBadge01Icon,
+	AiMicIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 export const TAB_KEYS = [
+	"ai",
 	"media",
 	"sounds",
+	"voiceover",
 	"text",
 	"stickers",
 	"effects",
 	"transitions",
 	"captions",
+	"factcheck",
 	"filters",
 	"adjustment",
 	"settings",
@@ -37,6 +43,10 @@ const createHugeiconsIcon =
 	);
 
 export const tabs = {
+	ai: {
+		icon: createHugeiconsIcon({ icon: SparklesIcon }),
+		label: "AI Studio",
+	},
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
 		label: "Media",
@@ -44,6 +54,10 @@ export const tabs = {
 	sounds: {
 		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
 		label: "Sounds",
+	},
+	voiceover: {
+		icon: createHugeiconsIcon({ icon: AiMicIcon }),
+		label: "Voiceover",
 	},
 	text: {
 		icon: createHugeiconsIcon({ icon: TextIcon }),
@@ -59,11 +73,15 @@ export const tabs = {
 	},
 	transitions: {
 		icon: createHugeiconsIcon({ icon: ArrowRightDoubleIcon }),
-		label: "Transitions",
+		label: "Overlays",
 	},
 	captions: {
 		icon: createHugeiconsIcon({ icon: ClosedCaptionIcon }),
-		label: "Captions",
+		label: "Transcript",
+	},
+	factcheck: {
+		icon: createHugeiconsIcon({ icon: CheckmarkBadge01Icon }),
+		label: "Fact Check",
 	},
 	filters: {
 		icon: createHugeiconsIcon({ icon: ColorsIcon }),

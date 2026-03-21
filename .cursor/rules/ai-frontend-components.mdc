@@ -1,0 +1,68 @@
+---
+alwaysApply: false
+---
+# AI Frontend Component Guidelines
+
+When building AI-related UI components for OpenCut AI, follow these patterns.
+
+## Component Location
+
+All AI components go in `apps/web/src/components/editor/ai/` and are re-exported via `index.ts`.
+
+## Design Principles
+
+- **Distinctive, not generic** — avoid cookie-cutter AI aesthetics (purple gradients, Inter font, generic card layouts)
+- **Production-grade** — real working code with polished micro-interactions
+- **Cohesive** — match OpenCut's existing dark editor theme
+- **Accessible** — keyboard navigation, focus states, screen reader support
+- Use **shadcn/ui** primitives (Dialog, ScrollArea, Tooltip, ContextMenu, etc.)
+- Use **cn()** for all className composition — never template literals
+- Use **CSS variables** for theming consistency
+- Use **Motion** library (framer-motion) for React animations
+
+## AI Component Patterns
+
+### Status Indicators
+- Green dot = backend connected, Red dot = disconnected
+- Poll `/health` every 30s via `use-ai-status.ts` hook
+- Memory/GPU status bar via `GET /api/system/memory`
+
+### Streaming/Progress
+- Use WebSocket for long operations (transcription, generation)
+- Show incremental results (segments appearing one by one)
+- Always show cancel button for long-running operations
+
+### Action Preview (Command Panel)
+- LLM returns structured `EditorAction[]` — NEVER auto-apply
+- Show preview cards with "Apply" / "Cancel" buttons
+- User must confirm before actions modify timeline
+
+### Transcript Panel (Lexical)
+- Custom `TranscriptWordNode` with `{ start, end, confidence }` metadata
+- Click word → seek video to timestamp
+- Playback highlights active word
+- Low confidence (< 0.7) = lighter color
+- Filler words = subtle background highlight
+
+## State Management
+
+- AI state: `stores/ai-store.ts`
+- Transcript state: `stores/transcript-store.ts`
+- Access stores directly in sub-components — don't pass store values as props
+- Use selectors for frequently-updating values
+
+## Hooks
+
+| Hook | Purpose |
+|---|---|
+| `use-ai-status` | Polls AI backend health |
+| `use-ai-command` | Sends natural language commands to LLM |
+| `use-transcription` | Triggers transcription, populates store |
+| `use-transcription-stream` | WebSocket streaming for transcription progress |
+
+## Types
+
+All AI types in `types/ai.ts`:
+- `TranscriptionSegment`, `TranscriptionWord`, `TranscriptionResult`
+- `ImageGenParams`, `LLMCommandResult`, `EditorAction`
+- `TTSRequest`, `AudioDenoiseRequest`

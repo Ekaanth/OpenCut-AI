@@ -55,13 +55,11 @@ export async function generateMetadata({
 	};
 }
 
-export async function generateStaticParams() {
-	const data = await getPosts();
-	if (!data || !data.posts.length) return [];
+// Render on-demand — the Marble CMS key may not be available at build time
+export const dynamic = "force-dynamic";
 
-	return data.posts.map((post) => ({
-		slug: post.slug,
-	}));
+export async function generateStaticParams() {
+	return [];
 }
 
 export default async function BlogPostPage({ params }: PageProps) {

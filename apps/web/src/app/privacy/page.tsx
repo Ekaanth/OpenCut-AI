@@ -10,13 +10,13 @@ import { Separator } from "@/components/ui/separator";
 import { SOCIAL_LINKS } from "@/constants/site-constants";
 
 export const metadata: Metadata = {
-	title: "Privacy Policy - OpenCut",
+	title: "Privacy Policy - OpenCut AI",
 	description:
-		"Learn how OpenCut handles your data and privacy. Our commitment to protecting your information while you edit videos.",
+		"Learn how OpenCut AI handles your data and privacy. Our commitment to protecting your information while you edit videos.",
 	openGraph: {
-		title: "Privacy Policy - OpenCut",
+		title: "Privacy Policy - OpenCut AI",
 		description:
-			"Learn how OpenCut handles your data and privacy. Our commitment to protecting your information while you edit videos.",
+			"Learn how OpenCut AI handles your data and privacy. Our commitment to protecting your information while you edit videos.",
 		type: "website",
 	},
 };
@@ -37,40 +37,23 @@ export default function PrivacyPage() {
 					</AccordionTrigger>
 					<AccordionContent>
 						<h3 className="mb-3 text-lg font-medium">
-							Your content stays private and encrypted.
+							Your data never leaves your machine.
 						</h3>
 						<ol className="list-decimal space-y-2 pl-6">
 							<li>
-								Basic editing happens locally in your browser - we never see
-								your files
+								All editing and AI processing happens locally on your machine or self-hosted server
 							</li>
 							<li>
-								AI features require encrypted uploads - your content is
-								encrypted before leaving your device
+								No video, audio, or project data is uploaded to any cloud service
 							</li>
 							<li>
-								We only collect your email and basic profile info for your
-								account
+								AI models (Whisper, TTS, Ollama, Stable Diffusion) run on your hardware
 							</li>
-							<li>Project data stays on your device, not our servers</li>
-							<li>
-								We use analytics to improve the app, but no personal video
-								content is tracked
-							</li>
-							<li>
-								You can delete your account anytime and all data gets removed
-							</li>
-							<li>We don't sell your data or share it with advertisers</li>
+							<li>Project data is stored in your browser using IndexedDB</li>
+							<li>No analytics, no telemetry, no tracking of any kind</li>
+							<li>No account required — the editor works without sign-in</li>
+							<li>The entire codebase is open source and auditable</li>
 						</ol>
-						<p className="mt-4">
-							Questions? Email us at{" "}
-							<a
-								href="mailto:oss@opencut.app"
-								className="text-primary hover:underline"
-							>
-								oss@opencut.app
-							</a>
-						</p>
 					</AccordionContent>
 				</AccordionItem>
 			</Accordion>
@@ -78,106 +61,65 @@ export default function PrivacyPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">How We Handle Your Content</h2>
 				<p>
-					<strong>Basic video editing happens locally on your device.</strong>{" "}
-					For standard editing features, we never upload, store, or have access
-					to your video files. Your content remains completely private and under
-					your control.
+					<strong>Everything runs locally.</strong>{" "}
+					OpenCut AI is a self-hosted application. All video editing, AI transcription,
+					voice generation, image generation, and other AI features run on your
+					machine or your self-hosted server. No data is sent to any external cloud service.
 				</p>
 				<p>
-					<strong>AI features require secure processing:</strong> When you
-					choose to use AI features like auto captions, your audio/video content
-					is encrypted on your device before being uploaded to our servers for
-					processing. We use zero-knowledge encryption, meaning we cannot
-					decrypt or view your content.
-				</p>
-				<p>
-					After AI processing is complete, the encrypted content is immediately
-					deleted from our servers. Only the results (like generated captions)
-					are returned to your device.
+					Your video files, audio files, project data, and generated content
+					never leave your infrastructure. The AI models (Whisper, Coqui TTS,
+					Ollama, Stable Diffusion) run locally inside Docker containers on your hardware.
 				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">Account Information</h2>
-				<p>When you create an account, we only collect:</p>
+				<h2 className="text-2xl font-semibold">AI Processing</h2>
+				<p>All AI features process data locally:</p>
 				<ul className="list-disc space-y-2 pl-6">
-					<li>Email address (for account access)</li>
 					<li>
-						Profile information from Google OAuth (if you choose to sign in with
-						Google)
+						<strong>Transcription:</strong> Whisper runs on your machine — audio is processed locally
+					</li>
+					<li>
+						<strong>Voice generation:</strong> Coqui XTTS v2 runs in a local Docker container
+					</li>
+					<li>
+						<strong>LLM commands:</strong> Ollama runs models locally — no API calls to OpenAI or others
+					</li>
+					<li>
+						<strong>Image generation:</strong> Stable Diffusion runs on your GPU/CPU
+					</li>
+					<li>
+						<strong>Fact checking:</strong> Uses the local LLM, not external APIs
 					</li>
 				</ul>
 				<p>
-					<strong>We do NOT store your projects on our servers.</strong> All
-					project data, including names, thumbnails, and creation dates, is
-					stored locally in your browser using IndexedDB.
-				</p>
-				<p>
-					We use{" "}
-					<a
-						href="https://www.better-auth.com"
-						target="_blank"
-						rel="noopener"
-						className="text-primary hover:underline"
-					>
-						Better Auth
-					</a>{" "}
-					for secure authentication and follow industry-standard security
-					practices.
+					If you configure optional external API keys (OpenAI, ElevenLabs, etc.)
+					in Settings, those services will receive data per their own privacy policies.
+					This is entirely opt-in.
 				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">AI Features & Encryption</h2>
+				<h2 className="text-2xl font-semibold">Data Storage</h2>
 				<p>
-					When you use AI-powered features (like auto captions, content
-					analysis, or enhancement tools), your content needs to be processed on
-					our servers. Here's how we protect your privacy:
+					Project data is stored in your browser using IndexedDB. No account
+					is required. Nothing is stored on external servers.
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
-					<li>
-						<strong>Client-side encryption:</strong> Your content is encrypted
-						on your device before upload
-					</li>
-					<li>
-						<strong>Zero-knowledge processing:</strong> We cannot decrypt or
-						view your original content
-					</li>
-					<li>
-						<strong>Temporary processing:</strong> Encrypted content is deleted
-						immediately after processing
-					</li>
-					<li>
-						<strong>Opt-in only:</strong> AI features are optional - basic
-						editing remains fully local
-					</li>
+					<li>Projects, timelines, and settings are stored in your browser</li>
+					<li>API keys you enter are stored in browser localStorage</li>
+					<li>Generated audio/images are stored in Docker volumes on your machine</li>
+					<li>Clear your browser data at any time to remove everything</li>
 				</ul>
-				<p>
-					Different AI features may process different types of content (audio
-					for captions, video for analysis, etc.), but all follow the same
-					zero-knowledge encryption approach.
-				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">Analytics</h2>
+				<h2 className="text-2xl font-semibold">Analytics & Tracking</h2>
 				<p>
-					We use{" "}
-					<a
-						href="https://www.databuddy.cc"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="text-primary hover:underline"
-					>
-						Databuddy
-					</a>{" "}
-					for completely anonymized and non-invasive analytics to understand how
-					people use OpenCut.
-				</p>
-				<p>
-					This helps us improve the editor, but we never collect personal
-					information, track individual users, or store any data that could
-					identify you.
+					OpenCut AI does not include any analytics, telemetry, or tracking.
+					No data is sent to any external service. The application operates
+					entirely offline once loaded.
 				</p>
 			</section>
 
@@ -197,19 +139,19 @@ export default function PrivacyPage() {
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Third-Party Services</h2>
-				<p>OpenCut integrates with these services:</p>
+				<p>By default, OpenCut AI does not connect to any third-party services. Optional integrations:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
-						<strong>Google OAuth:</strong> For optional Google sign-in (governed
-						by Google's privacy policy)
+						<strong>Freesound:</strong> Sound library search (requires API key in Settings)
 					</li>
 					<li>
-						<strong>Vercel:</strong> For hosting and content delivery
+						<strong>OpenAI / ElevenLabs:</strong> Optional cloud AI APIs (requires API keys in Settings)
 					</li>
 					<li>
-						<strong>Databuddy:</strong> For anonymized analytics
+						<strong>Ollama model registry:</strong> Model downloads when pulling new LLM models
 					</li>
 				</ul>
+				<p>None of these are enabled by default. You choose what to connect.</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
@@ -226,7 +168,7 @@ export default function PrivacyPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Open Source Transparency</h2>
 				<p>
-					OpenCut is completely open source. You can review our code, see
+					OpenCut AI is completely open source. You can review our code, see
 					exactly how we handle data, and even self-host the application if you
 					prefer.
 				</p>
@@ -257,13 +199,6 @@ export default function PrivacyPage() {
 					>
 						GitHub repository
 					</a>
-					, email us at{" "}
-					<a
-						href="mailto:oss@opencut.app"
-						className="text-primary hover:underline"
-					>
-						oss@opencut.app
-					</a>
 					, or reach out on{" "}
 					<a
 						href={SOCIAL_LINKS.x}
@@ -280,7 +215,7 @@ export default function PrivacyPage() {
 			<Separator />
 
 			<p className="text-muted-foreground text-sm">
-				Last updated: July 14, 2025
+				Last updated: March 22, 2026
 			</p>
 		</BasePage>
 	);

@@ -87,7 +87,7 @@ export function useTimelinePlayhead({
 				if (!shouldSnap) return frameTime;
 				const tracks = editor.timeline.getTracks();
 				const bookmarks =
-					editor.scenes.getActiveScene()?.bookmarks ?? [];
+					editor.scenes.getActiveSceneOrNull()?.bookmarks ?? [];
 				const snapPoints = findSnapPoints({
 					tracks,
 					playheadTime: frameTime,

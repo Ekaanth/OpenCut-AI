@@ -3,5 +3,19 @@
 		"figma": {
 			"enabled": true
 		}
-	}
+	},
+	"cSpell.words": [
+		"OCAI",
+		"opencut",
+		"Ollama",
+		"ollama",
+		"uvicorn",
+		"Uvicorn",
+		"Pydantic",
+		"rembg",
+		"Coqui",
+		"XTTS",
+		"noisereduce",
+		"infographics"
+	]
 }

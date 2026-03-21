@@ -132,9 +132,22 @@ export const ACTIONS = {
 		description: "Show/hide selected elements",
 		category: "selection",
 	},
+	"separate-audio": {
+		description: "Separate audio from video",
+		category: "editing",
+	},
+	"freeze-frame": {
+		description: "Insert freeze frame at playhead",
+		category: "editing",
+	},
 	"toggle-bookmark": {
 		description: "Toggle bookmark at playhead",
 		category: "timeline",
+	},
+	"toggle-ai-command-panel": {
+		description: "Toggle AI command panel",
+		category: "controls",
+		defaultShortcuts: ["ctrl+k"],
 	},
 	undo: {
 		description: "Undo",

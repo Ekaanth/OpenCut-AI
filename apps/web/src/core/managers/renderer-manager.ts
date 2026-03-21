@@ -95,7 +95,7 @@ export class RendererManager {
 		onProgress?: ({ progress }: { progress: number }) => void;
 		onCancel?: () => boolean;
 	}): Promise<ExportResult> {
-		const { format, quality, fps, includeAudio } = options;
+		const { format, quality, fps, includeAudio, includeWatermark } = options;
 
 		try {
 			const tracks = this.editor.timeline.getTracks();
@@ -137,6 +137,7 @@ export class RendererManager {
 				height: canvasSize.height,
 				fps: exportFps,
 				format,
+				watermark: includeWatermark ?? true,
 				quality,
 				shouldIncludeAudio: !!includeAudio,
 				audioBuffer: audioBuffer || undefined,

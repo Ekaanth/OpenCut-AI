@@ -29,7 +29,7 @@ import {
 	SectionTitle,
 } from "@/components/editor/panels/properties/section";
 import { useEditor } from "@/hooks/use-editor";
-import { DEFAULT_EXPORT_OPTIONS } from "@/constants/export-constants";
+import { DEFAULT_EXPORT_OPTIONS, EXPORT_PRESETS } from "@/constants/export-constants";
 
 function isExportFormat(value: string): value is ExportFormat {
 	return EXPORT_FORMAT_VALUES.some((formatValue) => formatValue === value);
@@ -94,6 +94,7 @@ function ExportPopover({
 	const activeProject = editor.project.getActive();
 	const { isExporting, progress, result: exportResult } =
 		editor.project.getExportState();
+	const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 	const [format, setFormat] = useState<ExportFormat>(
 		DEFAULT_EXPORT_OPTIONS.format,
 	);
@@ -103,6 +104,18 @@ function ExportPopover({
 	const [shouldIncludeAudio, setShouldIncludeAudio] = useState<boolean>(
 		DEFAULT_EXPORT_OPTIONS.includeAudio ?? true,
 	);
+	const [shouldIncludeWatermark, setShouldIncludeWatermark] = useState(true);
+
+	const handlePresetSelect = (presetId: string) => {
+		const preset = EXPORT_PRESETS.find((p) => p.id === presetId);
+		if (!preset) return;
+		setSelectedPresetId(presetId);
+		if (isExportFormat(preset.options.format)) setFormat(preset.options.format);
+		if (isExportQuality(preset.options.quality)) setQuality(preset.options.quality);
+		setShouldIncludeAudio(preset.options.includeAudio ?? true);
+	};
+
+	const selectedPreset = EXPORT_PRESETS.find((p) => p.id === selectedPresetId);
 
 	const handleExport = async () => {
 		if (!activeProject) return;
@@ -113,6 +126,7 @@ function ExportPopover({
 			quality,
 			fps: activeProject.settings.fps,
 			includeAudio: shouldIncludeAudio,
+			includeWatermark: shouldIncludeWatermark,
 			},
 		});
 
@@ -155,6 +169,35 @@ function ExportPopover({
 					<div className="flex flex-col gap-4">
 						{!isExporting && (
 							<>
+								{/* Platform presets */}
+								<div className="px-3 pt-3 pb-0">
+									<p className="text-xs font-medium text-muted-foreground mb-2">
+										Export for
+									</p>
+									<div className="flex flex-wrap gap-1.5">
+										{EXPORT_PRESETS.filter((p) => p.id !== "custom").map((preset) => (
+											<button
+												key={preset.id}
+												type="button"
+												className={cn(
+													"rounded-md px-2.5 py-1 text-[11px] border transition-colors",
+													selectedPresetId === preset.id
+														? "border-primary bg-primary/10 text-primary"
+														: "border-border hover:bg-accent text-muted-foreground",
+												)}
+												onClick={() => handlePresetSelect(preset.id)}
+											>
+												{preset.name}
+											</button>
+										))}
+									</div>
+									{selectedPreset?.tip && (
+										<p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+											{selectedPreset.tip}
+										</p>
+									)}
+								</div>
+
 								<div className="flex flex-col">
 									<Section collapsible defaultOpen={false} showTopBorder={false}>
 										<SectionHeader>
@@ -236,6 +279,31 @@ function ExportPopover({
 												<Label htmlFor="include-audio">
 													Include audio in export
 												</Label>
+											</div>
+										</SectionContent>
+									</Section>
+
+									<Section showTopBorder>
+										<SectionHeader>
+											<SectionTitle>Watermark</SectionTitle>
+										</SectionHeader>
+										<SectionContent>
+											<div className="flex items-start space-x-2">
+												<Checkbox
+													id="include-watermark"
+													checked={shouldIncludeWatermark}
+													onCheckedChange={(checked) =>
+														setShouldIncludeWatermark(!!checked)
+													}
+												/>
+												<div className="flex flex-col gap-0.5">
+													<Label htmlFor="include-watermark">
+														Include OpenCut AI watermark
+													</Label>
+													<p className="text-[10px] text-muted-foreground leading-relaxed">
+														This is open-source software. Including the watermark helps spread the word and support the project.
+													</p>
+												</div>
 											</div>
 										</SectionContent>
 									</Section>
