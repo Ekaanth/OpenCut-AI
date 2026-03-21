@@ -44,7 +44,7 @@ import {
 	ArrowDown02Icon,
 	InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
-import { OcVideoIcon } from "@opencut/ui/icons";
+import { OcVideoIcon } from "@opencut-ai/ui/icons";
 import { Label } from "@/components/ui/label";
 import {
 	ContextMenu,

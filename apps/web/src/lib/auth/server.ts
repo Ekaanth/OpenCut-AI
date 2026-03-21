@@ -2,7 +2,7 @@ import { betterAuth, type RateLimit } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { Redis } from "@upstash/redis";
 import { db } from "@/lib/db";
-import { webEnv } from "@opencut/env/web";
+import { webEnv } from "@opencut-ai/env/web";
 
 const redis = new Redis({
 	url: webEnv.UPSTASH_REDIS_REST_URL,

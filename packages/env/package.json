@@ -1,7 +1,7 @@
 {
-	"name": "@opencut/env",
+	"name": "@opencut-ai/env",
 	"version": "0.0.0",
-	"description": "Environment package for OpenCut",
+	"description": "Environment package for OpenCut AI",
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
 	"exports": {
