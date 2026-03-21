@@ -180,10 +180,10 @@ export default function BrandPage() {
 						we made or endorse your product, or use the marks commercially
 						without asking first. For anything unclear, reach out at{" "}
 						<Link
-							href="mailto:brand@opencut.app"
+							href="https://x.com/humblefool"
 							className="underline underline-offset-4"
 						>
-							brand@opencut.app
+							@humblefool
 						</Link>
 						.
 					</p>
