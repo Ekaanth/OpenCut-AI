@@ -1,0 +1,616 @@
+{
+  "blameprompt_version": "1.0.0",
+  "receipts": [
+    {
+      "id": "1055359f-4a51-4643-a060-3179a70ced30",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "8227c661-cf63-474a-be33-9b58f69c5699",
+      "prompt_summary": "Okay, update the license from OpenCut to OpenCut-AI.",
+      "response_summary": "Done. Updated the copyright holder from \"OpenCut\" to \"OpenCut-AI\".",
+      "prompt_hash": "sha256:bcd82f4e6e2fb265ca1e6a7e1df382a54ed95c34d6a6c795534d27cc1dd5550d",
+      "message_count": 1659,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-21T20:26:26.086Z",
+      "session_start": "2026-03-21T13:58:22.528Z",
+      "session_end": "2026-03-21T20:26:48.238Z",
+      "session_duration_secs": 23305,
+      "ai_response_time_secs": 7.428620955315869,
+      "prompt_submitted_at": "2026-03-21T20:26:26.528944Z",
+      "prompt_duration_secs": 30,
+      "accepted_lines": 1,
+      "overridden_lines": 0,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "LICENSE",
+      "line_range": [
+        1,
+        1
+      ],
+      "files_changed": [
+        {
+          "path": "LICENSE",
+          "line_range": [
+            1,
+            1
+          ],
+          "blob_hash": "0231202a9b05de65f14a8941a51c3af216e9629c",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "prompt_number": 52,
+      "total_additions": 1,
+      "total_deletions": 1,
+      "tools_used": [
+        "Edit",
+        "Read"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "Okay, update the license from OpenCut to OpenCut-AI."
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Read(file: \"LICENSE\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "LICENSE"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Edit(file: \"LICENSE\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "LICENSE"
+          ]
+        },
+        {
+          "turn": 3,
+          "role": "assistant",
+          "content": "Done. Updated the copyright holder from \"OpenCut\" to \"OpenCut-AI\"."
+        }
+      ],
+      "prompt_quality": {
+        "score": 47,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "0bd8aecc-e1f4-4396-9115-aa7418c56ae1",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "8227c661-cf63-474a-be33-9b58f69c5699",
+      "prompt_summary": "Update the package.json, tsconfig.json, turbo.json to OpenCut AI.",
+      "response_summary": "All done. Here's what was updated:\n\n| File | Old | New |\n|---|---|---|\n| `package.json` (root) | `opencut` | `opencut-ai` |\n| `package.json` scripts | `@opencut/web`, `@opencut/tools` | `@opencut-ai/web`, `@opencut-ai/tools` |\n| `apps/web/package.json` | `@opencut/web` | `@opencut-ai/web` |\n| `apps/web/package.json` deps | `@opencut/env`, `@opencut/ui` | `@opencut-ai/env`, `@opencut-ai/ui` |\n| `packages/ui/package.json` | `@opencut/ui` | `@opencut-ai/ui` |\n| `packages/env/package.json` | `@opencut/env` | `@opencut-ai/env` |\n| All source imports | `@opencut/ui`, `@opencut/env` | `@opencut-ai/ui`, `@opencut-ai/env` |\n| `drizzle.config.ts` | `@opencut/env/web` | `@opencut-ai/env/web` |\n| `README.md` logo | broken path | `apps/web/public/favicon.png` |\n\nWorkspace re-installed and type check passes.",
+      "prompt_hash": "sha256:5ff5f4cb06a31f382e14bc7caa22ae46c66e900d2272d560ed02849716a64ec7",
+      "message_count": 1733,
+      "cost_usd": 3.289704,
+      "input_tokens": 12,
+      "output_tokens": 14,
+      "cache_read_tokens": 6536888,
+      "cache_creation_tokens": 3336,
+      "timestamp": "2026-03-21T20:27:21.059Z",
+      "session_start": "2026-03-21T13:58:22.528Z",
+      "session_end": "2026-03-21T20:31:37.106Z",
+      "session_duration_secs": 23594,
+      "ai_response_time_secs": 7.420233823529408,
+      "prompt_submitted_at": "2026-03-21T20:27:21.383096Z",
+      "prompt_duration_secs": 268,
+      "accepted_lines": 37,
+      "overridden_lines": 0,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "package.json",
+      "line_range": [
+        2,
+        13
+      ],
+      "files_changed": [
+        {
+          "path": "package.json",
+          "line_range": [
+            2,
+            13
+          ],
+          "blob_hash": "850b8c71f9e2cd5e5c14c2224102feea7e66e4ee",
+          "additions": 6,
+          "deletions": 6
+        },
+        {
+          "path": "apps/web/package.json",
+          "line_range": [
+            2,
+            28
+          ],
+          "blob_hash": "f4e98cc5d94012b4f0574cd4bf563eacaaa4765b",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "packages/ui/package.json",
+          "line_range": [
+            2,
+            4
+          ],
+          "blob_hash": "254a3f739422506507e6ffb282698891976fafea",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "packages/env/package.json",
+          "line_range": [
+            2,
+            4
+          ],
+          "blob_hash": "5e61665e46ae90b781aa118bb3965e9c60ef829e",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "README.md",
+          "line_range": [
+            4,
+            4
+          ],
+          "blob_hash": "c087e444cd700d27db013c31cd5e1db4f18faa25",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/drizzle.config.ts",
+          "line_range": [
+            3,
+            3
+          ],
+          "blob_hash": "e985a1b4403de7c691ea80966d169496fd2dbe13",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/app/api/sounds/search/route.ts",
+          "line_range": [
+            1,
+            1
+          ],
+          "blob_hash": "e7123bea1145f45b888fb77a6733be74b50b8f69",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/app/layout.tsx",
+          "line_range": [
+            8,
+            8
+          ],
+          "blob_hash": "5d2d0bc2802f0d7938629deab03d411f36555e9b",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/app/projects/page.tsx",
+          "line_range": [
+            47,
+            47
+          ],
+          "blob_hash": "ba9ec9f9304e114a387393d085415f7808563555",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/assets/views/stickers.tsx",
+          "line_range": [
+            37,
+            37
+          ],
+          "blob_hash": "8848fe2e83244c9bd4f654974a9a15e6d78fc9dc",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/preview/toolbar.tsx",
+          "line_range": [
+            14,
+            14
+          ],
+          "blob_hash": "5f3eb02b83f9e1dda3249dea903d5f952970bb79",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/properties/sections/blending.tsx",
+          "line_range": [
+            8,
+            8
+          ],
+          "blob_hash": "2f4c6fcdf3d7557d8775324878a38695cca5ed83",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/properties/text-properties.tsx",
+          "line_range": [
+            44,
+            44
+          ],
+          "blob_hash": "f272ed803f6798c0619a1f83b5bc9a3a381808be",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/constants/timeline-constants.tsx",
+          "line_range": [
+            11,
+            11
+          ],
+          "blob_hash": "4b60289d4f22d0903d50dd5d07c7d23e8fa424ef",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/lib/auth/client.ts",
+          "line_range": [
+            2,
+            2
+          ],
+          "blob_hash": "cfa7f2144dec3dda2509b152db97b17da16f98af",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/lib/auth/server.ts",
+          "line_range": [
+            5,
+            5
+          ],
+          "blob_hash": "b06a04eee7f9f6b4215e8c6a09dff80f084aaa3c",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/lib/db/index.ts",
+          "line_range": [
+            4,
+            4
+          ],
+          "blob_hash": "553b70dad5f234ef44e60f4085b6042ab07529c7",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/lib/rate-limit.ts",
+          "line_range": [
+            3,
+            3
+          ],
+          "blob_hash": "6cab33b09701109ee699bab1c170417f59ca1e13",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/tsconfig.tsbuildinfo",
+          "line_range": [
+            1,
+            1
+          ],
+          "blob_hash": "e7c692f742ea5d93b1510415b1011175b2649497",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "bun.lock",
+          "line_range": [
+            19,
+            1387
+          ],
+          "blob_hash": "92b54bbeed610bce0764ab1a01029963c0415a3e",
+          "additions": 9,
+          "deletions": 9
+        }
+      ],
+      "parent_receipt_id": "1055359f-4a51-4643-a060-3179a70ced30",
+      "prompt_number": 53,
+      "total_additions": 22,
+      "total_deletions": 22,
+      "tools_used": [
+        "Bash",
+        "Edit",
+        "Grep",
+        "Read"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "Update the package.json, tsconfig.json, turbo.json to OpenCut AI."
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Grep(pattern: \"\"name\".*opencut|\"name\".*OpenCut\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Grep(pattern: \"\"opencut\"\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Read(file: \"package.json\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 4,
+          "role": "tool",
+          "content": "Read(file: \"package.json\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 5,
+          "role": "tool",
+          "content": "Read(file: \"package.json\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 6,
+          "role": "tool",
+          "content": "Read(file: \"package.json\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 7,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 8,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 9,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 10,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 11,
+          "role": "assistant",
+          "content": "Now update all internal references to the old package names:"
+        },
+        {
+          "turn": 12,
+          "role": "tool",
+          "content": "Grep(pattern: \"\"@opencut/(web|ui|env)\"\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 13,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 14,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 15,
+          "role": "tool",
+          "content": "Grep(pattern: \"@opencut/(ui|env)\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 16,
+          "role": "tool",
+          "content": "Bash(command: \"find apps/web/src packages -name \"*.ts\" -o -name \"*.tsx\" | xargs perl -pi -e 's|...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 17,
+          "role": "tool",
+          "content": "Grep(pattern: \"@opencut/\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 18,
+          "role": "tool",
+          "content": "Grep(pattern: \"opencut\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 19,
+          "role": "assistant",
+          "content": "Now fix the README logo. Let me check what's there:"
+        },
+        {
+          "turn": 20,
+          "role": "tool",
+          "content": "Read(file: \"README.md\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 21,
+          "role": "assistant",
+          "content": "The logo path `apps/web/public/logos/opencut/1k/logo-white-black.png` doesn't exist anymore (the logos directory was removed). Let me use the favicon.png which does exist:"
+        },
+        {
+          "turn": 22,
+          "role": "tool",
+          "content": "Edit(file: \"README.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 23,
+          "role": "assistant",
+          "content": "The env package has a subpath export. Let me check:"
+        },
+        {
+          "turn": 24,
+          "role": "tool",
+          "content": "Read(file: \"package.json\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 25,
+          "role": "assistant",
+          "content": "The package name was changed but the workspace resolution needs a re-install. Let me also check if there are more import references that use the subpath:"
+        },
+        {
+          "turn": 26,
+          "role": "tool",
+          "content": "Grep(pattern: \"@opencut/\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 27,
+          "role": "assistant",
+          "content": "There are still references in the root `package.json` scripts and `drizzle.config.ts`. Let me fix them:"
+        },
+        {
+          "turn": 28,
+          "role": "tool",
+          "content": "Read(file: \"package.json\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 29,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 30,
+          "role": "tool",
+          "content": "Edit(file: \"package.json\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "package.json"
+          ]
+        },
+        {
+          "turn": 31,
+          "role": "tool",
+          "content": "Read(file: \"drizzle.config.ts\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "drizzle.config.ts"
+          ]
+        },
+        {
+          "turn": 32,
+          "role": "tool",
+          "content": "Edit(file: \"drizzle.config.ts\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "drizzle.config.ts"
+          ]
+        },
+        {
+          "turn": 33,
+          "role": "assistant",
+          "content": "Now check for any remaining `@opencut/` references:"
+        },
+        {
+          "turn": 34,
+          "role": "tool",
+          "content": "Grep(pattern: \"@opencut/\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 35,
+          "role": "assistant",
+          "content": "All clean. Now run `bun install` to re-link the workspace packages:"
+        },
+        {
+          "turn": 36,
+          "role": "tool",
+          "content": "Bash(command: \"bun install 2>&1 | tail -5\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 37,
+          "role": "tool",
+          "content": "Bash(command: \"~/.bun/bin/bun install 2>&1 | tail -10\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 38,
+          "role": "tool",
+          "content": "Bash(command: \"node node_modules/typescript/bin/tsc --noEmit --project apps/web/tsconfig.json 2...\")",
+          "tool_name": "Bash"
+        }
+      ],
+      "prompt_quality": {
+        "score": 58,
+        "rating": "Fair",
+        "category": "other"
+      }
+    }
+  ]
+}
