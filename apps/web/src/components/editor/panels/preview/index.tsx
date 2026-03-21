@@ -16,6 +16,7 @@ import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { usePreviewStore } from "@/stores/preview-store";
 import { PreviewContextMenu } from "./context-menu";
 import { PreviewToolbar } from "./toolbar";
+import { FramePresetPicker } from "./frame-preset-picker";
 
 function usePreviewSize() {
 	const editor = useEditor();
@@ -36,6 +37,9 @@ export function PreviewPanel() {
 			ref={containerRef}
 			className="panel bg-background relative flex size-full min-h-0 min-w-0 flex-col rounded-sm border"
 		>
+			<div className="flex items-center justify-center border-b">
+				<FramePresetPicker />
+			</div>
 			<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-2 pb-0">
 				<PreviewCanvas
 					onToggleFullscreen={toggleFullscreen}

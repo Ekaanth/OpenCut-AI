@@ -17,7 +17,7 @@ export const baseMetaData: Metadata = {
 				url: SITE_INFO.openGraphImage,
 				width: 1200,
 				height: 630,
-				alt: "OpenCut Wordmark",
+				alt: "OpenCut AI — A fork of OpenCut with AI on top",
 			},
 		],
 	},
@@ -37,10 +37,12 @@ export const baseMetaData: Metadata = {
 	},
 	icons: {
 		icon: [
-			{ url: "/favicon.ico" },
+			{ url: "/favicon.svg", type: "image/svg+xml" },
 			{ url: "/icons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
 			{ url: "/icons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
 			{ url: "/icons/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+			{ url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+			{ url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
 		],
 		apple: [
 			{ url: "/icons/apple-icon-57x57.png", sizes: "57x57", type: "image/png" },
@@ -73,7 +75,7 @@ export const baseMetaData: Metadata = {
 				type: "image/png",
 			},
 		],
-		shortcut: ["/favicon.ico"],
+		shortcut: ["/favicon.svg"],
 	},
 	appleWebApp: {
 		capable: true,

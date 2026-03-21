@@ -1,0 +1,6 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+requests>=2.31.0
+faster-whisper==1.0.3
+aiofiles==24.1.0

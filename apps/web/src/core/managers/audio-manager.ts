@@ -238,72 +238,91 @@ export class AudioManager {
 		const sourceStartTime =
 			clip.trimStart + (iteratorStartTime - clip.startTime);
 
-		const iterator = sink.buffers(sourceStartTime);
+		let iterator: AsyncGenerator<WrappedAudioBuffer, void, unknown>;
+		try {
+			iterator = sink.buffers(sourceStartTime);
+		} catch {
+			return; // Sink may have been disposed
+		}
 		this.clipIterators.set(clip.id, iterator);
 		let consecutiveDroppedBufferCount = 0;
 
-		for await (const { buffer, timestamp } of iterator) {
-			if (!this.editor.playback.getIsPlaying()) return;
-			if (sessionId !== this.playbackSessionId) return;
+		try {
+			for await (const { buffer, timestamp } of iterator) {
+				if (!this.editor.playback.getIsPlaying()) return;
+				if (sessionId !== this.playbackSessionId) return;
 
-			const timelineTime = clip.startTime + (timestamp - clip.trimStart);
-			if (timelineTime >= clipEnd) break;
+				const timelineTime = clip.startTime + (timestamp - clip.trimStart);
+				if (timelineTime >= clipEnd) break;
 
-			const node = audioContext.createBufferSource();
-			node.buffer = buffer;
-			node.connect(this.masterGain ?? audioContext.destination);
+				const node = audioContext.createBufferSource();
+				node.buffer = buffer;
 
-			const startTimestamp =
-				this.playbackStartContextTime +
-				this.playbackLatencyCompensationSeconds +
-				(timelineTime - this.playbackStartTime);
+				// Apply per-clip volume via a GainNode
+				const clipVolume = clip.volume ?? 1;
+				if (clipVolume < 1 && this.masterGain) {
+					const clipGain = audioContext.createGain();
+					clipGain.gain.value = clipVolume;
+					node.connect(clipGain);
+					clipGain.connect(this.masterGain);
+				} else {
+					node.connect(this.masterGain ?? audioContext.destination);
+				}
 
-			if (startTimestamp >= audioContext.currentTime) {
-				node.start(startTimestamp);
-				consecutiveDroppedBufferCount = 0;
-			} else {
-				const offset = audioContext.currentTime - startTimestamp;
-				if (offset < buffer.duration) {
-					node.start(audioContext.currentTime, offset);
+				const startTimestamp =
+					this.playbackStartContextTime +
+					this.playbackLatencyCompensationSeconds +
+					(timelineTime - this.playbackStartTime);
+
+				if (startTimestamp >= audioContext.currentTime) {
+					node.start(startTimestamp);
 					consecutiveDroppedBufferCount = 0;
 				} else {
-					consecutiveDroppedBufferCount += 1;
-					if (consecutiveDroppedBufferCount >= 5) {
-						const nextCompensationSeconds = Math.max(
-							this.playbackLatencyCompensationSeconds,
-							Math.min(0.25, offset + 0.01),
-						);
-						if (
-							nextCompensationSeconds >
-							this.playbackLatencyCompensationSeconds + 0.001
-						) {
-							this.playbackLatencyCompensationSeconds =
-								nextCompensationSeconds;
+					const offset = audioContext.currentTime - startTimestamp;
+					if (offset < buffer.duration) {
+						node.start(audioContext.currentTime, offset);
+						consecutiveDroppedBufferCount = 0;
+					} else {
+						consecutiveDroppedBufferCount += 1;
+						if (consecutiveDroppedBufferCount >= 5) {
+							const nextCompensationSeconds = Math.max(
+								this.playbackLatencyCompensationSeconds,
+								Math.min(0.25, offset + 0.01),
+							);
+							if (
+								nextCompensationSeconds >
+								this.playbackLatencyCompensationSeconds + 0.001
+							) {
+								this.playbackLatencyCompensationSeconds =
+									nextCompensationSeconds;
+							}
+							const resyncStartTime = this.getPlaybackTime();
+							this.clipIterators.delete(clip.id);
+							void this.runClipIterator({
+								clip,
+								startTime: resyncStartTime,
+								sessionId,
+							});
+							return;
 						}
-						const resyncStartTime = this.getPlaybackTime();
-						this.clipIterators.delete(clip.id);
-						void this.runClipIterator({
-							clip,
-							startTime: resyncStartTime,
-							sessionId,
-						});
-						return;
+						continue;
 					}
-					continue;
+				}
+
+				this.queuedSources.add(node);
+				node.addEventListener("ended", () => {
+					node.disconnect();
+					this.queuedSources.delete(node);
+				});
+
+				const aheadTime = timelineTime - this.getPlaybackTime();
+				if (aheadTime >= 1) {
+					await this.waitUntilCaughtUp({ timelineTime, targetAhead: 1 });
+					if (sessionId !== this.playbackSessionId) return;
 				}
 			}
-
-			this.queuedSources.add(node);
-			node.addEventListener("ended", () => {
-				node.disconnect();
-				this.queuedSources.delete(node);
-			});
-
-			const aheadTime = timelineTime - this.getPlaybackTime();
-			if (aheadTime >= 1) {
-				await this.waitUntilCaughtUp({ timelineTime, targetAhead: 1 });
-				if (sessionId !== this.playbackSessionId) return;
-			}
+		} catch {
+			// Input may have been disposed (e.g., track deleted during playback)
 		}
 
 		this.clipIterators.delete(clip.id);

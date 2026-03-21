@@ -41,10 +41,13 @@ export function TimelinePlayhead({
 		playheadRef,
 	});
 
-	const timelineContainerHeight =
-		tracksScrollRef.current?.clientHeight ??
-		timelineRef.current?.clientHeight ??
-		400;
+	// Use scrollHeight (total content) so the playhead extends through all tracks,
+	// not just the visible viewport
+	const timelineContainerHeight = Math.max(
+		tracksScrollRef.current?.scrollHeight ?? 0,
+		tracksScrollRef.current?.clientHeight ?? 0,
+		timelineRef.current?.clientHeight ?? 400,
+	);
 	const totalHeight = Math.max(0, timelineContainerHeight - 4);
 
 	const centerPosition = timelineTimeToSnappedPixels({

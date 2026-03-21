@@ -128,12 +128,24 @@ export interface TextBackground {
 	offsetY?: number;
 }
 
+export interface TextWordTiming {
+	word: string;
+	/** Start time relative to the element's own start (local time) */
+	start: number;
+	/** End time relative to the element's own start (local time) */
+	end: number;
+}
+
 export interface TextElement extends BaseTimelineElement {
 	type: "text";
 	content: string;
 	fontSize: number;
 	fontFamily: string;
 	color: string;
+	/** Color used to highlight words as they are spoken (karaoke-style) */
+	highlightColor?: string;
+	/** Word-level timing for karaoke-style highlighting */
+	wordTimings?: TextWordTiming[];
 	background: TextBackground;
 	textAlign: "left" | "center" | "right";
 	fontWeight: "normal" | "bold";

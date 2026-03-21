@@ -8,3 +8,5 @@
 .next/
 
 .font-cache/
+# BlamePrompt staging (auto-generated)
+.blameprompt/

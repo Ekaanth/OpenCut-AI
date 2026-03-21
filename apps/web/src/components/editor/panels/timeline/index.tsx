@@ -2,6 +2,11 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
 	Delete02Icon,
 	TaskAdd02Icon,
 	ViewIcon,
@@ -250,17 +255,17 @@ export function Timeline() {
 					isVisible={showSnapIndicator}
 				/>
 				<div className="flex flex-1 overflow-hidden">
-					<div className="bg-background flex w-28 shrink-0 flex-col border-r">
-						<div className="bg-background flex h-4 items-center justify-between px-3">
+					<div className="bg-background flex w-36 shrink-0 flex-col border-r overflow-hidden">
+						<div className="bg-background flex h-4 items-center justify-between px-3 shrink-0">
 							<span className="opacity-0">.</span>
 						</div>
-						<div className="bg-background flex h-4 items-center justify-between px-3">
+						<div className="bg-background flex h-4 items-center justify-between px-3 shrink-0">
 							<span className="opacity-0">.</span>
 						</div>
 						{tracks.length > 0 && (
 							<div
 								ref={trackLabelsRef}
-								className="bg-background flex-1 overflow-y-auto"
+								className="bg-background flex-1 min-h-0 overflow-y-auto"
 								style={{ paddingTop: TIMELINE_CONSTANTS.PADDING_TOP_PX }}
 							>
 								<ScrollArea className="size-full" ref={trackLabelsScrollRef}>
@@ -268,16 +273,14 @@ export function Timeline() {
 										{tracks.map((track) => (
 											<div
 												key={track.id}
-												className="group flex items-center px-3"
+												className="group flex items-center gap-1 px-2"
 												style={{
 													height: `${getTrackHeight({ type: track.type })}px`,
 												}}
 											>
-												<div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-													{process.env.NODE_ENV === "development" &&
-														isMainTrack(track) && (
-															<div className="bg-red-500 size-1.5 rounded-full" />
-														)}
+												<TrackIcon track={track} />
+												<TrackLabel track={track} />
+												<div className="flex items-center gap-0.5 shrink-0">
 													{canTracktHaveAudio(track) && (
 														<TrackToggleIcon
 															isOff={track.muted}
@@ -306,7 +309,6 @@ export function Timeline() {
 															}
 														/>
 													)}
-													<TrackIcon track={track} />
 												</div>
 											</div>
 										))}
@@ -339,7 +341,7 @@ export function Timeline() {
 							headerHeight={timelineHeaderHeight}
 						/>
 						<ScrollArea
-							className="size-full overflow-y-hidden"
+							className="size-full"
 							ref={tracksScrollRef}
 							onMouseDown={(event) => {
 								const isDirectTarget = event.target === event.currentTarget;
@@ -544,7 +546,75 @@ export function Timeline() {
 }
 
 function TrackIcon({ track }: { track: TimelineTrack }) {
-	return <>{TRACK_CONFIG[track.type].icon}</>;
+	const config = TRACK_CONFIG[track.type];
+	return (
+		<span className="flex items-center shrink-0">{config.icon}</span>
+	);
+}
+
+function TrackLabel({ track }: { track: TimelineTrack }) {
+	const editor = useEditor();
+	const config = TRACK_CONFIG[track.type];
+	const [isEditing, setIsEditing] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const displayName = track.name || config.defaultName;
+
+	const handleStartEdit = () => {
+		setIsEditing(true);
+		requestAnimationFrame(() => {
+			inputRef.current?.select();
+		});
+	};
+
+	const handleCommit = () => {
+		setIsEditing(false);
+		const newName = inputRef.current?.value.trim() ?? "";
+		if (newName && newName !== track.name) {
+			editor.timeline.renameTrack({ trackId: track.id, name: newName });
+		}
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			inputRef.current?.blur();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			if (inputRef.current) inputRef.current.value = displayName;
+			setIsEditing(false);
+		}
+	};
+
+	if (isEditing) {
+		return (
+			<input
+				ref={inputRef}
+				type="text"
+				defaultValue={displayName}
+				onBlur={handleCommit}
+				onKeyDown={handleKeyDown}
+				className="min-w-0 flex-1 rounded-sm bg-accent px-1 py-0.5 text-[10px] font-medium outline-none ring-1 ring-ring"
+			/>
+		);
+	}
+
+	return (
+		<Tooltip delayDuration={300}>
+			<TooltipTrigger asChild>
+				<button
+					type="button"
+					onClick={handleStartEdit}
+					className="min-w-0 flex-1 truncate rounded-sm px-1 py-0.5 text-left text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-text"
+				>
+					{displayName}
+				</button>
+			</TooltipTrigger>
+			<TooltipContent side="right" sideOffset={8}>
+				<p className="text-xs font-medium">{displayName}</p>
+				<p className="text-[10px] text-muted-foreground">Click to rename</p>
+			</TooltipContent>
+		</Tooltip>
+	);
 }
 
 function TrackToggleIcon({

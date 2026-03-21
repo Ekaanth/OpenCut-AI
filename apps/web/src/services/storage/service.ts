@@ -16,6 +16,35 @@ import {
 } from "@/services/storage/migrations";
 import type { Bookmark, TimelineTrack, TScene } from "@/types/timeline";
 
+const MIME_TYPES: Record<string, string> = {
+	".mp4": "video/mp4",
+	".webm": "video/webm",
+	".mov": "video/quicktime",
+	".avi": "video/x-msvideo",
+	".mkv": "video/x-matroska",
+	".flv": "video/x-flv",
+	".wmv": "video/x-ms-wmv",
+	".mp3": "audio/mpeg",
+	".wav": "audio/wav",
+	".ogg": "audio/ogg",
+	".aac": "audio/aac",
+	".flac": "audio/flac",
+	".m4a": "audio/mp4",
+	".wma": "audio/x-ms-wma",
+	".png": "image/png",
+	".jpg": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif": "image/gif",
+	".webp": "image/webp",
+	".svg": "image/svg+xml",
+	".bmp": "image/bmp",
+};
+
+function getMimeType(filename: string): string {
+	const ext = filename.slice(filename.lastIndexOf(".")).toLowerCase();
+	return MIME_TYPES[ext] ?? "";
+}
+
 function normalizeBookmarks({ raw }: { raw: unknown }): Bookmark[] {
 	if (!Array.isArray(raw)) return [];
 	return raw
@@ -273,28 +302,37 @@ class StorageService {
 
 		if (!file || !metadata) return null;
 
+		// OPFS loses the original filename and MIME type — reconstruct from metadata
+		const restoredFile =
+			file.name === metadata.name && file.type
+				? file
+				: new File([file], metadata.name, {
+						type: file.type || getMimeType(metadata.name),
+						lastModified: file.lastModified,
+					});
+
 		let url: string;
-		if (metadata.type === "image" && (!file.type || file.type === "")) {
+		if (metadata.type === "image" && (!restoredFile.type || restoredFile.type === "")) {
 			try {
-				const text = await file.text();
+				const text = await restoredFile.text();
 				if (text.trim().startsWith("<svg")) {
 					const svgBlob = new Blob([text], { type: "image/svg+xml" });
 					url = URL.createObjectURL(svgBlob);
 				} else {
-					url = URL.createObjectURL(file);
+					url = URL.createObjectURL(restoredFile);
 				}
 			} catch {
-				url = URL.createObjectURL(file);
+				url = URL.createObjectURL(restoredFile);
 			}
 		} else {
-			url = URL.createObjectURL(file);
+			url = URL.createObjectURL(restoredFile);
 		}
 
 		return {
 			id: metadata.id,
 			name: metadata.name,
 			type: metadata.type,
-			file,
+			file: restoredFile,
 			url,
 			width: metadata.width,
 			height: metadata.height,

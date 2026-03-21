@@ -1,0 +1,99 @@
+---
+alwaysApply: true
+---
+
+# OpenCut AI — Project Context
+
+## Architecture
+
+Monorepo with three main areas:
+
+| Area               | Path                   | Stack                                                    |
+| ------------------ | ---------------------- | -------------------------------------------------------- |
+| Web app (frontend) | `apps/web/`            | Next.js, React, TypeScript, Zustand, Tailwind, shadcn/ui |
+| AI backend         | `services/ai-backend/` | Python, FastAPI, uvicorn                                 |
+| Shared packages    | `packages/`            | TypeScript                                               |
+
+Package manager: **Bun** (not npm/yarn/pnpm)
+Database: PostgreSQL + Drizzle ORM
+Auth: Better Auth
+Cache: Upstash Redis
+
+## Key Directories
+
+```
+apps/web/src/
+├── components/editor/     # Editor UI — panels, dialogs, AI components
+│   ├── ai/                # AI-specific components (command panel, transcription, voiceover, etc.)
+│   ├── panels/            # Editor panels (timeline, properties, assets)
+│   └── dialogs/           # Modal dialogs
+├── stores/                # Zustand stores (state management)
+├── hooks/                 # React hooks (actions, timeline, AI)
+├── lib/                   # Business logic, utilities, API clients
+│   ├── ai-client.ts       # TypeScript client for AI backend
+│   ├── ai-action-executor.ts  # Maps LLM actions → store mutations
+│   ├── infographic-templates/  # React templates for overlays
+│   └── timeline/          # Timeline manipulation logic
+├── types/                 # TypeScript type definitions
+│   ├── ai.ts              # AI feature types
+│   ├── timeline.ts        # Timeline/track/clip types
+│   └── transcription.ts   # Transcription types
+└── constants/             # App-wide constants
+
+services/ai-backend/
+├── app/
+│   ├── main.py            # FastAPI app, CORS, routers
+│   ├── config.py          # Pydantic BaseSettings
+│   ├── routes/            # API endpoints
+│   ├── services/          # Business logic (whisper, ollama, tts, diffusion)
+│   └── models/            # Pydantic models
+└── run.py                 # Uvicorn entrypoint
+```
+
+## Core Patterns
+
+### Zustand Stores
+
+- One store per domain (timeline, transcript, ai, preview, etc.)
+- Use selectors for high-frequency stores: `useStore((s) => s.value)`
+- Never use `someStore.getState()` in React components — use hooks
+- Store/manager methods accessed directly in sub-components, not via props
+
+### Frontend ↔ AI Backend
+
+- AI backend runs on `localhost:8420`
+- Frontend client: `apps/web/src/lib/ai-client.ts`
+- All AI types: `apps/web/src/types/ai.ts`
+- Status polling: `apps/web/src/hooks/use-ai-status.ts`
+- WebSocket for streaming: `apps/web/src/hooks/use-transcription-stream.ts`
+
+### FastAPI Backend
+
+- Routes in `app/routes/` — one file per feature domain
+- Services in `app/services/` — singleton pattern with lazy model loading
+- Heavy ML models: load on first use, unload to free GPU/RAM
+- Config via Pydantic BaseSettings in `app/config.py`
+
+## AI Features (Issue Tracker: opencut-ai-issues-with-skills.md)
+
+The project adds AI capabilities to the OpenCutAI video editor:
+
+1. **Transcription** (faster-whisper) — speech-to-text with word-level timestamps
+2. **Text-based editing** (Lexical) — edit video by editing transcript text
+3. **LLM integration** (Ollama) — natural language commands, chapter detection, filler word analysis
+4. **Image generation** (Stable Diffusion/FLUX) — AI-generated overlays and infographics
+5. **Voice/Audio** (Coqui TTS, noisereduce) — voiceover, noise reduction, auto-subtitles
+6. **AI Command Panel** — chat interface for natural language editor control
+
+## Build & Run
+
+```bash
+# Frontend
+cd apps/web && bun install && bun run dev    # localhost:3000
+
+# AI Backend
+cd services/ai-backend && python run.py       # localhost:8420
+
+# Docker (full stack)
+docker-compose up -d
+```

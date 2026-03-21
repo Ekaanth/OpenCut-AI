@@ -58,6 +58,7 @@ import { uppercase } from "@/utils/string";
 import type { ComponentProps, ReactNode } from "react";
 import type { SelectedKeyframeRef, ElementKeyframe } from "@/types/animation";
 import { cn } from "@/utils/ui";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePropertiesStore } from "@/stores/properties-store";
 
@@ -586,6 +587,7 @@ interface ElementContentProps {
 
 interface ElementContentRendererProps extends ElementContentProps {
 	mediaAssets: MediaAsset[];
+	editor: ReturnType<typeof useEditor>;
 }
 
 type ElementContentRenderer = (props: ElementContentRendererProps) => ReactNode;
@@ -659,6 +661,84 @@ function EffectsButton({
 	);
 }
 
+function AudioVolumeLine({
+	volume,
+	volumeDb,
+	volumePercent,
+	onVolumeChange,
+	onVolumeCommit,
+}: {
+	volume: number;
+	volumeDb: number;
+	volumePercent: number;
+	onVolumeChange: (v: number) => void;
+	onVolumeCommit: (v: number) => void;
+}) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const isDragging = useRef(false);
+	const startVolume = useRef(volume);
+
+	const calcVolume = useCallback((e: MouseEvent) => {
+		const container = containerRef.current;
+		if (!container) return volume;
+		const rect = container.getBoundingClientRect();
+		const y = e.clientY - rect.top;
+		const ratio = 1 - Math.max(0, Math.min(1, y / rect.height));
+		return Math.round(ratio * 100) / 100;
+	}, [volume]);
+
+	const handleMouseDown = useCallback((e: React.MouseEvent) => {
+		// Only start volume drag if the click is near the volume line (within 6px)
+		const container = containerRef.current;
+		if (!container) return;
+		const rect = container.getBoundingClientRect();
+		const lineY = rect.top + rect.height * (1 - (volumePercent / 100));
+		const distanceFromLine = Math.abs(e.clientY - lineY);
+		if (distanceFromLine > 6) return;
+
+		e.stopPropagation();
+		e.preventDefault();
+		isDragging.current = true;
+		startVolume.current = volume;
+
+		const handleMove = (ev: MouseEvent) => {
+			if (!isDragging.current) return;
+			onVolumeChange(calcVolume(ev));
+		};
+
+		const handleUp = (ev: MouseEvent) => {
+			if (!isDragging.current) return;
+			isDragging.current = false;
+			onVolumeCommit(calcVolume(ev));
+			window.removeEventListener("mousemove", handleMove);
+			window.removeEventListener("mouseup", handleUp);
+		};
+
+		window.addEventListener("mousemove", handleMove);
+		window.addEventListener("mouseup", handleUp);
+	}, [volume, volumePercent, onVolumeChange, onVolumeCommit, calcVolume]);
+
+	return (
+		<div
+			ref={containerRef}
+			className="absolute inset-0 z-10"
+			onMouseDown={handleMouseDown}
+			style={{ cursor: "ns-resize" }}
+		>
+			{/* Volume level line */}
+			<div
+				className="absolute left-0 right-0 border-t-2 border-yellow-400/80 pointer-events-none transition-[top] duration-75"
+				style={{ top: `${100 - volumePercent}%` }}
+			>
+				{/* dB label */}
+				<span className="absolute right-1 -top-3.5 text-[9px] font-mono text-yellow-400/90 pointer-events-none select-none">
+					{volumeDb > -60 ? `${volumeDb} dB` : "-∞ dB"}
+				</span>
+			</div>
+		</div>
+	);
+}
+
 const ELEMENT_CONTENT_RENDERERS: Record<
 	TimelineElementType["type"],
 	ElementContentRenderer
@@ -709,7 +789,7 @@ const ELEMENT_CONTENT_RENDERERS: Record<
 			</div>
 		);
 	},
-	audio: ({ element, mediaAssets }) => {
+	audio: ({ element, track, mediaAssets, editor }) => {
 		const audioElement = element as Extract<
 			TimelineElementType,
 			{ type: "audio" }
@@ -721,10 +801,14 @@ const ELEMENT_CONTENT_RENDERERS: Record<
 				? audioElement.sourceUrl
 				: mediaAssets.find((asset) => asset.id === audioElement.mediaId)?.url;
 
-		if (audioBuffer || audioUrl) {
-			return (
-				<div className="flex size-full items-center gap-2">
-					<div className="min-w-0 flex-1">
+		const volume = audioElement.volume ?? 1;
+		const volumeDb = volume > 0 ? Math.round(20 * Math.log10(volume)) : -60;
+		const volumePercent = Math.min(volume, 1) * 100;
+
+		return (
+			<div className="relative flex size-full items-center gap-2">
+				{(audioBuffer || audioUrl) && (
+					<div className="min-w-0 flex-1 opacity-60">
 						<AudioWaveform
 							audioBuffer={audioBuffer}
 							audioUrl={audioUrl}
@@ -732,14 +816,40 @@ const ELEMENT_CONTENT_RENDERERS: Record<
 							className="w-full"
 						/>
 					</div>
-				</div>
-			);
-		}
+				)}
+				{!audioBuffer && !audioUrl && (
+					<span className="text-foreground/80 truncate text-xs">
+						{audioElement.name}
+					</span>
+				)}
 
-		return (
-			<span className="text-foreground/80 truncate text-xs">
-				{audioElement.name}
-			</span>
+				{/* Volume line — draggable */}
+				<AudioVolumeLine
+					volume={volume}
+					volumeDb={volumeDb}
+					volumePercent={volumePercent}
+					onVolumeChange={(newVolume) => {
+						editor.timeline.updateElements({
+							updates: [{
+								trackId: track.id,
+								elementId: element.id,
+								updates: { volume: newVolume },
+							}],
+							pushHistory: false,
+						});
+					}}
+					onVolumeCommit={(newVolume) => {
+						editor.timeline.updateElements({
+							updates: [{
+								trackId: track.id,
+								elementId: element.id,
+								updates: { volume: newVolume },
+							}],
+							pushHistory: true,
+						});
+					}}
+				/>
+			</div>
 		);
 	},
 	video: ({ element, track, mediaAssets }) => {
@@ -782,6 +892,7 @@ function ElementContent({ element, track, isSelected }: ElementContentProps) {
 				track,
 				isSelected,
 				mediaAssets: editor.media.getAssets(),
+				editor,
 			})}
 		</>
 	);

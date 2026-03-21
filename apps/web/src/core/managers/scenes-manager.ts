@@ -264,6 +264,10 @@ export class ScenesManager {
 		return this.active;
 	}
 
+	getActiveSceneOrNull(): TScene | null {
+		return this.active;
+	}
+
 	getScenes(): TScene[] {
 		return this.list;
 	}

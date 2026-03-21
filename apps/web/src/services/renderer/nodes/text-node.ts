@@ -1,7 +1,8 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { createOffscreenCanvas } from "../canvas-utils";
 import { BaseNode } from "./base-node";
-import type { TextElement } from "@/types/timeline";
+import type { TextElement, TextWordTiming } from "@/types/timeline";
+import { useTranscriptStore } from "@/stores/transcript-store";
 import {
 	DEFAULT_TEXT_BACKGROUND,
 	DEFAULT_TEXT_ELEMENT,
@@ -44,6 +45,48 @@ function quoteFontFamily({ fontFamily }: { fontFamily: string }): string {
 
 const TEXT_DECORATION_THICKNESS_RATIO = 0.07;
 const STRIKETHROUGH_VERTICAL_RATIO = 0.35;
+const SUBTITLE_WRAP_PADDING_RATIO = 0.08; // 8% padding on each side
+
+function wrapTextLines({
+	lines,
+	ctx,
+	maxWidth,
+}: {
+	lines: string[];
+	ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+	maxWidth: number;
+}): string[] {
+	const wrapped: string[] = [];
+
+	for (const line of lines) {
+		if (ctx.measureText(line).width <= maxWidth) {
+			wrapped.push(line);
+			continue;
+		}
+
+		const words = line.split(/\s+/);
+		let currentLine = "";
+
+		for (const word of words) {
+			const testLine = currentLine ? `${currentLine} ${word}` : word;
+			if (ctx.measureText(testLine).width <= maxWidth && currentLine) {
+				currentLine = testLine;
+			} else if (!currentLine) {
+				// First word on line — always add it even if it overflows
+				currentLine = word;
+			} else {
+				wrapped.push(currentLine);
+				currentLine = word;
+			}
+		}
+
+		if (currentLine) {
+			wrapped.push(currentLine);
+		}
+	}
+
+	return wrapped;
+}
 
 function drawTextDecoration({
 	ctx,
@@ -90,6 +133,66 @@ export type TextNodeParams = TextElement & {
 };
 
 export class TextNode extends BaseNode<TextNodeParams> {
+	private drawKaraokeText({
+		ctx,
+		line,
+		lineY,
+		localTime,
+		wordTimings,
+		defaultColor,
+		highlightColor,
+		textAlign,
+	}: {
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+		line: string;
+		lineY: number;
+		localTime: number;
+		wordTimings: TextWordTiming[];
+		defaultColor: string;
+		highlightColor: string;
+		textAlign: CanvasTextAlign;
+	}): void {
+		// Split the line into words preserving spacing
+		const words = line.split(/(\s+)/);
+		const fullWidth = ctx.measureText(line).width;
+
+		// Compute starting x based on alignment
+		let cursorX: number;
+		if (textAlign === "center") {
+			cursorX = -fullWidth / 2;
+		} else if (textAlign === "right") {
+			cursorX = -fullWidth;
+		} else {
+			cursorX = 0;
+		}
+
+		// Save alignment and switch to left for manual positioning
+		const savedAlign = ctx.textAlign;
+		ctx.textAlign = "left";
+
+		let wordIndex = 0;
+		for (const token of words) {
+			if (token.trim().length === 0) {
+				// Whitespace — just advance cursor
+				cursorX += ctx.measureText(token).width;
+				continue;
+			}
+
+			// Match this token to the next word timing
+			const timing = wordTimings[wordIndex];
+			const isSpoken = timing && localTime >= timing.start;
+
+			ctx.fillStyle = isSpoken ? highlightColor : defaultColor;
+			ctx.fillText(token, cursorX, lineY);
+			cursorX += ctx.measureText(token).width;
+			wordIndex++;
+		}
+
+		// Restore alignment
+		ctx.textAlign = savedAlign;
+		ctx.fillStyle = defaultColor;
+	}
+
 	isInRange({ time }: { time: number }) {
 		return (
 			time >= this.params.startTime &&
@@ -131,7 +234,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const fontString = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${fontFamily}, sans-serif`;
 		const letterSpacing = this.params.letterSpacing ?? 0;
 		const lineHeight = this.params.lineHeight ?? DEFAULT_LINE_HEIGHT;
-		const lines = this.params.content.split("\n");
+		const rawLines = this.params.content.split("\n");
 		const lineHeightPx = scaledFontSize * lineHeight;
 		const fontSizeRatio = this.params.fontSize / DEFAULT_TEXT_ELEMENT.fontSize;
 		const baseline = this.params.textBaseline ?? "middle";
@@ -147,6 +250,15 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		if ("letterSpacing" in renderer.context) {
 			(renderer.context as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${letterSpacing}px`;
 		}
+
+		// Word-wrap lines that overflow the canvas width
+		const maxTextWidth = renderer.width * (1 - SUBTITLE_WRAP_PADDING_RATIO * 2);
+		const lines = wrapTextLines({
+			lines: rawLines,
+			ctx: renderer.context,
+			maxWidth: maxTextWidth,
+		});
+
 		const lineMetrics = lines.map((line) => renderer.context.measureText(line));
 		renderer.context.restore();
 
@@ -232,9 +344,68 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				}
 			}
 
+			const highlightColor = this.params.highlightColor ?? "#FACC15";
+
+			// Resolve word timings: prefer element data, fall back to transcript store
+			const resolvedWordTimings: TextWordTiming[] = (() => {
+				const elementTimings = this.params.wordTimings;
+				if (Array.isArray(elementTimings) && elementTimings.length > 0) {
+					return elementTimings;
+				}
+
+				// Look up from transcript store by matching time range
+				const transcriptSegments = useTranscriptStore.getState().segments;
+				const elementStart = this.params.startTime;
+				const elementEnd = elementStart + this.params.duration;
+				const matchingSegment = transcriptSegments.find(
+					(seg) =>
+						Math.abs(seg.start - elementStart) < 0.1 &&
+						Math.abs(seg.end - elementEnd) < 0.1,
+				);
+				if (matchingSegment?.words && matchingSegment.words.length > 0) {
+					return matchingSegment.words.map((w) => ({
+						word: w.word,
+						start: w.start - matchingSegment.start,
+						end: w.end - matchingSegment.start,
+					}));
+				}
+
+				return [];
+			})();
+
+			const hasKaraoke = resolvedWordTimings.length > 0;
+
+			// Running word index across lines for karaoke
+			let karaokeWordOffset = 0;
+
 			for (let i = 0; i < lineCount; i++) {
 				const lineY = i * lineHeightPx - block.visualCenterOffset;
-				ctx.fillText(lines[i], 0, lineY);
+
+				if (hasKaraoke) {
+					// Count words in this line to slice the correct timing range
+					const lineWordCount = lines[i]
+						.split(/\s+/)
+						.filter((w) => w.length > 0).length;
+
+					this.drawKaraokeText({
+						ctx,
+						line: lines[i],
+						lineY,
+						localTime,
+						wordTimings: resolvedWordTimings.slice(
+							karaokeWordOffset,
+							karaokeWordOffset + lineWordCount,
+						),
+						defaultColor: textColor,
+						highlightColor,
+						textAlign: this.params.textAlign,
+					});
+
+					karaokeWordOffset += lineWordCount;
+				} else {
+					ctx.fillText(lines[i], 0, lineY);
+				}
+
 				drawTextDecoration({
 					ctx,
 					textDecoration: this.params.textDecoration ?? "none",

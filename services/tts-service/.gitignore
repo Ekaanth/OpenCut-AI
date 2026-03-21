@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+generated/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/

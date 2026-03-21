@@ -252,6 +252,7 @@ export interface AudioClipSource {
 	trimStart: number;
 	trimEnd: number;
 	muted: boolean;
+	volume: number;
 }
 
 async function fetchLibraryAudioSource({
@@ -310,6 +311,7 @@ async function fetchLibraryAudioClip({
 			trimStart: element.trimStart,
 			trimEnd: element.trimEnd,
 			muted,
+			volume: element.volume ?? 1,
 		};
 	} catch (error) {
 		console.warn("Failed to fetch library audio:", error);
@@ -342,6 +344,7 @@ function collectMediaAudioClip({
 	mediaAsset: MediaAsset;
 	muted: boolean;
 }): AudioClipSource {
+	const vol = "volume" in element ? (element as { volume?: number }).volume ?? 1 : 1;
 	return {
 		id: element.id,
 		sourceKey: mediaAsset.id,
@@ -351,6 +354,7 @@ function collectMediaAudioClip({
 		trimStart: element.trimStart,
 		trimEnd: element.trimEnd,
 		muted,
+		volume: vol,
 	};
 }
 

@@ -1,0 +1,95 @@
+---
+alwaysApply: false
+---
+# AI Backend (FastAPI) Guidelines
+
+When working on the Python AI backend at `services/ai-backend/`.
+
+## Project Structure
+
+```
+services/ai-backend/
+├── app/
+│   ├── main.py           # FastAPI app, CORS (localhost:3000), routers
+│   ├── config.py          # Pydantic BaseSettings — all env config
+│   ├── routes/            # One router file per feature domain
+│   │   ├── transcribe.py  # POST /api/transcribe
+│   │   ├── transcribe_ws.py  # WS /ws/transcribe (streaming)
+│   │   ├── llm.py         # GET /api/llm/status, POST /api/llm/pull-model
+│   │   ├── command.py     # POST /api/llm/command
+│   │   ├── analyze.py     # POST /api/analyze/fillers, /silences, /structure, /suggestions
+│   │   ├── tts.py         # POST /api/tts/generate, /api/tts/clone-voice
+│   │   └── generate.py    # POST /api/generate/image, /enhance-prompt, /remove-bg, /infographic
+│   ├── services/          # Business logic — singleton + lazy loading
+│   │   ├── whisper_service.py    # faster-whisper transcription
+│   │   ├── ollama_service.py     # Ollama LLM wrapper
+│   │   ├── diffusion_service.py  # Stable Diffusion / FLUX
+│   │   ├── tts_service.py        # Coqui TTS / XTTS v2
+│   │   ├── audio_service.py      # noisereduce
+│   │   ├── silence_service.py    # FFmpeg silencedetect
+│   │   ├── rembg_service.py      # Background removal
+│   │   └── model_manager.py      # GPU/memory management, model swapping
+│   └── models/            # Pydantic request/response models
+├── requirements.txt
+├── run.py                 # uvicorn entrypoint
+└── Dockerfile
+```
+
+## API Design Conventions
+
+- RESTful routes: `/api/{domain}/{action}`
+- Use Pydantic models for request validation and response serialization
+- Return structured JSON matching TypeScript types in `apps/web/src/types/ai.ts`
+- Invalid input → 400 with descriptive message
+- Server errors → 500 with safe error message (no stack traces in response)
+- Long operations → use WebSocket streaming with typed messages:
+  ```json
+  {"type": "status", "message": "Loading model..."}
+  {"type": "progress", "percent": 50}
+  {"type": "segment", "data": {...}}
+  {"type": "complete", "data": {...}}
+  ```
+
+## Service Patterns
+
+### Singleton + Lazy Loading
+```python
+class WhisperService:
+    _instance = None
+    _model = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def load_model(self):
+        if self._model is None:
+            # Load on first use
+            ...
+
+    def unload_model(self):
+        # Free GPU/RAM
+        self._model = None
+        torch.cuda.empty_cache()
+```
+
+### Model Manager
+- Only one GPU-heavy model loaded at a time
+- `activate(model_name)` unloads current before loading new
+- `get_memory_status()` returns GPU allocated/reserved/total
+- Expose via `GET /api/system/memory`
+
+## Key Dependencies
+
+- `faster-whisper` — CTranslate2-optimized Whisper
+- `ollama` client — LLM via Ollama (localhost:11434)
+- `diffusers` + `torch` — Stable Diffusion / FLUX
+- `coqui-tts` — Text-to-speech with voice cloning
+- `noisereduce` — Audio denoising
+- `rembg` — Background removal
+- `ffmpeg` (system) — Audio extraction, silence detection
+
+## Port: 8420
+## Ollama: localhost:11434

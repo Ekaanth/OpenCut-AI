@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const release = allChangelogs.find((r) => r.version === version);
 	if (!release) return {};
 	return {
-		title: `${release.title} (${release.version}) - OpenCut Changelog`,
+		title: `${release.title} (${release.version}) - OpenCut AI Changelog`,
 		description: release.description,
 	};
 }

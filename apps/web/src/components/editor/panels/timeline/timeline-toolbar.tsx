@@ -34,6 +34,8 @@ import {
 	AlignLeftIcon,
 	AlignRightIcon,
 	Layers01Icon,
+	ArrowTurnBackwardIcon,
+	ArrowTurnForwardIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -116,9 +118,10 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<SplitSquareHorizontal />}
-					tooltip="Separate audio (coming soon)"
-					disabled={true}
-					onClick={({ event: _event }) => {}}
+					tooltip="Separate audio"
+					onClick={({ event }) =>
+						handleAction({ action: "separate-audio", event })
+					}
 				/>
 
 				<ToolbarButton
@@ -131,9 +134,10 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={SnowIcon} />}
-					tooltip="Freeze frame (coming soon)"
-					disabled={true}
-					onClick={({ event: _event }) => {}}
+					tooltip="Freeze frame"
+					onClick={({ event }) =>
+						handleAction({ action: "freeze-frame", event })
+					}
 				/>
 
 				<ToolbarButton
@@ -156,6 +160,21 @@ function ToolbarLeftSection() {
 						}
 					/>
 				</Tooltip>
+
+				<div className="bg-border mx-1 h-6 w-px" />
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={ArrowTurnBackwardIcon} />}
+					tooltip="Undo (Ctrl+Z)"
+					disabled={!editor.command.canUndo()}
+					onClick={({ event }) => handleAction({ action: "undo", event })}
+				/>
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={ArrowTurnForwardIcon} />}
+					tooltip="Redo (Ctrl+Shift+Z)"
+					disabled={!editor.command.canRedo()}
+					onClick={({ event }) => handleAction({ action: "redo", event })}
+				/>
 			</TooltipProvider>
 		</div>
 	);

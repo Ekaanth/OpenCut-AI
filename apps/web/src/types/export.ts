@@ -15,6 +15,7 @@ export interface ExportOptions {
 	quality: ExportQuality;
 	fps?: number;
 	includeAudio?: boolean;
+	includeWatermark?: boolean;
 }
 
 export interface ExportResult {

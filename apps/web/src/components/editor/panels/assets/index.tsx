@@ -3,6 +3,7 @@
 import { Separator } from "@/components/ui/separator";
 import { type Tab, useAssetsPanelStore } from "@/stores/assets-panel-store";
 import { TabBar } from "./tabbar";
+import { AIStudioView } from "./views/ai-studio";
 import { Captions } from "./views/captions";
 import { MediaView } from "./views/assets";
 import { SettingsView } from "./views/settings";
@@ -10,32 +11,28 @@ import { SoundsView } from "./views/sounds";
 import { StickersView } from "./views/stickers";
 import { TextView } from "./views/text";
 import { EffectsView } from "./views/effects";
+import { FactCheckView } from "./views/factcheck";
+import { FiltersView } from "./views/filters";
+import { AdjustmentView } from "./views/adjustment";
+import { OverlaysView } from "./views/overlays";
+import { VoiceoverView } from "./views/voiceover";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
 
 	const viewMap: Record<Tab, React.ReactNode> = {
+		ai: <AIStudioView />,
 		media: <MediaView />,
 		sounds: <SoundsView />,
+		voiceover: <VoiceoverView />,
 		text: <TextView />,
 		stickers: <StickersView />,
 		effects: <EffectsView />,
-		transitions: (
-			<div className="text-muted-foreground p-4">
-				Transitions view coming soon...
-			</div>
-		),
+		transitions: <OverlaysView />,
 		captions: <Captions />,
-		filters: (
-			<div className="text-muted-foreground p-4">
-				Filters view coming soon...
-			</div>
-		),
-		adjustment: (
-			<div className="text-muted-foreground p-4">
-				Adjustment view coming soon...
-			</div>
-		),
+		factcheck: <FactCheckView />,
+		filters: <FiltersView />,
+		adjustment: <AdjustmentView />,
 		settings: <SettingsView />,
 	};
 

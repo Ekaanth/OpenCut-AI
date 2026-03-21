@@ -14,24 +14,27 @@ import rehypeSanitize from "rehype-sanitize";
 
 const url =
 	process.env.NEXT_PUBLIC_MARBLE_API_URL ?? "https://api.marblecms.com";
-const key = process.env.MARBLE_WORKSPACE_KEY ?? "cmd4iw9mm0006l804kwqv0k46";
+const key = process.env.MARBLE_WORKSPACE_KEY || "";
 
 async function fetchFromMarble<T>({
 	endpoint,
 }: {
 	endpoint: string;
-}): Promise<T> {
+}): Promise<T | null> {
+	if (!key) return null;
+
 	try {
 		const response = await fetch(`${url}/${key}/${endpoint}`);
 		if (!response.ok) {
-			throw new Error(
-				`Failed to fetch ${endpoint}: ${response.status} ${response.statusText}`,
+			console.warn(
+				`Marble CMS: failed to fetch ${endpoint}: ${response.status} ${response.statusText}`,
 			);
+			return null;
 		}
 		return (await response.json()) as T;
 	} catch (error) {
-		console.error(`Error fetching ${endpoint}:`, error);
-		throw error;
+		console.warn(`Marble CMS: error fetching ${endpoint}:`, error);
+		return null;
 	}
 }
 

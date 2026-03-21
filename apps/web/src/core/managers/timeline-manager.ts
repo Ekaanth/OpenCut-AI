@@ -594,7 +594,7 @@ export class TimelineManager {
 	}
 
 	getTracks(): TimelineTrack[] {
-		return this.editor.scenes.getActiveScene()?.tracks ?? [];
+		return this.editor.scenes.getActiveSceneOrNull()?.tracks ?? [];
 	}
 
 	subscribe(listener: () => void): () => void {
@@ -604,6 +604,14 @@ export class TimelineManager {
 
 	private notify(): void {
 		this.listeners.forEach((fn) => fn());
+	}
+
+	renameTrack({ trackId, name }: { trackId: string; name: string }): void {
+		const tracks = this.getTracks();
+		const updatedTracks = tracks.map((track) =>
+			track.id === trackId ? { ...track, name } : track,
+		) as TimelineTrack[];
+		this.updateTracks(updatedTracks);
 	}
 
 	updateTracks(newTracks: TimelineTrack[]): void {

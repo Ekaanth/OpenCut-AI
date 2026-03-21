@@ -24,6 +24,7 @@ type ExportParams = {
 	quality: ExportQuality;
 	shouldIncludeAudio?: boolean;
 	audioBuffer?: AudioBuffer;
+	watermark?: boolean;
 };
 
 const qualityMap = {
@@ -57,12 +58,14 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 		quality,
 		shouldIncludeAudio,
 		audioBuffer,
+		watermark,
 	}: ExportParams) {
 		super();
 		this.renderer = new CanvasRenderer({
 			width,
 			height,
 			fps,
+			watermark: watermark ?? false,
 		});
 
 		this.format = format;

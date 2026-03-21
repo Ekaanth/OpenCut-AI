@@ -24,7 +24,7 @@ function ElementProperties({
 		return <TextProperties element={element} trackId={track.id} />;
 	}
 	if (element.type === "audio") {
-		return <AudioProperties />;
+		return <AudioProperties element={element} trackId={track.id} />;
 	}
 	if (
 		element.type === "video" ||
