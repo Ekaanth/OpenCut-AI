@@ -1,16 +1,16 @@
 {
-  "name": "opencut",
+  "name": "opencut-ai",
   "packageManager": "bun@1.2.18",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "turbo run dev --filter=@opencut/web",
-    "build:web": "turbo run build --filter=@opencut/web",
-    "dev:tools": "turbo run dev --filter=@opencut/tools",
-    "build:tools": "turbo run build --filter=@opencut/tools",
-    "start:tools": "turbo run start --filter=@opencut/tools",
+    "dev:web": "turbo run dev --filter=@opencut-ai/web",
+    "build:web": "turbo run build --filter=@opencut-ai/web",
+    "dev:tools": "turbo run dev --filter=@opencut-ai/tools",
+    "build:tools": "turbo run build --filter=@opencut-ai/tools",
+    "start:tools": "turbo run start --filter=@opencut-ai/tools",
     "lint:web": "biome lint apps/web/src --max-diagnostics=1000",
     "lint:web:fix": "biome lint apps/web/src --write --max-diagnostics=1000",
     "format:web": "biome format apps/web/src/services/renderer --write --max-diagnostics=1000",

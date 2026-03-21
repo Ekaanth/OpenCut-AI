@@ -8,7 +8,7 @@ import {
 	TextIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { OcVideoIcon } from "@opencut/ui/icons";
+import { OcVideoIcon } from "@opencut-ai/ui/icons";
 
 export const DEFAULT_TRANSFORM: Transform = {
 	scale: 1,

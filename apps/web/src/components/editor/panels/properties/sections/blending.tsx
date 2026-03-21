@@ -5,7 +5,7 @@ import {
 	DEFAULT_BLEND_MODE,
 	DEFAULT_OPACITY,
 } from "@/constants/timeline-constants";
-import { OcCheckerboardIcon } from "@opencut/ui/icons";
+import { OcCheckerboardIcon } from "@opencut-ai/ui/icons";
 import { Fragment, useRef } from "react";
 import { Section, SectionContent, SectionField, SectionHeader, SectionTitle } from "../section";
 import {

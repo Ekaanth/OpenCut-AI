@@ -1,7 +1,7 @@
 <table width="100%">
   <tr>
     <td align="left" width="120">
-      <img src="apps/web/public/logos/opencut/1k/logo-white-black.png" alt="OpenCut AI Logo" width="100" />
+      <img src="apps/web/public/favicon.png" alt="OpenCut AI Logo" width="80" />
     </td>
     <td align="right">
       <h1>OpenCut AI</h1>

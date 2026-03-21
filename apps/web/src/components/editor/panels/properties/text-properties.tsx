@@ -41,7 +41,7 @@ import {
 	ViewIcon,
 	ViewOffSlashIcon,
 } from "@hugeicons/core-free-icons";
-import { OcTextHeightIcon, OcTextWidthIcon } from "@opencut/ui/icons";
+import { OcTextHeightIcon, OcTextWidthIcon } from "@opencut-ai/ui/icons";
 import { cn } from "@/utils/ui";
 
 export function TextProperties({
