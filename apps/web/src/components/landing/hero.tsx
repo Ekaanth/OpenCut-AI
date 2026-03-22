@@ -8,7 +8,7 @@ import { SOCIAL_LINKS } from "@/constants/site-constants";
 import { useRef } from "react";
 
 const STATS = [
-	{ value: "6", label: "AI Services" },
+	{ value: "10", label: "AI Services" },
 	{ value: "12+", label: "Languages" },
 	{ value: "$0", label: "API Cost" },
 	{ value: "100%", label: "Local" },
@@ -86,17 +86,21 @@ export function Hero() {
 					animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
 					transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
 				>
-					<span className="inline-flex items-center gap-2.5 rounded-full border border-border/60 bg-background/60 backdrop-blur-md px-4 py-2 text-sm">
-						<span className="relative flex size-2">
+					<span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 backdrop-blur-md px-3 py-1.5 text-xs sm:text-sm sm:px-4 sm:py-2">
+						<span className="relative flex size-2 shrink-0">
 							<span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400/60" />
 							<span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
 						</span>
-						<span className="text-muted-foreground">
-							Open source
-							<span className="mx-1.5 text-border">|</span>
-							Runs locally
-							<span className="mx-1.5 text-border">|</span>
-							No cloud
+						<span className="inline-flex items-center gap-1.5 sm:gap-2">
+							<span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-emerald-400 font-medium">
+								Open source
+							</span>
+							<span className="rounded-full bg-blue-500/15 px-2.5 py-0.5 text-blue-400 font-medium">
+								Runs locally
+							</span>
+							<span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-amber-400 font-medium">
+								No cloud
+							</span>
 						</span>
 					</span>
 				</motion.div>
@@ -131,8 +135,8 @@ export function Hero() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
 				>
-					Transcribe, edit by text, clone voices, and generate visuals.
-					Everything runs on your machine. No subscriptions. No cloud.
+					Turn long podcasts into viral clips. Multi-speaker detection, word-pop subtitles,
+					auto-reframe for Shorts, brand kits. Everything runs locally. No cloud. No subscriptions.
 				</motion.p>
 
 				{/* CTA buttons */}

@@ -4,7 +4,7 @@ export const SITE_URL = "http://localhost:3000";
 export const SITE_INFO = {
 	title: "OpenCut AI",
 	description:
-		"A fork of OpenCut with AI superpowers added on top. Transcribe, generate, edit by text, and clone voices. Install locally and run everything on your machine.",
+		"AI-powered video editor with podcast clip generator, multi-speaker detection, word-pop karaoke subtitles, auto-reframe for TikTok/Shorts, brand kits, voice cloning, and more. 100% local, open source, no cloud.",
 	url: SITE_URL,
 	openGraphImage: "/open-graph/default.jpg",
 	twitterImage: "/open-graph/default.jpg",
