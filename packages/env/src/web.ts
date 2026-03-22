@@ -21,6 +21,9 @@ const webEnvSchema = z.object({
 	UPSTASH_REDIS_REST_URL: z.url().default("http://localhost:8079"),
 	UPSTASH_REDIS_REST_TOKEN: z.string().default("example_token"),
 
+	// Analytics (optional)
+	NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().default(""),
+
 	// Optional — features degrade gracefully without these
 	MARBLE_WORKSPACE_KEY: z.string().default(""),
 	FREESOUND_CLIENT_ID: z.string().default(""),

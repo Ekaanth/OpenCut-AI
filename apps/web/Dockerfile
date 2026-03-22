@@ -39,8 +39,8 @@ ENV FREESOUND_API_KEY=$FREESOUND_API_KEY
 WORKDIR /app/apps/web
 RUN bun run build
 
-# Production image
-FROM base AS runner
+# Production image — use Node since Next.js standalone outputs Node-compatible server
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -53,8 +53,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
-RUN chown nextjs:nodejs apps
-
 USER nextjs
 
 EXPOSE 3000
@@ -62,4 +60,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["bun", "apps/web/server.js"]
+CMD ["node", "apps/web/server.js"]

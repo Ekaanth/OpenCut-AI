@@ -7,6 +7,8 @@ import { baseMetaData } from "./metadata";
 import { BotIdClient } from "botid/client";
 import { webEnv } from "@opencut-ai/env/web";
 import { Inter } from "next/font/google";
+import { JsonLd } from "@/components/seo/json-ld";
+import { GoogleAnalytics } from "@/components/seo/google-analytics";
 
 const siteFont = Inter({ subsets: ["latin"] });
 
@@ -28,6 +30,8 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<BotIdClient protect={protectedRoutes} />
+				<JsonLd />
+				<GoogleAnalytics />
 				{process.env.NODE_ENV === "development" && (
 					<Script
 						src="//unpkg.com/react-scan/dist/auto.global.js"
