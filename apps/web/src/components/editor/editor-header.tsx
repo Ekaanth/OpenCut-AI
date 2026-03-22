@@ -29,6 +29,7 @@ import { useAIStatus } from "@/hooks/use-ai-status";
 import { useAIStore } from "@/stores/ai-store";
 import { aiClient } from "@/lib/ai-client";
 import { MemoryStatusBar, type MemoryStatusInfo } from "@/components/editor/ai/memory-status-bar";
+import { SaveStatus } from "@/components/editor/save-status";
 
 export function EditorHeader() {
 	const { isConnected, backendStatus, error, errorType, refresh } = useAIStatus();
@@ -63,6 +64,7 @@ export function EditorHeader() {
 			<div className="flex items-center gap-1">
 				<ProjectDropdown />
 				<EditableProjectName />
+				<SaveStatus className="ml-2" />
 			</div>
 			<nav className="flex items-center gap-2">
 				{isConnected && <MemoryStatusBar status={memoryStatus} />}

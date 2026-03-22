@@ -90,6 +90,10 @@ interface TranscriptionPanelProps {
 		toIndex: number,
 		newTimings: { segmentId: number; newStart: number; newEnd: number }[],
 	) => void;
+	onDetectSpeakers?: () => void;
+	speakerNames?: Record<string, string>;
+	onRenameSpeaker?: (speakerId: string, newName: string) => void;
+	isDetectingSpeakers?: boolean;
 	error?: string;
 	className?: string;
 }
@@ -140,9 +144,15 @@ export function TranscriptionPanel({
 	onDeleteSegments,
 	onCutWords,
 	onReorderSegments,
+	onDetectSpeakers,
+	speakerNames,
+	onRenameSpeaker,
+	isDetectingSpeakers,
 	error,
 	className,
 }: TranscriptionPanelProps) {
+	const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
+	const [editingName, setEditingName] = useState("");
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const lastAutoScrolledSegment = useRef<string | null>(null);
@@ -396,6 +406,27 @@ export function TranscriptionPanel({
 							</Tooltip>
 						)}
 
+						{/* Detect Speakers button — shown as re-detect if speakers already assigned */}
+						{status === "complete" && segments.length > 0 && onDetectSpeakers && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={onDetectSpeakers}
+								disabled={isDetectingSpeakers}
+							>
+								{isDetectingSpeakers ? (
+									<>
+										<Spinner className="size-3 mr-1" />
+										Detecting...
+									</>
+								) : segments.some((s) => s.speaker) ? (
+									"Re-detect speakers"
+								) : (
+									"Detect speakers"
+								)}
+							</Button>
+						)}
+
 						<Button
 							variant={status === "idle" ? "default" : "outline"}
 							size="sm"
@@ -473,6 +504,75 @@ export function TranscriptionPanel({
 						</div>
 					</div>
 				)}
+
+				{/* Speaker legend — editable names */}
+				{(() => {
+					const uniqueSpeakers = [...new Set(segments.map((s) => s.speaker).filter(Boolean))] as string[];
+					if (uniqueSpeakers.length < 2) return null;
+
+					// Assign a color per speaker for the badge
+					const speakerColors = ["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-violet-500", "bg-cyan-500"];
+
+					return (
+						<div className="flex items-center gap-2 px-4 py-2 border-b flex-wrap">
+							<span className="text-[10px] text-muted-foreground font-medium shrink-0">Speakers:</span>
+							{uniqueSpeakers.map((spkId, idx) => {
+								const displayName = speakerNames?.[spkId] ?? spkId;
+								const colorClass = speakerColors[idx % speakerColors.length];
+
+								if (editingSpeaker === spkId) {
+									return (
+										<form
+											key={spkId}
+											className="flex items-center gap-1"
+											onSubmit={(e) => {
+												e.preventDefault();
+												if (editingName.trim() && onRenameSpeaker) {
+													onRenameSpeaker(spkId, editingName.trim());
+												}
+												setEditingSpeaker(null);
+											}}
+										>
+											<span className={cn("size-2 rounded-full shrink-0", colorClass)} />
+											<input
+												type="text"
+												value={editingName}
+												onChange={(e) => setEditingName(e.target.value)}
+												className="text-[11px] font-medium bg-primary/10 border border-primary/30 rounded px-1.5 py-0.5 w-24 outline-none focus:ring-1 focus:ring-primary/50"
+												autoFocus
+												onBlur={() => {
+													if (editingName.trim() && onRenameSpeaker) {
+														onRenameSpeaker(spkId, editingName.trim());
+													}
+													setEditingSpeaker(null);
+												}}
+												onKeyDown={(e) => {
+													if (e.key === "Escape") setEditingSpeaker(null);
+												}}
+											/>
+										</form>
+									);
+								}
+
+								return (
+									<button
+										key={spkId}
+										type="button"
+										onClick={() => {
+											setEditingSpeaker(spkId);
+											setEditingName(displayName);
+										}}
+										className="flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium hover:bg-accent transition-colors"
+										title="Click to rename"
+									>
+										<span className={cn("size-2 rounded-full shrink-0", colorClass)} />
+										{displayName}
+									</button>
+								);
+							})}
+						</div>
+					);
+				})()}
 
 				{/* Transcript content */}
 				<ScrollArea ref={scrollRef} className="flex-1 px-4 py-3">
@@ -621,11 +721,50 @@ export function TranscriptionPanel({
 																	{/* Speaker + timestamp */}
 																	<div className="flex items-center gap-2 mb-1">
 																		{segment.speaker && (
-																			<span className="text-[11px] font-medium text-primary">
-																				{
-																					segment.speaker
-																				}
-																			</span>
+																			editingSpeaker === segment.speaker ? (
+																				<form
+																					className="flex items-center gap-1"
+																					onSubmit={(e) => {
+																						e.preventDefault();
+																						if (editingName.trim() && onRenameSpeaker) {
+																							onRenameSpeaker(segment.speaker!, editingName.trim());
+																						}
+																						setEditingSpeaker(null);
+																					}}
+																					onClick={(e) => e.stopPropagation()}
+																				>
+																					<input
+																						type="text"
+																						value={editingName}
+																						onChange={(e) => setEditingName(e.target.value)}
+																						className="text-[11px] font-medium text-primary bg-primary/10 border border-primary/30 rounded px-1.5 py-0.5 w-24 outline-none focus:ring-1 focus:ring-primary/50"
+																						autoFocus
+																						onBlur={() => {
+																							if (editingName.trim() && onRenameSpeaker) {
+																								onRenameSpeaker(segment.speaker!, editingName.trim());
+																							}
+																							setEditingSpeaker(null);
+																						}}
+																						onKeyDown={(e) => {
+																							if (e.key === "Escape") setEditingSpeaker(null);
+																						}}
+																					/>
+																				</form>
+																			) : (
+																				<button
+																					type="button"
+																					onClick={(e) => {
+																						e.stopPropagation();
+																						const rawId = segment.speaker!;
+																						setEditingSpeaker(rawId);
+																						setEditingName(speakerNames?.[rawId] ?? rawId);
+																					}}
+																					className="text-[11px] font-medium text-primary hover:text-primary/80 hover:underline decoration-dotted underline-offset-2 transition-colors"
+																					title="Click to rename speaker"
+																				>
+																					{speakerNames?.[segment.speaker] ?? segment.speaker}
+																				</button>
+																			)
 																		)}
 																		<button
 																			type="button"

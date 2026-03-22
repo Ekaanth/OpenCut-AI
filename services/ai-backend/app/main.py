@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import analyze, audio, command, export, factcheck, generate, llm, setup, transcribe, transcribe_ws, tts
+from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, setup, transcribe, transcribe_ws, tts
 
 # Configure logging
 logging.basicConfig(
@@ -64,6 +64,7 @@ app.include_router(export.router)
 app.include_router(audio.router)
 app.include_router(setup.router)
 app.include_router(factcheck.router)
+app.include_router(podcast.router)
 
 
 @app.get("/health")
@@ -104,6 +105,8 @@ async def health() -> dict:
         _ping("whisper", settings.WHISPER_SERVICE_URL),
         _ping("tts", settings.TTS_SERVICE_URL),
         _ping("image", settings.IMAGE_SERVICE_URL),
+        _ping("speaker", settings.SPEAKER_SERVICE_URL),
+        _ping("face", settings.FACE_SERVICE_URL),
     )
 
     # System RAM via psutil
@@ -215,6 +218,8 @@ async def services_health() -> dict:
         _check("whisper", settings.WHISPER_SERVICE_URL),
         _check("tts", settings.TTS_SERVICE_URL),
         _check("image", settings.IMAGE_SERVICE_URL),
+        _check("speaker", settings.SPEAKER_SERVICE_URL),
+        _check("face", settings.FACE_SERVICE_URL),
     )
 
     # Backend is always running if we're responding

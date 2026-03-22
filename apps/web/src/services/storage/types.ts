@@ -26,6 +26,8 @@ export interface MediaAssetData {
 	fps?: number;
 	ephemeral?: boolean;
 	thumbnailUrl?: string;
+	/** User-defined label for organising assets (e.g. "Drone shot", "Person A cam") */
+	label?: string;
 }
 
 export type SerializedScene = Omit<TScene, "createdAt" | "updatedAt"> & {

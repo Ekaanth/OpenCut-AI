@@ -7,7 +7,6 @@ import {
 	ResizableHandle,
 } from "@/components/ui/resizable";
 import { AssetsPanel } from "@/components/editor/panels/assets";
-import { PropertiesPanel } from "@/components/editor/panels/properties";
 import { Timeline } from "@/components/editor/panels/timeline";
 import { PreviewPanel } from "@/components/editor/panels/preview";
 import { EditorHeader } from "@/components/editor/editor-header";
@@ -18,9 +17,9 @@ import { usePanelStore } from "@/stores/panel-store";
 import { usePasteMedia } from "@/hooks/use-paste-media";
 import { MobileGate } from "@/components/editor/mobile-gate";
 import { AIPanelWrapper } from "@/components/editor/ai/ai-panel-wrapper";
-import { TextEditingPanel } from "@/components/editor/ai/text-editing-panel";
 import { QuickActionsBar } from "@/components/editor/ai/quick-actions-bar";
 import { EmptyEditorGuide } from "@/components/editor/empty-editor-guide";
+import { RightPanel } from "@/components/editor/panels/right-panel";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { useEditor } from "@/hooks/use-editor";
 import { useTranscribePrompt } from "@/hooks/use-transcribe-prompt";
@@ -193,10 +192,8 @@ function EditorLayout() {
 						maxSize={40}
 						className="min-w-0"
 					>
-						{hasTranscript ? (
-							<TextEditingPanel className="size-full" />
-						) : hasTimelineContent ? (
-							<PropertiesPanel />
+						{hasTranscript || hasTimelineContent ? (
+							<RightPanel className="size-full" />
 						) : (
 							<EmptyEditorGuide />
 						)}

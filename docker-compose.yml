@@ -81,6 +81,8 @@ services:
       - OPENCUT_WHISPER_SERVICE_URL=http://whisper-service:8421
       - OPENCUT_TTS_SERVICE_URL=http://tts-service:8422
       - OPENCUT_IMAGE_SERVICE_URL=http://image-service:8423
+      - OPENCUT_SPEAKER_SERVICE_URL=http://speaker-service:8424
+      - OPENCUT_FACE_SERVICE_URL=http://face-service:8425
     volumes:
       - ai_models:/app/models
       - ai_generated:/app/generated
@@ -153,6 +155,40 @@ services:
       retries: 5
       start_period: 15s
 
+  speaker-service:
+    build:
+      context: ./services/speaker-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8424:8424"
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - speaker_models:/root/.cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8424/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  face-service:
+    build:
+      context: ./services/face-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8425:8425"
+    volumes:
+      - face_models:/root/.cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8425/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
   # --- Web App ---
 
   web:
@@ -208,6 +244,8 @@ volumes:
   whisper_models:
   tts_models:
   image_models:
+  speaker_models:
+  face_models:
   image_generated:
 
 networks:

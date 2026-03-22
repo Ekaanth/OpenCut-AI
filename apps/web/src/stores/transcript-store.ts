@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
 	TranscriptionSegment,
+	EmotionSegment,
 	FillerWord,
 	SilenceRegion,
 	Chapter,
@@ -23,6 +24,12 @@ interface TranscriptState {
 	silences: SilenceRegion[];
 	chapters: Chapter[];
 	translations: TranslatedTranscript[];
+	/** Map from raw speaker ID (e.g. "SPEAKER_A") to user-defined name */
+	speakerNames: Record<string, string>;
+	/** Map from speaker ID to visual position ("left" | "right" | "center") */
+	speakerPositions: Record<string, "left" | "right" | "center">;
+	/** Emotion annotations from speechbrain / energy analysis */
+	emotions: EmotionSegment[];
 
 	setSegments: (segments: TranscriptionSegment[]) => void;
 	addSegment: (segment: TranscriptionSegment) => void;
@@ -46,6 +53,14 @@ interface TranscriptState {
 	setChapters: (chapters: Chapter[]) => void;
 	addTranslation: (translation: TranslatedTranscript) => void;
 	removeTranslation: (languageCode: string) => void;
+	setSpeakerName: (speakerId: string, name: string) => void;
+	setSpeakerNames: (names: Record<string, string>) => void;
+	setSpeakerPosition: (speakerId: string, position: "left" | "right" | "center") => void;
+	setEmotions: (emotions: EmotionSegment[]) => void;
+	/** Assign speaker IDs to segments by matching diarization time ranges */
+	applySpeakerDiarization: (
+		speakerSegments: { speaker: string; start: number; end: number }[],
+	) => void;
 	reset: () => void;
 }
 
@@ -60,6 +75,9 @@ const initialState = {
 	silences: [] as SilenceRegion[],
 	chapters: [] as Chapter[],
 	translations: [] as TranslatedTranscript[],
+	speakerNames: {} as Record<string, string>,
+	speakerPositions: {} as Record<string, "left" | "right" | "center">,
+	emotions: [] as EmotionSegment[],
 };
 
 export const useTranscriptStore = create<TranscriptState>()((set, get) => ({
@@ -155,6 +173,61 @@ export const useTranscriptStore = create<TranscriptState>()((set, get) => ({
 				(t) => t.languageCode !== languageCode,
 			),
 		})),
+
+	setSpeakerName: (speakerId, name) =>
+		set((state) => ({
+			speakerNames: { ...state.speakerNames, [speakerId]: name },
+		})),
+
+	setSpeakerNames: (names) =>
+		set({ speakerNames: names }),
+
+	setSpeakerPosition: (speakerId, position) =>
+		set((state) => ({
+			speakerPositions: { ...state.speakerPositions, [speakerId]: position },
+		})),
+
+	setEmotions: (emotions) => set({ emotions }),
+
+	applySpeakerDiarization: (speakerSegments) =>
+		set((state) => {
+			// For each transcript segment, find the speaker segment with the most overlap
+			const updatedSegments = state.segments.map((seg) => {
+				let bestSpeaker: string | undefined;
+				let bestOverlap = 0;
+
+				for (const spk of speakerSegments) {
+					const overlapStart = Math.max(seg.start, spk.start);
+					const overlapEnd = Math.min(seg.end, spk.end);
+					const overlap = Math.max(0, overlapEnd - overlapStart);
+
+					if (overlap > bestOverlap) {
+						bestOverlap = overlap;
+						bestSpeaker = spk.speaker;
+					}
+				}
+
+				return { ...seg, speaker: bestSpeaker };
+			});
+
+			// Build default speaker name and position maps
+			const speakerIds = new Set(speakerSegments.map((s) => s.speaker));
+			const defaultNames: Record<string, string> = {};
+			const defaultPositions: Record<string, "left" | "right" | "center"> = {};
+			const positionOrder: ("left" | "right" | "center")[] = ["left", "right", "center"];
+			const sortedIds = [...speakerIds].sort();
+			for (let i = 0; i < sortedIds.length; i++) {
+				const id = sortedIds[i];
+				defaultNames[id] = state.speakerNames[id] || `Speaker ${String.fromCharCode(65 + i)}`;
+				defaultPositions[id] = state.speakerPositions[id] || positionOrder[Math.min(i, 2)];
+			}
+
+			return {
+				segments: updatedSegments,
+				speakerNames: defaultNames,
+				speakerPositions: defaultPositions,
+			};
+		}),
 
 	reset: () => set({ ...initialState, selectedSegmentIds: new Set<number>() }),
 }));

@@ -20,6 +20,8 @@ export interface VisualNodeParams {
 	timeOffset: number;
 	trimStart: number;
 	trimEnd: number;
+	/** Playback speed multiplier (default 1.0). */
+	playbackRate?: number;
 	transform: Transform;
 	animations?: ElementAnimations;
 	opacity: number;
@@ -31,7 +33,9 @@ export abstract class VisualNode<
 	Params extends VisualNodeParams = VisualNodeParams,
 > extends BaseNode<Params> {
 	protected getSourceLocalTime({ time }: { time: number }): number {
-		return time - this.params.timeOffset + this.params.trimStart;
+		const rate = this.params.playbackRate ?? 1.0;
+		const elapsed = time - this.params.timeOffset;
+		return elapsed * rate + this.params.trimStart;
 	}
 
 	protected getAnimationLocalTime({ time }: { time: number }): number {

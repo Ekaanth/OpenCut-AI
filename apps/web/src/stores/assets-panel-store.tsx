@@ -15,22 +15,26 @@ import {
 	SparklesIcon,
 	CheckmarkBadge01Icon,
 	AiMicIcon,
+	Mic01Icon,
+	CrownIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 export const TAB_KEYS = [
-	"ai",
 	"media",
+	"ai",
+	"captions",
+	"podcast",
+	"text",
 	"sounds",
 	"voiceover",
-	"text",
 	"stickers",
 	"effects",
 	"transitions",
-	"captions",
-	"factcheck",
 	"filters",
 	"adjustment",
+	"brandkit",
+	"factcheck",
 	"settings",
 ] as const;
 
@@ -79,6 +83,14 @@ export const tabs = {
 		icon: createHugeiconsIcon({ icon: ClosedCaptionIcon }),
 		label: "Transcript",
 	},
+	podcast: {
+		icon: createHugeiconsIcon({ icon: Mic01Icon }),
+		label: "Podcast Clips",
+	},
+	brandkit: {
+		icon: createHugeiconsIcon({ icon: CrownIcon }),
+		label: "Brand Kit",
+	},
 	factcheck: {
 		icon: createHugeiconsIcon({ icon: CheckmarkBadge01Icon }),
 		label: "Fact Check",
@@ -103,6 +115,7 @@ export const tabs = {
 export type MediaViewMode = "grid" | "list";
 export type MediaSortKey = "name" | "type" | "duration" | "size";
 export type MediaSortOrder = "asc" | "desc";
+export type MediaTypeFilter = "all" | "video" | "image" | "audio";
 
 interface AssetsPanelStore {
 	activeTab: Tab;
@@ -117,6 +130,8 @@ interface AssetsPanelStore {
 	mediaSortBy: MediaSortKey;
 	mediaSortOrder: MediaSortOrder;
 	setMediaSort: (key: MediaSortKey, order: MediaSortOrder) => void;
+	mediaTypeFilter: MediaTypeFilter;
+	setMediaTypeFilter: (filter: MediaTypeFilter) => void;
 }
 
 export const useAssetsPanelStore = create<AssetsPanelStore>()(
@@ -134,6 +149,8 @@ export const useAssetsPanelStore = create<AssetsPanelStore>()(
 			mediaSortOrder: "asc",
 			setMediaSort: (key, order) =>
 				set({ mediaSortBy: key, mediaSortOrder: order }),
+			mediaTypeFilter: "all",
+			setMediaTypeFilter: (filter) => set({ mediaTypeFilter: filter }),
 		}),
 		{
 			name: "assets-panel",
@@ -141,6 +158,7 @@ export const useAssetsPanelStore = create<AssetsPanelStore>()(
 				mediaViewMode: state.mediaViewMode,
 				mediaSortBy: state.mediaSortBy,
 				mediaSortOrder: state.mediaSortOrder,
+				mediaTypeFilter: state.mediaTypeFilter,
 			}),
 		},
 	),

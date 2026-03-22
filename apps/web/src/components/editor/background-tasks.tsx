@@ -143,12 +143,20 @@ export function BackgroundTasksWidget() {
 				</div>
 			</div>
 
-			{/* Task list */}
+			{/* Task list — running/latest on top, finished at bottom */}
 			{!isMinimized && (
 				<div className="max-h-60 overflow-y-auto divide-y">
-					{tasks.map((task) => (
-						<TaskRow key={task.id} task={task} />
-					))}
+					{[...tasks]
+						.sort((a, b) => {
+							// Running tasks first
+							if (a.status === "running" && b.status !== "running") return -1;
+							if (a.status !== "running" && b.status === "running") return 1;
+							// Within same status group, newest first
+							return b.startedAt - a.startedAt;
+						})
+						.map((task) => (
+							<TaskRow key={task.id} task={task} />
+						))}
 				</div>
 			)}
 		</div>

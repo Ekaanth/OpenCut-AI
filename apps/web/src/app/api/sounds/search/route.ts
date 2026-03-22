@@ -97,10 +97,12 @@ function applyEffectsFilters({
 	params,
 	min_rating,
 	commercial_only,
+	hasQuery,
 }: {
 	params: URLSearchParams;
 	min_rating: number;
 	commercial_only: boolean;
+	hasQuery: boolean;
 }) {
 	params.append("filter", "duration:[* TO 30.0]");
 	params.append("filter", `avg_rating:[${min_rating} TO *]`);
@@ -112,10 +114,13 @@ function applyEffectsFilters({
 		);
 	}
 
-	params.append(
-		"filter",
-		"tag:sound-effect OR tag:sfx OR tag:foley OR tag:ambient OR tag:nature OR tag:mechanical OR tag:electronic OR tag:impact OR tag:whoosh OR tag:explosion",
-	);
+	// Only apply the tag filter when browsing (no query) — let user searches return broad results
+	if (!hasQuery) {
+		params.append(
+			"filter",
+			"tag:sound-effect OR tag:sfx OR tag:foley OR tag:ambient OR tag:nature OR tag:mechanical OR tag:electronic OR tag:impact OR tag:whoosh OR tag:explosion",
+		);
+	}
 }
 
 function transformFreesoundResult(
@@ -198,11 +203,26 @@ export async function GET(request: NextRequest) {
 
 		const baseUrl = "https://freesound.org/apiv2/search/text/";
 
+		// Prefer client-provided key (from localStorage) over server env
+		const clientApiKey = request.headers.get("x-freesound-api-key");
+		const apiKey = clientApiKey || webEnv.FREESOUND_API_KEY;
+
+		if (!apiKey) {
+			return NextResponse.json(
+				{
+					error: "Freesound API key not configured",
+					message:
+						"Set your Freesound API key in Settings > API Keys, or add FREESOUND_API_KEY to your .env.local file.",
+				},
+				{ status: 401 },
+			);
+		}
+
 		const sortParam = buildSortParameter({ query, sort });
 
 		const params = new URLSearchParams({
 			query: query || "",
-			token: webEnv.FREESOUND_API_KEY,
+			token: apiKey,
 			page: page.toString(),
 			page_size: pageSize.toString(),
 			sort: sortParam,
@@ -212,7 +232,7 @@ export async function GET(request: NextRequest) {
 
 		const isEffectsSearch = type === "effects" || !type;
 		if (isEffectsSearch) {
-			applyEffectsFilters({ params, min_rating, commercial_only });
+			applyEffectsFilters({ params, min_rating, commercial_only, hasQuery: !!query?.trim() });
 		}
 
 		const response = await fetch(`${baseUrl}?${params.toString()}`);

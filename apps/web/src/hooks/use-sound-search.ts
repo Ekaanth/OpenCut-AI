@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSoundsStore } from "@/stores/sounds-store";
+import { getFreesoundHeaders } from "@/lib/api-keys";
 
 export function useSoundSearch({
 	query,
@@ -49,6 +50,7 @@ export function useSoundSearch({
 			searchParams.set("commercial_only", commercialOnly.toString());
 			const response = await fetch(
 				`/api/sounds/search?${searchParams.toString()}`,
+				{ headers: getFreesoundHeaders() },
 			);
 
 			if (response.ok) {
@@ -97,6 +99,7 @@ export function useSoundSearch({
 
 				const response = await fetch(
 					`/api/sounds/search?q=${encodeURIComponent(query)}&type=effects&page=1`,
+					{ headers: getFreesoundHeaders() },
 				);
 
 				if (!ignore) {

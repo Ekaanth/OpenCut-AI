@@ -196,6 +196,91 @@ export interface SubtitleStyle {
 	animation: "none" | "word-highlight" | "karaoke-fill" | "bounce-in";
 }
 
+// Podcast clip types
+export interface ClipCandidate {
+	title: string;
+	start: number;
+	end: number;
+	score: number;
+	reason: string;
+	tags: string[];
+}
+
+export interface FindClipsResult {
+	clips: ClipCandidate[];
+	total_duration: number;
+}
+
+export interface KeywordEntry {
+	word: string;
+	color: string;
+	category: string;
+}
+
+export interface KeywordResult {
+	keywords: KeywordEntry[];
+}
+
+export interface QuestionCard {
+	question: string;
+	timestamp: number;
+	theme: "dark" | "gradient" | "bold" | "neon";
+	emoji: string;
+}
+
+export interface QuestionCardsResult {
+	cards: QuestionCard[];
+}
+
+// Face detection / auto-reframe
+export interface FaceBBox {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	confidence: number;
+}
+
+export interface FaceFrame {
+	timestamp: number;
+	faces: FaceBBox[];
+}
+
+export interface FaceDetectionResult {
+	frames: FaceFrame[];
+	video_width: number;
+	video_height: number;
+	duration: number;
+	total_faces_detected: number;
+}
+
+// Emotion detection
+export interface EmotionSegment {
+	start: number;
+	end: number;
+	emotion: string;
+	intensity: number;
+}
+
+export interface EmotionDetectionResult {
+	emotions: EmotionSegment[];
+	method: string;
+	peak_emotion: string;
+}
+
+// Speaker diarization
+export interface SpeakerSegment {
+	speaker: string;
+	start: number;
+	end: number;
+}
+
+export interface SpeakerDiarizationResult {
+	segments: SpeakerSegment[];
+	num_speakers: number;
+	method: string;
+}
+
 // Model management
 export interface ModelInfo {
 	name: string;

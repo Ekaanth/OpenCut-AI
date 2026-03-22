@@ -17,6 +17,8 @@ import {
 	AiMicIcon,
 	Tick01Icon,
 	CheckmarkBadge01Icon,
+	Mic01Icon,
+	ClosedCaptionIcon,
 } from "@hugeicons/core-free-icons";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { useEditor } from "@/hooks/use-editor";
@@ -26,6 +28,9 @@ import {
 	computeCutsFromDeletedSegments,
 } from "@/lib/text-timeline-sync";
 import { aiClient } from "@/lib/ai-client";
+import { useAssetsPanelStore } from "@/stores/assets-panel-store";
+import { useBackgroundTasksStore } from "@/stores/background-tasks-store";
+import { buildPopoverSubtitleElements, distributeElementsToTracks } from "@/lib/podcast/subtitle-presets";
 import { toast } from "sonner";
 
 type ActionStatus = "idle" | "running" | "done";
@@ -51,6 +56,9 @@ export function QuickActionsBar({ className }: { className?: string }) {
 	const [silenceStatus, setSilenceStatus] = useState<ActionStatus>("idle");
 	const [silenceCount, setSilenceCount] = useState(0);
 	const [factcheckStatus, setFactcheckStatus] = useState<ActionStatus>("idle");
+	const [popoverSubStatus, setPopoverSubStatus] = useState<ActionStatus>("idle");
+	const [popoverSubCount, setPopoverSubCount] = useState(0);
+	const [findClipsStatus, setFindClipsStatus] = useState<ActionStatus>("idle");
 
 	// Derive subtitle state from actual timeline tracks
 	const subtitleTrackId = useMemo(() => {
@@ -226,6 +234,80 @@ export function QuickActionsBar({ className }: { className?: string }) {
 		}
 	}, []);
 
+	// --- Add Popover Subtitles ---
+	const handlePopoverSubs = useCallback(async () => {
+		const currentSegments = useTranscriptStore.getState().segments;
+		if (currentSegments.length === 0) return;
+
+		const taskId = `popover-subs-quick-${Date.now()}`;
+		const bgTasks = useBackgroundTasksStore.getState();
+
+		setPopoverSubStatus("running");
+		bgTasks.addTask({
+			id: taskId,
+			type: "popover-subs",
+			label: "Popover subtitles",
+			progress: "Building subtitle elements...",
+		});
+
+		try {
+			const canvasSize = editor.project.getActive().settings.canvasSize;
+
+			const subtitleElements = buildPopoverSubtitleElements({
+				segments: currentSegments.map((s) => ({
+					text: s.text,
+					start: s.start,
+					end: s.end,
+					words: s.words,
+				})),
+				preset: "hormozi",
+				canvasHeight: canvasSize.height,
+				canvasWidth: canvasSize.width,
+			});
+
+			// Distribute across multiple tracks so overlapping words are all visible
+			const trackBuckets = distributeElementsToTracks(subtitleElements);
+
+			for (let t = 0; t < trackBuckets.length; t++) {
+				const trackId = editor.timeline.addTrack({ type: "text", index: 0 });
+				const label = trackBuckets.length === 1
+					? "Popover Subs"
+					: `Popover Subs ${t + 1}`;
+				editor.timeline.renameTrack({ trackId, name: label });
+
+				for (const el of trackBuckets[t]) {
+					editor.timeline.insertElement({
+						placement: { mode: "explicit", trackId },
+						element: el,
+					});
+				}
+			}
+
+			bgTasks.updateTask(taskId, {
+				status: "completed",
+				progress: `${subtitleElements.length} words across ${trackBuckets.length} tracks`,
+				completedAt: Date.now(),
+			});
+			setPopoverSubCount((c) => c + 1);
+			setPopoverSubStatus("idle");
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Failed to add popover subtitles";
+			bgTasks.updateTask(taskId, {
+				status: "error",
+				error: message,
+				completedAt: Date.now(),
+			});
+			setPopoverSubStatus("idle");
+		}
+	}, [editor]);
+
+	// --- Find Clips (opens panel) ---
+	const handleFindClips = useCallback(() => {
+		useAssetsPanelStore.getState().setActiveTab("podcast");
+		toast.info("Switched to Podcast Clips panel — click 'Find best clips' to start.");
+		setFindClipsStatus("done");
+	}, []);
+
 	// Early return AFTER all hooks to satisfy Rules of Hooks
 	if (segments.length === 0) return null;
 
@@ -266,6 +348,25 @@ export function QuickActionsBar({ className }: { className?: string }) {
 			icon: TextIcon,
 			status: (subtitleTrackId ? "done" : "idle") as ActionStatus,
 			handler: handleSubtitles,
+		},
+		{
+			id: "popover-subs",
+			label: popoverSubCount > 0 ? "Add more subs" : "Popover subs",
+			description: popoverSubCount > 0
+				? `${popoverSubCount} set${popoverSubCount > 1 ? "s" : ""} added — click to add another layer`
+				: "Word-by-word popover subtitles — each word appears when spoken and stays visible",
+			icon: ClosedCaptionIcon,
+			count: popoverSubCount > 0 ? popoverSubCount : undefined,
+			status: popoverSubStatus,
+			handler: handlePopoverSubs,
+		},
+		{
+			id: "find-clips",
+			label: "Find clips",
+			description: "Open Podcast Clips panel to find the best viral moments",
+			icon: Mic01Icon,
+			status: findClipsStatus,
+			handler: handleFindClips,
 		},
 		{
 			id: "factcheck",

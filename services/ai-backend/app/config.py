@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     WHISPER_SERVICE_URL: str = "http://localhost:8421"
     TTS_SERVICE_URL: str = "http://localhost:8422"
     IMAGE_SERVICE_URL: str = "http://localhost:8423"
+    SPEAKER_SERVICE_URL: str = "http://localhost:8424"
+    FACE_SERVICE_URL: str = "http://localhost:8425"
 
     # Whisper (kept for local fallback / model manager)
     WHISPER_MODEL_SIZE: str = "base"

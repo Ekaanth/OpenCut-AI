@@ -6,3 +6,4 @@ export * from "./timeline";
 export * from "./media";
 export * from "./scene";
 export * from "./project";
+export * from "./transcript";

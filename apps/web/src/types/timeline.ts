@@ -71,6 +71,8 @@ interface BaseAudioElement extends BaseTimelineElement {
 	type: "audio";
 	volume: number;
 	muted?: boolean;
+	/** Playback speed multiplier. 1.0 = normal, 0.5 = half speed, 2.0 = double speed. */
+	playbackRate?: number;
 	buffer?: AudioBuffer;
 }
 
@@ -102,6 +104,8 @@ export interface VideoElement extends BaseTimelineElement {
 	mediaId: string;
 	muted?: boolean;
 	hidden?: boolean;
+	/** Playback speed multiplier. 1.0 = normal, 0.5 = half speed, 2.0 = double speed. */
+	playbackRate?: number;
 	transform: Transform;
 	opacity: number;
 	blendMode?: BlendMode;
@@ -146,6 +150,8 @@ export interface TextElement extends BaseTimelineElement {
 	highlightColor?: string;
 	/** Word-level timing for karaoke-style highlighting */
 	wordTimings?: TextWordTiming[];
+	/** Scale multiplier for the currently-spoken word (pop effect). 1.0 = no pop, 1.3 = 30% larger. */
+	wordPopScale?: number;
 	background: TextBackground;
 	textAlign: "left" | "center" | "right";
 	fontWeight: "normal" | "bold";

@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useSoundSearch } from "@/hooks/use-sound-search";
+import { getFreesoundHeaders } from "@/lib/api-keys";
 import { useSoundsStore } from "@/stores/sounds-store";
 import type { SavedSound, SoundEffect } from "@/types/sounds";
 import { cn } from "@/utils/ui";
@@ -132,6 +133,7 @@ function SoundEffectsView() {
 
 				const response = await fetch(
 					"/api/sounds/search?page_size=50&sort=downloads",
+					{ headers: getFreesoundHeaders() },
 				);
 
 				if (!shouldIgnore) {
@@ -230,6 +232,10 @@ function SoundEffectsView() {
 		}
 	};
 
+	const handleTagClick = (tag: string) => {
+		setSearchQuery({ query: tag });
+	};
+
 	return (
 		<div className="mt-1 flex h-full flex-col gap-5">
 			<div className="flex items-center gap-3">
@@ -270,6 +276,22 @@ function SoundEffectsView() {
 				</DropdownMenu>
 			</div>
 
+			{/* Popular tags for quick browsing */}
+			{!searchQuery && (
+				<div className="flex flex-wrap gap-1">
+					{POPULAR_TAGS.map((tag) => (
+						<button
+							key={tag}
+							type="button"
+							onClick={() => handleTagClick(tag)}
+							className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+						>
+							{tag}
+						</button>
+					))}
+				</div>
+			)}
+
 			<div className="relative h-full overflow-hidden">
 				<ScrollArea
 					className="h-full flex-1"
@@ -291,6 +313,7 @@ function SoundEffectsView() {
 								sound={sound}
 								isPlaying={playingId === sound.id}
 								onPlay={playSound}
+								onTagClick={handleTagClick}
 							/>
 						))}
 						{!isLoading && !isSearching && displayedSounds.length === 0 && (
@@ -493,9 +516,10 @@ interface AudioItemProps {
 	sound: SoundEffect;
 	isPlaying: boolean;
 	onPlay: ({ sound }: { sound: SoundEffect }) => void;
+	onTagClick?: (tag: string) => void;
 }
 
-function AudioItem({ sound, isPlaying, onPlay }: AudioItemProps) {
+function AudioItem({ sound, isPlaying, onPlay, onTagClick }: AudioItemProps) {
 	const { addSoundToTimeline, isSoundSaved, toggleSavedSound } =
 		useSoundsStore();
 	const isSaved = isSoundSaved({ soundId: sound.id });
@@ -518,57 +542,93 @@ function AudioItem({ sound, isPlaying, onPlay }: AudioItemProps) {
 		await addSoundToTimeline({ sound });
 	};
 
+	// Show up to 4 most useful tags (skip generic ones)
+	const displayTags = sound.tags
+		?.filter((t) => !HIDDEN_TAGS.has(t.toLowerCase()))
+		.slice(0, 4) ?? [];
+
 	return (
-		<div className="group flex items-center gap-3 opacity-100 hover:opacity-75">
-			<button
-				type="button"
-				className="flex min-w-0 flex-1 items-center gap-3 text-left"
-				onClick={handleClick}
-			>
-				<div className="bg-accent relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md">
-					<div className="from-primary/20 absolute inset-0 bg-gradient-to-br to-transparent" />
-					{isPlaying ? (
-						<HugeiconsIcon icon={PauseIcon} className="size-5" />
-					) : (
-						<HugeiconsIcon icon={PlayIcon} className="size-5" />
-					)}
-				</div>
-
-				<div className="min-w-0 flex-1 overflow-hidden">
-					<p className="truncate text-sm font-medium">{sound.name}</p>
-					<span className="text-muted-foreground block truncate text-xs">
-						{sound.username}
-					</span>
-				</div>
-			</button>
-
-			<div className="flex items-center gap-3 pr-2">
-				<Button
-					variant="text"
-					size="icon"
-					className="text-muted-foreground hover:text-foreground w-auto !opacity-100"
-					onClick={handleAddToTimeline}
-					title="Add to timeline"
+		<div className="group flex flex-col gap-1.5">
+			<div className="flex items-center gap-3 opacity-100 hover:opacity-75">
+				<button
+					type="button"
+					className="flex min-w-0 flex-1 items-center gap-3 text-left"
+					onClick={handleClick}
 				>
-					<HugeiconsIcon icon={PlusSignIcon} />
-				</Button>
-				<Button
-					variant="text"
-					size="icon"
-					className={`hover:text-foreground w-auto !opacity-100 ${
-						isSaved
-							? "text-red-500 hover:text-red-600"
-							: "text-muted-foreground"
-					}`}
-					onClick={handleSaveClick}
-					title={isSaved ? "Remove from saved" : "Save sound"}
-				>
-					<HugeiconsIcon
-						icon={FavouriteIcon}
-						className={`${isSaved ? "fill-current" : ""}`}
-					/>
-				</Button>
+					<div className="bg-accent relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md">
+						<div className="from-primary/20 absolute inset-0 bg-gradient-to-br to-transparent" />
+						{isPlaying ? (
+							<HugeiconsIcon icon={PauseIcon} className="size-5" />
+						) : (
+							<HugeiconsIcon icon={PlayIcon} className="size-5" />
+						)}
+					</div>
+
+					<div className="min-w-0 flex-1 overflow-hidden">
+						<p className="truncate text-sm font-medium">{sound.name}</p>
+						<span className="text-muted-foreground block truncate text-xs">
+							{sound.username}
+						</span>
+					</div>
+				</button>
+
+				<div className="flex items-center gap-3 pr-2">
+					<Button
+						variant="text"
+						size="icon"
+						className="text-muted-foreground hover:text-foreground w-auto !opacity-100"
+						onClick={handleAddToTimeline}
+						title="Add to timeline"
+					>
+						<HugeiconsIcon icon={PlusSignIcon} />
+					</Button>
+					<Button
+						variant="text"
+						size="icon"
+						className={`hover:text-foreground w-auto !opacity-100 ${
+							isSaved
+								? "text-red-500 hover:text-red-600"
+								: "text-muted-foreground"
+						}`}
+						onClick={handleSaveClick}
+						title={isSaved ? "Remove from saved" : "Save sound"}
+					>
+						<HugeiconsIcon
+							icon={FavouriteIcon}
+							className={`${isSaved ? "fill-current" : ""}`}
+						/>
+					</Button>
+				</div>
 			</div>
+			{displayTags.length > 0 && (
+				<div className="flex flex-wrap gap-1 pl-15">
+					{displayTags.map((tag) => (
+						<button
+							key={tag}
+							type="button"
+							onClick={() => onTagClick?.(tag)}
+							className="rounded-full bg-muted/60 px-2 py-0.5 text-[9px] text-muted-foreground transition-colors hover:bg-primary/20 hover:text-foreground"
+							title={`Search for "${tag}"`}
+						>
+							{tag}
+						</button>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }
+
+/** Tags that are too generic to display */
+const HIDDEN_TAGS = new Set([
+	"sound", "effect", "sound-effect", "sfx", "audio", "sample",
+	"wav", "mp3", "ogg", "flac", "mono", "stereo", "freesound",
+	"field-recording", "recording",
+]);
+
+const POPULAR_TAGS = [
+	"whoosh", "impact", "explosion", "ambient", "nature",
+	"footsteps", "rain", "wind", "click", "beep",
+	"sci-fi", "horror", "cinematic", "foley", "mechanical",
+	"water", "fire", "thunder", "alarm", "notification",
+];

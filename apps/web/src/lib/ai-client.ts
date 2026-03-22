@@ -4,9 +4,15 @@ import type {
 	AISuggestion,
 	CommandResult,
 	DenoiseResult,
+	EmotionDetectionResult,
+	FaceDetectionResult,
+	FindClipsResult,
+	SpeakerDiarizationResult,
 	ImageGenParams,
 	ImageGenResult,
 	InfographicData,
+	KeywordResult,
+	QuestionCardsResult,
 	TranscriptionResult,
 	TranscriptionSegment,
 	FillerWord,
@@ -497,6 +503,88 @@ class AIClient {
 		return this.request<{ status: string; message: string }>("/api/setup/download-model", {
 			method: "POST",
 			body: JSON.stringify({ model_type: "diffusion", model_name: "" }),
+		});
+	}
+
+	async analyzeEmotions(
+		file: File,
+		windowSeconds?: number,
+	): Promise<EmotionDetectionResult> {
+		const formData = new FormData();
+		formData.append("file", file);
+		if (windowSeconds !== undefined) formData.append("window_seconds", windowSeconds.toString());
+
+		return this.requestFormData<EmotionDetectionResult>(
+			"/api/analyze/emotions",
+			formData,
+			300_000,
+		);
+	}
+
+	async detectFaces(
+		file: File,
+		options?: { sampleInterval?: number; maxSamples?: number },
+	): Promise<FaceDetectionResult> {
+		const formData = new FormData();
+		formData.append("file", file);
+		if (options?.sampleInterval !== undefined) formData.append("sample_interval", options.sampleInterval.toString());
+		if (options?.maxSamples !== undefined) formData.append("max_samples", options.maxSamples.toString());
+
+		return this.requestFormData<FaceDetectionResult>(
+			"/api/analyze/faces",
+			formData,
+			300_000, // 5 min timeout
+		);
+	}
+
+	async analyzeSpeakers(
+		file: File,
+		options?: { numSpeakers?: number; minSpeakers?: number; maxSpeakers?: number },
+	): Promise<SpeakerDiarizationResult> {
+		const formData = new FormData();
+		formData.append("file", file);
+		if (options?.numSpeakers !== undefined) formData.append("num_speakers", options.numSpeakers.toString());
+		if (options?.minSpeakers !== undefined) formData.append("min_speakers", options.minSpeakers.toString());
+		if (options?.maxSpeakers !== undefined) formData.append("max_speakers", options.maxSpeakers.toString());
+
+		return this.requestFormData<SpeakerDiarizationResult>(
+			"/api/analyze/speakers",
+			formData,
+			600_000, // 10 min timeout for diarization
+		);
+	}
+
+	async findClips(
+		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
+		options?: { minDuration?: number; maxDuration?: number; maxClips?: number },
+	): Promise<FindClipsResult> {
+		return this.request<FindClipsResult>("/api/analyze/find-clips", {
+			method: "POST",
+			body: JSON.stringify({
+				segments,
+				min_duration: options?.minDuration ?? 15,
+				max_duration: options?.maxDuration ?? 90,
+				max_clips: options?.maxClips ?? 10,
+			}),
+		});
+	}
+
+	async extractKeywords(
+		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
+	): Promise<KeywordResult> {
+		return this.request<KeywordResult>("/api/analyze/keywords", {
+			method: "POST",
+			body: JSON.stringify({ segments }),
+		});
+	}
+
+	async generateQuestionCards(
+		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
+		maxCards?: number,
+	): Promise<QuestionCardsResult> {
+		return this.request<QuestionCardsResult>("/api/analyze/question-cards", {
+			method: "POST",
+			body: JSON.stringify({ segments, max_cards: maxCards ?? 5 }),
 		});
 	}
 
