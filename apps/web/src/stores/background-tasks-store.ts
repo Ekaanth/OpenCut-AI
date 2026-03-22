@@ -5,7 +5,7 @@ export type BackgroundTaskStatus = "running" | "completed" | "error";
 
 export interface BackgroundTask {
 	id: string;
-	type: "transcription" | "voiceover" | "translation" | "tts";
+	type: "transcription" | "voiceover" | "translation" | "tts" | "clip-finder" | "keyword-extraction" | "question-cards" | "popover-subs" | "speaker-diarization";
 	label: string;
 	status: BackgroundTaskStatus;
 	progress: string;

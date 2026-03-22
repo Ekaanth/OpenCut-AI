@@ -38,6 +38,29 @@ export class MediaManager {
 		return newAsset.id;
 	}
 
+	async updateMediaAsset({
+		projectId,
+		id,
+		updates,
+	}: {
+		projectId: string;
+		id: string;
+		updates: Partial<Pick<MediaAsset, "label" | "name">>;
+	}): Promise<void> {
+		const index = this.assets.findIndex((a) => a.id === id);
+		if (index === -1) return;
+
+		const updated = { ...this.assets[index], ...updates };
+		this.assets = this.assets.map((a) => (a.id === id ? updated : a));
+		this.notify();
+
+		try {
+			await storageService.saveMediaAsset({ projectId, mediaAsset: updated });
+		} catch (error) {
+			console.error("Failed to update media asset:", error);
+		}
+	}
+
 	async removeMediaAsset({
 		projectId,
 		id,

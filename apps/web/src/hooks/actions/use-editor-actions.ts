@@ -8,6 +8,11 @@ import { useKeyframeSelection } from "../timeline/element/use-keyframe-selection
 import { getElementsAtTime } from "@/lib/timeline";
 import { useAIStore } from "@/stores/ai-store";
 import { useTranscriptStore } from "@/stores/transcript-store";
+import {
+	captureTranscriptSnapshot,
+	hasTranscriptChanged,
+	TranscriptSnapshotCommand,
+} from "@/lib/commands/transcript";
 import { toast } from "sonner";
 
 export function useEditorActions() {
@@ -221,6 +226,11 @@ export function useEditorActions() {
 			if (selectedElements.length === 0) {
 				return;
 			}
+
+			const supportsTransaction = editor.command && typeof editor.command.beginTransaction === "function";
+			const transcriptBefore = captureTranscriptSnapshot();
+			if (supportsTransaction) editor.command.beginTransaction();
+
 			editor.timeline.deleteElements({
 				elements: selectedElements,
 				rippleEnabled: rippleEditingEnabled,
@@ -237,6 +247,15 @@ export function useEditorActions() {
 			if (!hasMedia) {
 				useTranscriptStore.getState().reset();
 			}
+
+			const transcriptAfter = captureTranscriptSnapshot();
+			if (supportsTransaction && hasTranscriptChanged(transcriptBefore, transcriptAfter)) {
+				editor.command.push({
+					command: new TranscriptSnapshotCommand(transcriptBefore, transcriptAfter),
+				});
+			}
+
+			if (supportsTransaction) editor.command.commitTransaction();
 		},
 		undefined,
 	);

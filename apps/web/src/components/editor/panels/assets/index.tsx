@@ -16,6 +16,8 @@ import { FiltersView } from "./views/filters";
 import { AdjustmentView } from "./views/adjustment";
 import { OverlaysView } from "./views/overlays";
 import { VoiceoverView } from "./views/voiceover";
+import { PodcastClipsView } from "./views/podcast-clips";
+import { BrandKitView } from "./views/brand-kit";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
@@ -30,6 +32,8 @@ export function AssetsPanel() {
 		effects: <EffectsView />,
 		transitions: <OverlaysView />,
 		captions: <Captions />,
+		podcast: <PodcastClipsView />,
+		brandkit: <BrandKitView />,
 		factcheck: <FactCheckView />,
 		filters: <FiltersView />,
 		adjustment: <AdjustmentView />,

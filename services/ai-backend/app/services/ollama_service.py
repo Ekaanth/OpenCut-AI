@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -88,17 +89,64 @@ class OllamaService:
         model: str | None = None,
         system: str | None = None,
     ) -> dict[str, Any]:
-        """Generate a completion and parse the response as JSON."""
+        """Generate a completion and parse the response as JSON.
+
+        Handles common LLM quirks:
+        - Trailing whitespace / newlines after valid JSON
+        - Truncated JSON (attempts to close open brackets)
+        - JSON embedded in markdown code fences
+        """
         raw = await self.generate(
             prompt=prompt,
             model=model,
             system=system,
             format="json",
         )
+
+        # Strip whitespace
+        cleaned = raw.strip()
+
+        # Remove markdown code fences if present
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+            cleaned = re.sub(r"\s*```\s*$", "", cleaned)
+            cleaned = cleaned.strip()
+
+        # Try parsing as-is first
         try:
-            return json.loads(raw)
+            return json.loads(cleaned)
         except json.JSONDecodeError:
-            logger.error("Ollama returned invalid JSON: %s", raw[:500])
+            pass
+
+        # Try to extract the first complete JSON object from the text
+        # Find the first '{' and try to match it
+        brace_start = cleaned.find("{")
+        if brace_start == -1:
+            logger.error("Ollama returned no JSON object: %s", raw[:500])
+            raise ValueError("LLM did not return valid JSON")
+
+        # Try progressively from the end to find valid JSON
+        text = cleaned[brace_start:]
+        for end_pos in range(len(text), 0, -1):
+            try:
+                return json.loads(text[:end_pos])
+            except json.JSONDecodeError:
+                continue
+
+        # Last resort: try to fix truncated JSON by closing open brackets
+        fixed = text.rstrip()
+        open_braces = fixed.count("{") - fixed.count("}")
+        open_brackets = fixed.count("[") - fixed.count("]")
+        # Close any unclosed strings
+        if fixed.count('"') % 2 != 0:
+            fixed += '"'
+        fixed += "]" * open_brackets
+        fixed += "}" * open_braces
+
+        try:
+            return json.loads(fixed)
+        except json.JSONDecodeError:
+            logger.error("Ollama returned unfixable JSON: %s", raw[:500])
             raise ValueError("LLM did not return valid JSON")
 
     async def chat(

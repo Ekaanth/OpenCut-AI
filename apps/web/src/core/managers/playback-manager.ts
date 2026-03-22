@@ -16,10 +16,11 @@ export class PlaybackManager {
 	play(): void {
 		const duration = this.editor.timeline.getTotalDuration();
 
-		if (duration > 0) {
-			if (this.currentTime >= duration) {
-				this.seek({ time: 0 });
-			}
+		// Don't play if the timeline is empty
+		if (duration <= 0) return;
+
+		if (this.currentTime >= duration) {
+			this.seek({ time: 0 });
 		}
 
 		this.isPlaying = true;

@@ -11,6 +11,8 @@ export class SaveManager {
 	private hasPendingSave = false;
 	private saveTimer: ReturnType<typeof setTimeout> | null = null;
 	private unsubscribeHandlers: Array<() => void> = [];
+	private _lastSavedAt: number | null = null;
+	private statusListeners = new Set<() => void>();
 
 	constructor(
 		private editor: EditorCore,
@@ -66,6 +68,23 @@ export class SaveManager {
 		return this.hasPendingSave || this.isSaving;
 	}
 
+	getIsSaving(): boolean {
+		return this.isSaving;
+	}
+
+	getLastSavedAt(): number | null {
+		return this._lastSavedAt;
+	}
+
+	subscribeStatus(listener: () => void): () => void {
+		this.statusListeners.add(listener);
+		return () => { this.statusListeners.delete(listener); };
+	}
+
+	private notifyStatus(): void {
+		for (const listener of this.statusListeners) listener();
+	}
+
 	private queueSave(): void {
 		if (this.isSaving) return;
 		if (this.saveTimer) {
@@ -88,11 +107,14 @@ export class SaveManager {
 		this.isSaving = true;
 		this.hasPendingSave = false;
 		this.clearTimer();
+		this.notifyStatus();
 
 		try {
 			await this.editor.project.saveCurrentProject();
+			this._lastSavedAt = Date.now();
 		} finally {
 			this.isSaving = false;
+			this.notifyStatus();
 			if (this.hasPendingSave) {
 				this.queueSave();
 			}

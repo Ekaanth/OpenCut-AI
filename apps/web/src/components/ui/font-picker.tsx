@@ -27,6 +27,7 @@ import { cn } from "@/utils/ui";
 import { ChevronDown, Search, Upload } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { TextIcon } from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 
 const FONT_TABS = [
 	{ key: "all", label: "All fonts" },
@@ -64,17 +65,33 @@ export function FontPicker({
 		getCachedFontAtlas() ? "idle" : "loading",
 	);
 	const searchInputRef = useRef<HTMLInputElement>(null);
+	const fontFileRef = useRef<HTMLInputElement>(null);
+	const [customFonts, setCustomFonts] = useState<string[]>(() => {
+		if (typeof window === "undefined") return [];
+		try {
+			const stored = localStorage.getItem("opencut:custom-fonts");
+			return stored ? JSON.parse(stored) : [];
+		} catch {
+			return [];
+		}
+	});
 
 	const fontNames = useMemo(() => {
 		if (!atlas) return [];
 		return Object.keys(atlas.fonts).sort();
 	}, [atlas]);
 
+	const allFontNames = useMemo(() => {
+		const combined = [...customFonts, ...fontNames];
+		return [...new Set(combined)];
+	}, [fontNames, customFonts]);
+
 	const filteredFonts = useMemo(() => {
-		if (!search) return fontNames;
+		const source = activeTab === "my-fonts" ? customFonts : allFontNames;
+		if (!search) return source;
 		const query = search.toLowerCase();
-		return fontNames.filter((name) => name.toLowerCase().includes(query));
-	}, [fontNames, search]);
+		return source.filter((name) => name.toLowerCase().includes(query));
+	}, [allFontNames, customFonts, activeTab, search]);
 
 	const listHeight = Math.min(
 		MAX_LIST_HEIGHT,
@@ -230,14 +247,43 @@ export function FontPicker({
 						variant="ghost"
 						size="sm"
 						className="w-full justify-start text-muted-foreground h-8 font-normal"
-						onClick={() => {
-							// TODO: Implement local font loading
-							console.log("Load local fonts clicked");
-						}}
+						onClick={() => fontFileRef.current?.click()}
 					>
 						<Upload className="!size-3.5" />
 						Load local fonts
 					</Button>
+					<input
+						ref={fontFileRef}
+						type="file"
+						accept=".ttf,.otf,.woff,.woff2"
+						multiple
+						className="hidden"
+						onChange={async (e) => {
+							const files = e.target.files;
+							if (!files) return;
+							const loaded: string[] = [];
+							for (const file of Array.from(files)) {
+								try {
+									const fontName = file.name.replace(/\.(ttf|otf|woff2?)$/i, "");
+									const buffer = await file.arrayBuffer();
+									const face = new FontFace(fontName, buffer);
+									await face.load();
+									document.fonts.add(face);
+									loaded.push(fontName);
+								} catch {
+									toast.error(`Failed to load ${file.name}`);
+								}
+							}
+							if (loaded.length > 0) {
+								const updated = [...new Set([...customFonts, ...loaded])];
+								setCustomFonts(updated);
+								try { localStorage.setItem("opencut:custom-fonts", JSON.stringify(updated)); } catch {}
+								toast.success(`Loaded ${loaded.join(", ")}`);
+								setActiveTab("my-fonts");
+							}
+							if (fontFileRef.current) fontFileRef.current.value = "";
+						}}
+					/>
 				</div>
 			</PopoverContent>
 		</Popover>

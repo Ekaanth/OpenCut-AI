@@ -1,5 +1,5 @@
 
-export const SITE_URL = "";
+export const SITE_URL = "http://localhost:3000";
 
 export const SITE_INFO = {
 	title: "OpenCut AI",

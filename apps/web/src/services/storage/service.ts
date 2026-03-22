@@ -280,6 +280,7 @@ class StorageService {
 			duration: mediaAsset.duration,
 			thumbnailUrl: mediaAsset.thumbnailUrl,
 			ephemeral: mediaAsset.ephemeral,
+			label: mediaAsset.label,
 		};
 
 		await mediaMetadataAdapter.set(mediaAsset.id, metadata);

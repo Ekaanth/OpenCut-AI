@@ -1,0 +1,8 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+aiofiles==24.1.0
+torch>=2.0.0
+torchaudio>=2.0.0
+pyannote.audio>=3.1.0
+speechbrain>=1.0.0

@@ -12,6 +12,11 @@ import {
 } from "@/lib/text-timeline-sync";
 import type { TranscriptWord } from "@/components/editor/ai/transcription-panel";
 import type { TimelineElement } from "@/types/timeline";
+import {
+	captureTranscriptSnapshot,
+	hasTranscriptChanged,
+	TranscriptSnapshotCommand,
+} from "@/lib/commands/transcript";
 import { toast } from "sonner";
 
 /**
@@ -245,6 +250,12 @@ export function useTextTimelineBridge() {
 	 */
 	const handleDeleteSegments = useCallback(
 		(segmentIds: string[], cuts: TimeRange[]) => {
+			const supportsTransaction = typeof editor.command.beginTransaction === "function";
+			const transcriptBefore = captureTranscriptSnapshot();
+
+			// Begin transaction so timeline + transcript undo together
+			if (supportsTransaction) editor.command.beginTransaction();
+
 			cutTimeRanges(cuts);
 
 			// Remove from transcript store
@@ -257,8 +268,19 @@ export function useTextTimelineBridge() {
 
 			// Sync remaining segment times to the compacted timeline
 			syncTranscriptTimesToTimeline();
+
+			// Include transcript restore in the transaction
+			if (supportsTransaction) {
+				const transcriptAfter = captureTranscriptSnapshot();
+				if (hasTranscriptChanged(transcriptBefore, transcriptAfter)) {
+					editor.command.push({
+						command: new TranscriptSnapshotCommand(transcriptBefore, transcriptAfter),
+					});
+				}
+				editor.command.commitTransaction();
+			}
 		},
-		[cutTimeRanges, syncTranscriptTimesToTimeline],
+		[editor, cutTimeRanges, syncTranscriptTimesToTimeline],
 	);
 
 	/**
@@ -272,12 +294,26 @@ export function useTextTimelineBridge() {
 			_remainingWords: TranscriptWord[],
 			cuts: TimeRange[],
 		) => {
+			const supportsTransaction = typeof editor.command.beginTransaction === "function";
+			const transcriptBefore = captureTranscriptSnapshot();
+			if (supportsTransaction) editor.command.beginTransaction();
+
 			cutTimeRanges(cuts);
 
 			// Sync remaining segment times to the compacted timeline
 			syncTranscriptTimesToTimeline();
+
+			if (supportsTransaction) {
+				const transcriptAfter = captureTranscriptSnapshot();
+				if (hasTranscriptChanged(transcriptBefore, transcriptAfter)) {
+					editor.command.push({
+						command: new TranscriptSnapshotCommand(transcriptBefore, transcriptAfter),
+					});
+				}
+				editor.command.commitTransaction();
+			}
 		},
-		[cutTimeRanges, syncTranscriptTimesToTimeline],
+		[editor, cutTimeRanges, syncTranscriptTimesToTimeline],
 	);
 
 	/**
@@ -298,6 +334,10 @@ export function useTextTimelineBridge() {
 			const currentSegments = useTranscriptStore.getState().segments;
 			if (fromIndex === toIndex || currentSegments.length === 0) return;
 
+			const supportsTransaction = typeof editor.command.beginTransaction === "function";
+			const transcriptBefore = captureTranscriptSnapshot();
+			if (supportsTransaction) editor.command.beginTransaction();
+
 			// Build a mapping from old timings to new timings
 			const tracks = editor.timeline.getTracks();
 
@@ -308,6 +348,15 @@ export function useTextTimelineBridge() {
 			if (!mediaTrack || mediaTrack.elements.length < 2) {
 				// No split clips to reorder — just update transcript
 				useTranscriptStore.getState().reorderSegments(fromIndex, toIndex);
+				if (supportsTransaction) {
+					const transcriptAfter = captureTranscriptSnapshot();
+					if (hasTranscriptChanged(transcriptBefore, transcriptAfter)) {
+						editor.command.push({
+							command: new TranscriptSnapshotCommand(transcriptBefore, transcriptAfter),
+						});
+					}
+					editor.command.commitTransaction();
+				}
 				toast.info("Segments reordered in transcript");
 				return;
 			}
@@ -344,6 +393,15 @@ export function useTextTimelineBridge() {
 			// Reorder in the transcript store
 			useTranscriptStore.getState().reorderSegments(fromIndex, toIndex);
 
+			if (supportsTransaction) {
+				const transcriptAfter = captureTranscriptSnapshot();
+				if (hasTranscriptChanged(transcriptBefore, transcriptAfter)) {
+					editor.command.push({
+						command: new TranscriptSnapshotCommand(transcriptBefore, transcriptAfter),
+					});
+				}
+				editor.command.commitTransaction();
+			}
 			toast.success("Segments reordered");
 		},
 		[editor],

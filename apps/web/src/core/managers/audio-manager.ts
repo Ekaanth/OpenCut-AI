@@ -258,6 +258,12 @@ export class AudioManager {
 				const node = audioContext.createBufferSource();
 				node.buffer = buffer;
 
+				// Apply per-clip playback rate (speed control)
+				const clipRate = (clip as unknown as { playbackRate?: number }).playbackRate;
+				if (typeof clipRate === "number" && clipRate !== 1.0) {
+					node.playbackRate.value = clipRate;
+				}
+
 				// Apply per-clip volume via a GainNode
 				const clipVolume = clip.volume ?? 1;
 				if (clipVolume < 1 && this.masterGain) {

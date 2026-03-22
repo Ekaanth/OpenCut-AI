@@ -196,7 +196,51 @@ export function Captions() {
 			useTranscriptStore.getState().setSegments(transcriptSegments);
 			useTranscriptStore.getState().setLanguage(result.language ?? "en");
 
-			// Split video at segment boundaries so each segment maps to a clip
+			// ── Auto Speaker Diarization + Emotion Detection ──
+			// Run both in parallel: speaker labels and emotion annotations.
+			let speakerChangeTimes: number[] = [];
+			setProcessingStep("Detecting speakers & emotions...");
+			bgTasks.updateTask(taskId, { progress: "Detecting speakers & emotions..." });
+
+			const speakerPromise = aiClient.analyzeSpeakers(file).catch((err) => {
+				console.warn("Speaker diarization failed:", err);
+				return null;
+			});
+			const emotionPromise = aiClient.analyzeEmotions(file).catch((err) => {
+				console.warn("Emotion detection failed:", err);
+				return null;
+			});
+
+			const [speakerResult, emotionResult] = await Promise.all([speakerPromise, emotionPromise]);
+
+			if (speakerResult && speakerResult.segments.length > 0) {
+				useTranscriptStore.getState().applySpeakerDiarization(speakerResult.segments);
+
+				// Collect speaker change boundaries for auto-cuts
+				for (let i = 1; i < speakerResult.segments.length; i++) {
+					const prev = speakerResult.segments[i - 1];
+					const curr = speakerResult.segments[i];
+					if (prev.speaker !== curr.speaker) {
+						const boundary = curr.start;
+						if (boundary > 0 && boundary < timelineDuration) {
+							speakerChangeTimes.push(boundary);
+						}
+					}
+				}
+
+				const numSpeakers = speakerResult.num_speakers;
+				if (numSpeakers > 1) {
+					toast.success(`Detected ${numSpeakers} speakers`, {
+						description: `Method: ${speakerResult.method}. Click speaker names in the transcript to rename them.`,
+					});
+				}
+			}
+
+			if (emotionResult && emotionResult.emotions.length > 0) {
+				useTranscriptStore.getState().setEmotions(emotionResult.emotions);
+			}
+
+			// Split video at segment boundaries AND speaker change points
 			if (validSegments.length > 1) {
 				try {
 					const allTimes = new Set<number>();
@@ -207,6 +251,10 @@ export function Captions() {
 						if (seg.end > 0 && seg.end < timelineDuration) {
 							allTimes.add(seg.end);
 						}
+					}
+					// Add speaker change boundaries
+					for (const t of speakerChangeTimes) {
+						allTimes.add(t);
 					}
 
 					let splitCount = 0;

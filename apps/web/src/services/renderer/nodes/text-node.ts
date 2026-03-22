@@ -142,6 +142,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		defaultColor,
 		highlightColor,
 		textAlign,
+		wordPopScale,
 	}: {
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 		line: string;
@@ -151,6 +152,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		defaultColor: string;
 		highlightColor: string;
 		textAlign: CanvasTextAlign;
+		wordPopScale: number;
 	}): void {
 		// Split the line into words preserving spacing
 		const words = line.split(/(\s+)/);
@@ -168,7 +170,10 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		// Save alignment and switch to left for manual positioning
 		const savedAlign = ctx.textAlign;
+		const savedFont = ctx.font;
 		ctx.textAlign = "left";
+
+		const hasPop = wordPopScale > 1.0;
 
 		let wordIndex = 0;
 		for (const token of words) {
@@ -181,15 +186,32 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			// Match this token to the next word timing
 			const timing = wordTimings[wordIndex];
 			const isSpoken = timing && localTime >= timing.start;
+			const isActive = timing && localTime >= timing.start && localTime < timing.end;
 
 			ctx.fillStyle = isSpoken ? highlightColor : defaultColor;
-			ctx.fillText(token, cursorX, lineY);
-			cursorX += ctx.measureText(token).width;
+
+			if (hasPop && isActive) {
+				// Pop effect: scale up the currently-spoken word
+				const tokenWidth = ctx.measureText(token).width;
+				const cx = cursorX + tokenWidth / 2;
+				const cy = lineY;
+				ctx.save();
+				ctx.translate(cx, cy);
+				ctx.scale(wordPopScale, wordPopScale);
+				ctx.fillText(token, -tokenWidth / 2, 0);
+				ctx.restore();
+				cursorX += tokenWidth;
+			} else {
+				ctx.fillText(token, cursorX, lineY);
+				cursorX += ctx.measureText(token).width;
+			}
+
 			wordIndex++;
 		}
 
-		// Restore alignment
+		// Restore alignment and font
 		ctx.textAlign = savedAlign;
+		ctx.font = savedFont;
 		ctx.fillStyle = defaultColor;
 	}
 
@@ -399,6 +421,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 						defaultColor: textColor,
 						highlightColor,
 						textAlign: this.params.textAlign,
+						wordPopScale: this.params.wordPopScale ?? 1.0,
 					});
 
 					karaokeWordOffset += lineWordCount;
