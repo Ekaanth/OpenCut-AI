@@ -71,18 +71,19 @@ services:
     ports:
       - "8420:8420"
     environment:
-      - OPENCUT_OLLAMA_URL=http://ollama:11434
-      - OPENCUT_PORT=8420
-      - OPENCUT_CORS_ORIGINS=["http://localhost:3000","http://localhost:3100","http://localhost:5173"]
-      - OPENCUT_OLLAMA_DEFAULT_MODEL=llama3.2:1b
-      - OPENCUT_OLLAMA_TIMEOUT=300
-      - OPENCUT_WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
-      - OPENCUT_WHISPER_DEVICE=cpu
-      - OPENCUT_WHISPER_SERVICE_URL=http://whisper-service:8421
-      - OPENCUT_TTS_SERVICE_URL=http://tts-service:8422
-      - OPENCUT_IMAGE_SERVICE_URL=http://image-service:8423
-      - OPENCUT_SPEAKER_SERVICE_URL=http://speaker-service:8424
-      - OPENCUT_FACE_SERVICE_URL=http://face-service:8425
+      - OPENCUTAI_OLLAMA_URL=http://ollama:11434
+      - OPENCUTAI_PORT=8420
+      - OPENCUTAI_CORS_ORIGINS=["http://localhost:3000","http://localhost:3100","http://localhost:5173"]
+      - OPENCUTAI_OLLAMA_DEFAULT_MODEL=llama3.2:1b
+      - OPENCUTAI_OLLAMA_TIMEOUT=300
+      - OPENCUTAI_WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
+      - OPENCUTAI_WHISPER_DEVICE=cpu
+      - OPENCUTAI_WHISPER_SERVICE_URL=http://whisper-service:8421
+      - OPENCUTAI_TTS_SERVICE_URL=http://tts-service:8422
+      - OPENCUTAI_IMAGE_SERVICE_URL=http://image-service:8423
+      - OPENCUTAI_SPEAKER_SERVICE_URL=http://speaker-service:8424
+      - OPENCUTAI_FACE_SERVICE_URL=http://face-service:8425
+      - OPENCUTAI_SARVAM_API_KEY=${SARVAM_API_KEY:-}
     volumes:
       - ai_models:/app/models
       - ai_generated:/app/generated

@@ -2,6 +2,12 @@ import type { LanguageCode } from "./language";
 
 export type TranscriptionLanguage = LanguageCode | "auto";
 
+/** Engine used for transcription: local Whisper or cloud Sarvam AI */
+export type TranscriptionEngine = "whisper" | "sarvam";
+
+/** Sarvam STT modes */
+export type SarvamSTTMode = "transcribe" | "translate";
+
 export interface TranscriptionSegment {
 	text: string;
 	start: number;
@@ -31,17 +37,44 @@ export type TranscriptionModelId =
 	| "whisper-tiny"
 	| "whisper-small"
 	| "whisper-medium"
-	| "whisper-large-v3-turbo";
+	| "whisper-large-v3-turbo"
+	| "saaras-v3";
 
 export interface TranscriptionModel {
 	id: TranscriptionModelId;
 	name: string;
 	huggingFaceId: string;
 	description: string;
+	engine: TranscriptionEngine;
 }
 
 export interface CaptionChunk {
 	text: string;
 	startTime: number;
 	duration: number;
+}
+
+/** Sarvam translation request */
+export interface SarvamTranslateRequest {
+	text: string;
+	sourceLanguageCode: string;
+	targetLanguageCode: string;
+	model?: string;
+	mode?: "formal" | "modern-colloquial" | "classic-colloquial";
+}
+
+/** Sarvam TTS request */
+export interface SarvamTTSRequest {
+	text: string;
+	targetLanguageCode: string;
+	speaker?: string;
+	model?: string;
+	pace?: number;
+	sampleRate?: number;
+}
+
+/** Sarvam TTS response */
+export interface SarvamTTSResult {
+	audioBase64: string;
+	requestId: string;
 }

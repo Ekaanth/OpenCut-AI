@@ -105,6 +105,19 @@ function classifyError(error: unknown): { message: string; errorType: AIErrorTyp
 	return { message, errorType: "unknown" };
 }
 
+/** Read an API key from localStorage (set via the Settings panel). */
+function getStoredApiKey(key: string): string {
+	if (typeof window === "undefined") return "";
+	try {
+		const stored = localStorage.getItem("opencut-api-keys");
+		if (!stored) return "";
+		const keys = JSON.parse(stored) as Record<string, string>;
+		return keys[key]?.trim() || "";
+	} catch {
+		return "";
+	}
+}
+
 class AIClient {
 	private baseUrl: string;
 
@@ -115,6 +128,22 @@ class AIClient {
 
 	getBaseUrl(): string {
 		return this.baseUrl;
+	}
+
+	/** Get the Sarvam API key from localStorage or env. */
+	private getSarvamApiKey(): string {
+		return (
+			getStoredApiKey("sarvam") ||
+			process.env.NEXT_PUBLIC_SARVAM_API_KEY ||
+			""
+		);
+	}
+
+	/** Build extra headers that include the Sarvam API key for passthrough. */
+	private sarvamHeaders(): Record<string, string> {
+		const key = this.getSarvamApiKey();
+		if (!key) return {};
+		return { "X-Sarvam-Api-Key": key };
 	}
 
 	private async request<T>(
@@ -393,6 +422,160 @@ class AIClient {
 			`You are a professional translator. Translate accurately and naturally into ${targetLanguage}. Return only the translated text.`,
 		);
 		return result.response.trim();
+	}
+
+	// ── Sarvam AI (Indian Languages) ──────────────────────────────────
+
+	async sarvamTranscribe(
+		file: File,
+		languageCode?: string,
+		mode: string = "transcribe",
+	): Promise<TranscriptionResult> {
+		const formData = new FormData();
+		formData.append("file", file);
+		if (languageCode) {
+			formData.append("language_code", languageCode);
+		}
+		formData.append("model", "saaras:v3");
+		formData.append("mode", mode);
+
+		// Pass the Sarvam key via header so the backend can use it
+		const url = `${this.baseUrl}/api/sarvam/transcribe`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				body: formData,
+				signal: controller.signal,
+				headers: this.sarvamHeaders(),
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text().catch(() => "Unknown error");
+				throw new AIClientError(
+					`AI Backend error (${response.status}): ${errorBody}`,
+					response.status >= 500 ? "backend_error" : "network_error",
+					response.status,
+				);
+			}
+
+			return response.json() as Promise<TranscriptionResult>;
+		} catch (error) {
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
+	async sarvamTranslate(
+		text: string,
+		sourceLanguageCode: string,
+		targetLanguageCode: string,
+		model: string = "sarvam-translate:v1",
+	): Promise<{ translated_text: string; source_language_code: string }> {
+		return this.request<{ translated_text: string; source_language_code: string }>(
+			"/api/sarvam/translate",
+			{
+				method: "POST",
+				headers: this.sarvamHeaders(),
+				body: JSON.stringify({
+					input: text,
+					source_language_code: sourceLanguageCode,
+					target_language_code: targetLanguageCode,
+					model,
+				}),
+			},
+		);
+	}
+
+	async sarvamTTS(
+		text: string,
+		targetLanguageCode: string,
+		speaker: string = "shubh",
+		pace: number = 1.0,
+	): Promise<Blob> {
+		const url = `${this.baseUrl}/api/sarvam/tts`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					...this.sarvamHeaders(),
+				},
+				body: JSON.stringify({
+					text,
+					target_language_code: targetLanguageCode,
+					speaker,
+					pace,
+					model: "bulbul:v3",
+				}),
+				signal: controller.signal,
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text().catch(() => "Unknown error");
+				throw new AIClientError(
+					`Sarvam TTS error (${response.status}): ${errorBody}`,
+					response.status >= 500 ? "backend_error" : "network_error",
+					response.status,
+				);
+			}
+
+			return await response.blob();
+		} catch (error) {
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
+	async sarvamDetectLanguage(
+		text: string,
+	): Promise<{ language_code: string; script_code: string }> {
+		return this.request<{ language_code: string; script_code: string }>(
+			"/api/sarvam/detect-language",
+			{
+				method: "POST",
+				headers: this.sarvamHeaders(),
+				body: JSON.stringify({ input: text }),
+			},
+		);
+	}
+
+	async sarvamTransliterate(
+		text: string,
+		sourceLanguageCode: string,
+		targetLanguageCode: string,
+	): Promise<{ transliterated_text: string }> {
+		return this.request<{ transliterated_text: string }>(
+			"/api/sarvam/transliterate",
+			{
+				method: "POST",
+				headers: this.sarvamHeaders(),
+				body: JSON.stringify({
+					input: text,
+					source_language_code: sourceLanguageCode,
+					target_language_code: targetLanguageCode,
+				}),
+			},
+		);
+	}
+
+	async sarvamStatus(): Promise<{ available: boolean; reason?: string }> {
+		return this.request<{ available: boolean; reason?: string }>(
+			"/api/sarvam/status",
+			{ headers: this.sarvamHeaders() },
+			HEALTH_TIMEOUT_MS,
+		);
 	}
 
 	async factCheck(text: string): Promise<{

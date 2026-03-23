@@ -192,29 +192,30 @@ export function useTextTimelineBridge() {
 	/**
 	 * After cutting and compacting, sync the transcript store segment times
 	 * to match the new video clip positions on the timeline.
+	 *
+	 * Uses the track with the most elements (video or audio) as the source
+	 * of truth, then ensures all other media tracks are aligned to the same
+	 * start times so video and audio stay in sync.
 	 */
 	const syncTranscriptTimesToTimeline = useCallback(() => {
 		const segments = useTranscriptStore.getState().segments;
 		if (segments.length === 0) return;
 
-		// Find the media track (video or audio)
+		// Find the primary media track — prefer the one with the most clips
 		const tracks = editor.timeline.getTracks();
-		const mediaTrack = tracks.find(
+		const mediaTracks = tracks.filter(
 			(t) => (t.type === "video" || t.type === "audio") && t.elements.length > 0,
 		);
-		if (!mediaTrack) return;
+		if (mediaTracks.length === 0) return;
 
-		const sortedClips = [...mediaTrack.elements].sort(
+		// Pick the track with the most elements as the reference
+		const primaryTrack = mediaTracks.reduce((best, t) =>
+			t.elements.length > best.elements.length ? t : best,
+		);
+
+		const sortedClips = [...primaryTrack.elements].sort(
 			(a, b) => a.startTime - b.startTime,
 		);
-
-		// Also find the subtitle text track
-		const textTrack = tracks.find(
-			(t) => t.type === "text" && t.elements.length > 0,
-		);
-		const sortedSubtitles = textTrack
-			? [...textTrack.elements].sort((a, b) => a.startTime - b.startTime)
-			: [];
 
 		// Update transcript segments to match clip positions
 		// Match by index: segment[i] corresponds to clip[i]
@@ -242,6 +243,36 @@ export function useTextTimelineBridge() {
 		});
 
 		useTranscriptStore.getState().setSegments(updatedSegments);
+
+		// Sync other media tracks to match the primary track's start times
+		// so video + audio elements remain aligned after compaction
+		const updates: Array<{
+			trackId: string;
+			elementId: string;
+			updates: Partial<TimelineElement>;
+		}> = [];
+
+		for (const track of mediaTracks) {
+			if (track.id === primaryTrack.id) continue;
+			const otherSorted = [...track.elements].sort(
+				(a, b) => a.startTime - b.startTime,
+			);
+			for (let i = 0; i < otherSorted.length && i < sortedClips.length; i++) {
+				const refClip = sortedClips[i];
+				const otherEl = otherSorted[i];
+				if (Math.abs(otherEl.startTime - refClip.startTime) > 0.01) {
+					updates.push({
+						trackId: track.id,
+						elementId: otherEl.id,
+						updates: { startTime: refClip.startTime },
+					});
+				}
+			}
+		}
+
+		if (updates.length > 0) {
+			editor.timeline.updateElements({ updates });
+		}
 	}, [editor]);
 
 	/**
@@ -318,8 +349,11 @@ export function useTextTimelineBridge() {
 
 	/**
 	 * Handle segment reordering from drag-and-drop.
-	 * Rearranges the actual video clips on the timeline to match
+	 * Rearranges the actual video AND audio clips on the timeline to match
 	 * the new segment order, then updates the transcript store.
+	 *
+	 * After transcription the video track is muted and a matching audio track
+	 * is created — both must be reordered together to stay in sync.
 	 */
 	const handleReorderSegments = useCallback(
 		(
@@ -338,14 +372,14 @@ export function useTextTimelineBridge() {
 			const transcriptBefore = captureTranscriptSnapshot();
 			if (supportsTransaction) editor.command.beginTransaction();
 
-			// Build a mapping from old timings to new timings
 			const tracks = editor.timeline.getTracks();
 
-			// Find video/audio tracks that have clips aligned with segments
-			const mediaTrack = tracks.find(
-				(t) => t.type === "video" || t.type === "audio",
+			// Collect ALL media tracks (video + audio) — they must be reordered together
+			const mediaTracks = tracks.filter(
+				(t) => (t.type === "video" || t.type === "audio") && t.elements.length >= 2,
 			);
-			if (!mediaTrack || mediaTrack.elements.length < 2) {
+
+			if (mediaTracks.length === 0) {
 				// No split clips to reorder — just update transcript
 				useTranscriptStore.getState().reorderSegments(fromIndex, toIndex);
 				if (supportsTransaction) {
@@ -361,34 +395,70 @@ export function useTextTimelineBridge() {
 				return;
 			}
 
-			// Sort elements by startTime so they correspond to segments in order
-			const sortedElements = [...mediaTrack.elements].sort(
-				(a, b) => a.startTime - b.startTime,
-			);
-
-			// Build the reordered element list
-			const reordered = [...sortedElements];
-			const [moved] = reordered.splice(fromIndex, 1);
-			reordered.splice(toIndex, 0, moved);
-
-			// Assign new sequential start times preserving each clip's duration
 			const updates: Array<{
 				trackId: string;
 				elementId: string;
 				updates: Partial<TimelineElement>;
 			}> = [];
 
-			let cursor = sortedElements[0]?.startTime ?? 0;
-			for (const element of reordered) {
-				updates.push({
-					trackId: mediaTrack.id,
-					elementId: element.id,
-					updates: { startTime: cursor },
-				});
-				cursor += element.duration;
+			// Apply the same reorder to every media track so video + audio stay in sync
+			for (const mediaTrack of mediaTracks) {
+				const sortedElements = [...mediaTrack.elements].sort(
+					(a, b) => a.startTime - b.startTime,
+				);
+
+				// Guard: if the track has fewer elements than the from/to indices, skip
+				if (fromIndex >= sortedElements.length || toIndex >= sortedElements.length) {
+					continue;
+				}
+
+				// Build the reordered element list
+				const reordered = [...sortedElements];
+				const [moved] = reordered.splice(fromIndex, 1);
+				reordered.splice(toIndex, 0, moved);
+
+				// Assign new sequential start times preserving each clip's duration
+				let cursor = sortedElements[0]?.startTime ?? 0;
+				for (const element of reordered) {
+					updates.push({
+						trackId: mediaTrack.id,
+						elementId: element.id,
+						updates: { startTime: cursor },
+					});
+					cursor += element.duration;
+				}
 			}
 
-			editor.timeline.updateElements({ updates });
+			// Also reorder any subtitle/text tracks that match segment count
+			const textTracks = tracks.filter(
+				(t) => t.type === "text" && t.elements.length >= 2,
+			);
+			for (const textTrack of textTracks) {
+				const sortedElements = [...textTrack.elements].sort(
+					(a, b) => a.startTime - b.startTime,
+				);
+				if (fromIndex >= sortedElements.length || toIndex >= sortedElements.length) {
+					continue;
+				}
+
+				const reordered = [...sortedElements];
+				const [moved] = reordered.splice(fromIndex, 1);
+				reordered.splice(toIndex, 0, moved);
+
+				let cursor = sortedElements[0]?.startTime ?? 0;
+				for (const element of reordered) {
+					updates.push({
+						trackId: textTrack.id,
+						elementId: element.id,
+						updates: { startTime: cursor },
+					});
+					cursor += element.duration;
+				}
+			}
+
+			if (updates.length > 0) {
+				editor.timeline.updateElements({ updates });
+			}
 
 			// Reorder in the transcript store
 			useTranscriptStore.getState().reorderSegments(fromIndex, toIndex);
