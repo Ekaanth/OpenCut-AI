@@ -231,6 +231,16 @@ const API_KEY_FIELDS = [
 		info: "Enables high-quality, natural-sounding voice generation with 100+ voices and voice cloning. Without this, the editor uses the local Coqui TTS service.",
 		required: false,
 	},
+	{
+		key: "sarvam",
+		label: "Sarvam AI API Key",
+		placeholder: "sk_...",
+		description: "Indian language transcription, translation & TTS",
+		envVar: "OPENCUTAI_SARVAM_API_KEY",
+		envValue: process.env.NEXT_PUBLIC_SARVAM_API_KEY || process.env.OPENCUTAI_SARVAM_API_KEY || "",
+		info: "Enables transcription, translation, and text-to-speech for 22 Indian regional languages (Hindi, Bengali, Tamil, Telugu, etc.) via Sarvam AI. Get your key at dashboard.sarvam.ai — free credits on signup.",
+		required: false,
+	},
 ];
 
 function APIKeysSection() {

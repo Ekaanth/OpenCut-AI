@@ -3,16 +3,24 @@ import { PanelView } from "@/components/editor/panels/assets/views/base-view";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
 import { useState, useRef } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { DEFAULT_TEXT_ELEMENT } from "@/constants/text-constants";
-import { TRANSCRIPTION_LANGUAGES } from "@/constants/transcription-constants";
+import { WHISPER_LANGUAGES } from "@/constants/transcription-constants";
 import { LANGUAGES } from "@/constants/language-constants";
-import type { TranscriptionLanguage } from "@/types/transcription";
+import {
+	SARVAM_STT_LANGUAGES,
+	SARVAM_LANGUAGE_MAP,
+	SARVAM_SUPPORTED_CODES,
+	isSarvamSTTSupported,
+} from "@/constants/sarvam-constants";
+import type { TranscriptionLanguage, TranscriptionEngine } from "@/types/transcription";
 
 import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
@@ -29,6 +37,7 @@ interface SubtitleTrackInfo {
 }
 
 export function Captions() {
+	const [selectedEngine, setSelectedEngine] = useState<TranscriptionEngine>("whisper");
 	const [selectedLanguage, setSelectedLanguage] =
 		useState<TranscriptionLanguage>("auto");
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -41,6 +50,11 @@ export function Captions() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const segments = useTranscriptStore((s) => s.segments);
 	const editor = useEditor();
+
+	// Determine which languages to show based on engine
+	const availableLanguages = selectedEngine === "sarvam"
+		? SARVAM_STT_LANGUAGES
+		: WHISPER_LANGUAGES;
 
 	// Filter out tracks that no longer exist on the timeline (user may have deleted them)
 	const timelineTracks = editor.timeline.getTracks();
@@ -55,6 +69,16 @@ export function Captions() {
 		queueMicrotask(() => setSubtitleTracks(activeSubtitleTracks));
 	}
 
+	/** Determine the effective engine for a given language code */
+	const getEffectiveEngine = (langCode: string): TranscriptionEngine => {
+		if (selectedEngine === "sarvam") return "sarvam";
+		// Auto-switch to Sarvam if an Indian language is explicitly selected with Whisper
+		if (langCode !== "auto" && isSarvamSTTSupported(langCode) && !WHISPER_LANGUAGES.some(l => l.code === langCode)) {
+			return "sarvam";
+		}
+		return "whisper";
+	};
+
 	const handleGenerateTranscript = async () => {
 		const taskId = `transcription-${Date.now()}`;
 		const bgTasks = useBackgroundTasksStore.getState();
@@ -63,10 +87,13 @@ export function Captions() {
 			setIsProcessing(true);
 			setError(null);
 
+			const engine = getEffectiveEngine(selectedLanguage);
+			const engineLabel = engine === "sarvam" ? "Sarvam AI" : "Whisper";
+
 			bgTasks.addTask({
 				id: taskId,
 				type: "transcription",
-				label: "Transcription",
+				label: `Transcription (${engineLabel})`,
 				progress: "Starting...",
 			});
 
@@ -113,9 +140,9 @@ export function Captions() {
 				return;
 			}
 
-			// Send to backend Whisper service
-			setProcessingStep("Transcribing...");
-			bgTasks.updateTask(taskId, { progress: "Transcribing audio..." });
+			// Send to appropriate transcription service
+			setProcessingStep(`Transcribing via ${engineLabel}...`);
+			bgTasks.updateTask(taskId, { progress: `Transcribing via ${engineLabel}...` });
 
 			// Ensure the file has a proper extension — the backend rejects files without one
 			const mimeToExt: Record<string, string> = {
@@ -143,8 +170,18 @@ export function Captions() {
 				file = new File([file], newName, { type: file.type || "video/mp4" });
 			}
 
-			const language = selectedLanguage === "auto" ? undefined : selectedLanguage;
-			const result = await aiClient.transcribe(file, language);
+			let result;
+			if (engine === "sarvam") {
+				// Use Sarvam AI for Indian languages
+				const sarvamLangCode = selectedLanguage === "auto"
+					? undefined
+					: SARVAM_LANGUAGE_MAP[selectedLanguage] || undefined;
+				result = await aiClient.sarvamTranscribe(file, sarvamLangCode);
+			} else {
+				// Use Whisper (local)
+				const language = selectedLanguage === "auto" ? undefined : selectedLanguage;
+				result = await aiClient.transcribe(file, language);
+			}
 
 			setProcessingStep("Processing segments...");
 			bgTasks.updateTask(taskId, { progress: "Processing segments..." });
@@ -152,9 +189,13 @@ export function Captions() {
 			const timelineDuration = editor.timeline.getTotalDuration();
 
 			// Filter out hallucinated segments beyond the actual duration
+			// For Sarvam results, also allow Indic Unicode ranges through
 			const validSegments = result.segments.filter((seg) => {
 				if (seg.start >= timelineDuration) return false;
-				const cleanText = seg.text.replace(/[^a-zA-Z0-9\u00C0-\u024F\u0400-\u04FF\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]/g, "").trim();
+				// Keep Latin, Cyrillic, CJK, Kana, Devanagari, Bengali, Gurmukhi, Gujarati,
+			// Oriya, Tamil, Telugu, Kannada, Malayalam, Sinhala, Arabic/Nastaliq (Urdu),
+			// Meitei (Manipuri), Ol Chiki (Santali)
+			const cleanText = seg.text.replace(/[^a-zA-Z0-9\u00C0-\u024F\u0400-\u04FF\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\u0900-\u097F\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B00-\u0B7F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F\u0D80-\u0DFF\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF\uABC0-\uABFF\u1C50-\u1C7F]/g, "").trim();
 				if (cleanText.length === 0) return false;
 				if (seg.end <= seg.start) return false;
 				return true;
@@ -320,6 +361,10 @@ export function Captions() {
 
 			setSubtitleTracks([]);
 
+			toast.success(`Transcription complete (${engineLabel})`, {
+				description: `${validSegments.length} segments detected`,
+			});
+
 			bgTasks.updateTask(taskId, {
 				status: "completed",
 				progress: `${validSegments.length} segments`,
@@ -330,6 +375,8 @@ export function Captions() {
 			const message = err instanceof Error ? err.message : "An unexpected error occurred";
 			if (message.includes("Cannot connect") || message.includes("connection_refused")) {
 				setError("Cannot connect to AI backend. Make sure it is running (docker compose up -d).");
+			} else if (message.includes("Sarvam API key")) {
+				setError("Sarvam API key is not configured. Add OPENCUTAI_SARVAM_API_KEY to your environment.");
 			} else {
 				setError(message);
 			}
@@ -430,6 +477,19 @@ export function Captions() {
 		toast.success("Subtitles added with word highlighting");
 	};
 
+	/** Check if we should use Sarvam for translation (Indian language pair).
+	 *  Requires at least one side to be an Indian language (not just "en"),
+	 *  AND the other side must also be Sarvam-supported.
+	 */
+	const shouldUseSarvamTranslation = (sourceLang: string, targetLang: string): boolean => {
+		const sourceIsSarvam = SARVAM_SUPPORTED_CODES.has(sourceLang);
+		const targetIsSarvam = SARVAM_SUPPORTED_CODES.has(targetLang);
+		// Both must be Sarvam-supported, and at least one must be a non-English Indian language
+		const sourceIsIndian = sourceIsSarvam && sourceLang !== "en";
+		const targetIsIndian = targetIsSarvam && targetLang !== "en";
+		return (sourceIsIndian || targetIsIndian) && sourceIsSarvam && targetIsSarvam;
+	};
+
 	const handleTranslateAndAdd = async () => {
 		const currentSegments = useTranscriptStore.getState().segments;
 		if (currentSegments.length === 0) return;
@@ -437,54 +497,93 @@ export function Captions() {
 		const targetLang = LANGUAGES.find((l) => l.code === translateLanguage);
 		if (!targetLang) return;
 
+		const transcriptLang = useTranscriptStore.getState().language;
+		const useSarvam = shouldUseSarvamTranslation(transcriptLang, translateLanguage);
+
 		const taskId = `translation-${targetLang.code}-${Date.now()}`;
 		const bgTasks = useBackgroundTasksStore.getState();
 
 		setIsTranslating(true);
 		setError(null);
 
+		const translationEngine = useSarvam ? "Sarvam AI" : "Local LLM";
+
 		bgTasks.addTask({
 			id: taskId,
 			type: "translation",
-			label: `${targetLang.name} translation`,
+			label: `${targetLang.name} translation (${translationEngine})`,
 			progress: "Starting...",
 		});
 
 		try {
-			// Batch segments into groups to reduce LLM calls
-			const BATCH_SIZE = 5;
 			const translatedSegments: { text: string; start: number; end: number }[] = [];
 
-			for (let i = 0; i < currentSegments.length; i += BATCH_SIZE) {
-				const batch = currentSegments.slice(i, i + BATCH_SIZE);
-				const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
-				const totalBatches = Math.ceil(currentSegments.length / BATCH_SIZE);
-				const stepText = `Translating to ${targetLang.name}... (${batchIndex}/${totalBatches})`;
-				setTranslatingStep(stepText);
-				bgTasks.updateTask(taskId, { progress: stepText });
+			if (useSarvam) {
+				// Use Sarvam translation API — translate segment by segment
+				const sourceSarvamCode = SARVAM_LANGUAGE_MAP[transcriptLang] || `${transcriptLang}-IN`;
+				const targetSarvamCode = SARVAM_LANGUAGE_MAP[translateLanguage] || `${translateLanguage}-IN`;
 
-				// Send batch as numbered lines for reliable parsing
-				const numberedLines = batch
-					.map((seg, idx) => `${idx + 1}. ${seg.text}`)
-					.join("\n");
+				for (let i = 0; i < currentSegments.length; i++) {
+					const seg = currentSegments[i];
+					const stepText = `Translating to ${targetLang.name} via Sarvam... (${i + 1}/${currentSegments.length})`;
+					setTranslatingStep(stepText);
+					bgTasks.updateTask(taskId, { progress: stepText });
 
-				const translated = await aiClient.translateText(
-					numberedLines,
-					targetLang.name,
-				);
+					try {
+						const result = await aiClient.sarvamTranslate(
+							seg.text,
+							sourceSarvamCode,
+							targetSarvamCode,
+						);
+						translatedSegments.push({
+							text: result.translated_text || seg.text,
+							start: seg.start,
+							end: seg.end,
+						});
+					} catch (translationErr) {
+						console.warn(`Sarvam translation failed for segment ${i}, using original:`, translationErr);
+						translatedSegments.push({
+							text: seg.text,
+							start: seg.start,
+							end: seg.end,
+						});
+					}
+				}
+			} else {
+				// Use local LLM (original approach)
+				const BATCH_SIZE = 5;
 
-				// Parse response — expect numbered lines back
-				const lines = translated
-					.split("\n")
-					.map((line) => line.replace(/^\d+\.\s*/, "").trim())
-					.filter((line) => line.length > 0);
+				for (let i = 0; i < currentSegments.length; i += BATCH_SIZE) {
+					const batch = currentSegments.slice(i, i + BATCH_SIZE);
+					const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+					const totalBatches = Math.ceil(currentSegments.length / BATCH_SIZE);
+					const stepText = `Translating to ${targetLang.name}... (${batchIndex}/${totalBatches})`;
+					setTranslatingStep(stepText);
+					bgTasks.updateTask(taskId, { progress: stepText });
 
-				for (let j = 0; j < batch.length; j++) {
-					translatedSegments.push({
-						text: lines[j] || batch[j].text,
-						start: batch[j].start,
-						end: batch[j].end,
-					});
+					// Send batch as numbered lines for reliable parsing
+					const numberedLines = batch
+						.map((seg, idx) => `${idx + 1}. ${seg.text}`)
+						.join("\n");
+
+					const translated = await aiClient.translateText(
+						numberedLines,
+						targetLang.name,
+					);
+
+					// Parse response — expect numbered lines back
+					const lines = translated
+						.split("\n")
+						.map((line) => line.replace(/^\d+\.\s*/, "").trim())
+						.filter((line) => line.length > 0);
+
+					for (let j = 0; j < batch.length; j++) {
+						translatedSegments.push({
+							text: lines[j] || batch[j].text,
+							start: batch[j].start,
+							end: batch[j].end,
+						});
+					}
 				}
 			}
 
@@ -530,6 +629,8 @@ export function Captions() {
 				setError(
 					"Cannot connect to AI backend. Make sure it is running and an LLM model is loaded.",
 				);
+			} else if (message.includes("Sarvam API key")) {
+				setError("Sarvam API key is not configured. Add OPENCUTAI_SARVAM_API_KEY to your environment.");
 			} else {
 				setError(message);
 			}
@@ -571,12 +672,14 @@ export function Captions() {
 			setSelectedLanguage("auto");
 			return;
 		}
+		setSelectedLanguage(value as TranscriptionLanguage);
+	};
 
-		const matchedLanguage = TRANSCRIPTION_LANGUAGES.find(
-			(language) => language.code === value,
-		);
-		if (!matchedLanguage) return;
-		setSelectedLanguage(matchedLanguage.code);
+	const handleEngineChange = (value: string) => {
+		const engine = value as TranscriptionEngine;
+		setSelectedEngine(engine);
+		// Reset language to auto when switching engines
+		setSelectedLanguage("auto");
 	};
 
 	return (
@@ -586,6 +689,30 @@ export function Captions() {
 					Transcribe your video to edit it like a document. Delete sections, remove filler words, or reorder segments.
 				</p>
 
+				{/* ── Engine Selector ── */}
+				<div className="flex flex-col gap-2">
+					<Label className="text-xs">Transcription engine</Label>
+					<Select value={selectedEngine} onValueChange={handleEngineChange}>
+						<SelectTrigger>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="whisper">
+								Whisper (Local)
+							</SelectItem>
+							<SelectItem value="sarvam">
+								Sarvam AI (Indian Languages)
+							</SelectItem>
+						</SelectContent>
+					</Select>
+					<p className="text-[10px] text-muted-foreground">
+						{selectedEngine === "sarvam"
+							? "Cloud-based, optimized for 22 Indian regional languages"
+							: "On-device, best for global languages (English, Spanish, French, etc.)"}
+					</p>
+				</div>
+
+				{/* ── Language Selector ── */}
 				<div className="flex flex-col gap-2">
 					<Label className="text-xs">Language</Label>
 					<Select
@@ -597,11 +724,34 @@ export function Captions() {
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="auto">Auto detect</SelectItem>
-							{TRANSCRIPTION_LANGUAGES.map((language) => (
-								<SelectItem key={language.code} value={language.code}>
-									{language.name}
-								</SelectItem>
-							))}
+							{selectedEngine === "sarvam" ? (
+								<>
+									<SelectGroup>
+										<SelectLabel className="text-[10px] text-muted-foreground px-2">
+											Indian Regional Languages
+										</SelectLabel>
+										{SARVAM_STT_LANGUAGES.filter(l => l.code !== "en").map((language) => (
+											<SelectItem key={language.code} value={language.code}>
+												{language.name}
+											</SelectItem>
+										))}
+									</SelectGroup>
+									<SelectGroup>
+										<SelectLabel className="text-[10px] text-muted-foreground px-2">
+											English
+										</SelectLabel>
+										<SelectItem value="en">
+											English (Indian)
+										</SelectItem>
+									</SelectGroup>
+								</>
+							) : (
+								availableLanguages.map((language) => (
+									<SelectItem key={language.code} value={language.code}>
+										{language.name}
+									</SelectItem>
+								))
+							)}
 						</SelectContent>
 					</Select>
 				</div>
@@ -701,7 +851,12 @@ export function Captions() {
 						<div className="border-t pt-4 flex flex-col gap-3">
 							<Label className="text-xs">Add language</Label>
 							<p className="text-[11px] text-muted-foreground leading-relaxed">
-								Translate using the local LLM and add as a new subtitle track.
+								{shouldUseSarvamTranslation(
+									useTranscriptStore.getState().language,
+									translateLanguage,
+								)
+									? "Translate using Sarvam AI and add as a new subtitle track."
+									: "Translate using the local LLM and add as a new subtitle track."}
 							</p>
 							<div className="flex gap-2">
 								<Select
@@ -712,16 +867,39 @@ export function Captions() {
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
-										{LANGUAGES.filter(
-											(lang) =>
-												!activeSubtitleTracks.some(
-													(t) => t.language === lang.code,
-												),
-										).map((lang) => (
-											<SelectItem key={lang.code} value={lang.code}>
-												{lang.name}
-											</SelectItem>
-										))}
+										<SelectGroup>
+											<SelectLabel className="text-[10px] text-muted-foreground px-2">
+												Global Languages
+											</SelectLabel>
+											{LANGUAGES.filter(
+												(lang) =>
+													!SARVAM_SUPPORTED_CODES.has(lang.code) &&
+													!activeSubtitleTracks.some(
+														(t) => t.language === lang.code,
+													),
+											).map((lang) => (
+												<SelectItem key={lang.code} value={lang.code}>
+													{lang.name}
+												</SelectItem>
+											))}
+										</SelectGroup>
+										<SelectGroup>
+											<SelectLabel className="text-[10px] text-muted-foreground px-2">
+												Indian Languages (via Sarvam AI)
+											</SelectLabel>
+											{LANGUAGES.filter(
+												(lang) =>
+													SARVAM_SUPPORTED_CODES.has(lang.code) &&
+													lang.code !== "en" &&
+													!activeSubtitleTracks.some(
+														(t) => t.language === lang.code,
+													),
+											).map((lang) => (
+												<SelectItem key={lang.code} value={lang.code}>
+													{lang.name}
+												</SelectItem>
+											))}
+										</SelectGroup>
 									</SelectContent>
 								</Select>
 								<Button

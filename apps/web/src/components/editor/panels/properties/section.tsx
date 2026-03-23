@@ -45,10 +45,11 @@ export function Section({
 	useEffect(() => {
 		if (!sectionKey) return;
 		const count = mountedSectionKeys.get(sectionKey) ?? 0;
-		// In React Strict Mode, effects run twice. Only warn when the count
-		// exceeds 2 (i.e. a genuine duplicate beyond Strict Mode's double-mount).
-		if (process.env.NODE_ENV !== "production" && count >= 2) {
-			console.error(`[Section] duplicate sectionKey mounted simultaneously: "${sectionKey}"`);
+		// In React Strict Mode effects run twice, and selecting multiple
+		// elements of the same type legitimately mounts several instances.
+		// Only warn at >= 4 to avoid false positives.
+		if (process.env.NODE_ENV !== "production" && count >= 4) {
+			console.warn(`[Section] many instances of sectionKey "${sectionKey}" mounted (${count + 1})`);
 		}
 		mountedSectionKeys.set(sectionKey, count + 1);
 		return () => {

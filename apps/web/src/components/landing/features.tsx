@@ -40,6 +40,15 @@ const coreFeatures: Feature[] = [
 		gradient: "from-emerald-500/20 to-emerald-600/5",
 	},
 	{
+		title: "22 Indian Languages",
+		description:
+			"Hindi, Tamil, Telugu, Kannada, Bengali, Malayalam, and 16 more Indian languages. Transcribe, translate, and generate TTS via Sarvam AI with your API key.",
+		icon: <IndianLangIcon />,
+		color: "text-orange-400",
+		gradient: "from-orange-500/20 to-orange-600/5",
+		tag: "New",
+	},
+	{
 		title: "100% Local",
 		description:
 			"All models run on your machine. No cloud uploads, no API keys, no subscriptions. Your footage stays private.",
@@ -119,7 +128,7 @@ const extraFeatures: Feature[] = [
 	{
 		title: "AI Transcription",
 		description:
-			"Whisper-powered speech-to-text with word-level timestamps. Runs on your GPU or CPU. Auto-detects language across 12+ languages.",
+			"Whisper + Sarvam AI speech-to-text with word-level timestamps. 30+ languages including 22 Indian regional languages. Runs locally or via Sarvam cloud.",
 		icon: <TranscriptionIcon />,
 		color: "text-teal-400",
 		gradient: "from-teal-500/20 to-teal-600/5",
@@ -231,15 +240,14 @@ export function Features() {
 						</span>
 					</h2>
 					<p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-base">
-						Transcription, multi-speaker detection, viral clip finding, voice cloning,
-						word-pop subtitles, auto-reframe, brand kits, and more
-						— all running locally on your hardware.
+						Transcription in 30+ languages, multi-speaker detection, viral clip finding, voice cloning,
+						word-pop subtitles, auto-reframe, brand kits — with 22 Indian languages powered by Sarvam AI.
 					</p>
 				</motion.div>
 
 				{/* Core AI */}
 				<SectionLabel color="to-blue-500/30">Core AI Engine</SectionLabel>
-				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
 					{coreFeatures.map((feature, index) => (
 						<FeatureCard key={feature.title} feature={feature} index={index} />
 					))}
@@ -377,6 +385,16 @@ function SpeedIcon() {
 	return (
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 			<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+		</svg>
+	);
+}
+
+function IndianLangIcon() {
+	return (
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+			<circle cx="12" cy="12" r="10" />
+			<path d="M2 12h20" />
+			<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
 		</svg>
 	);
 }

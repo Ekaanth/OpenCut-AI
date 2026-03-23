@@ -1,4 +1,5 @@
 export const LANGUAGES = [
+	// Global languages
 	{ code: "en", name: "English" },
 	{ code: "es", name: "Spanish" },
 	{ code: "it", name: "Italian" },
@@ -8,4 +9,27 @@ export const LANGUAGES = [
 	{ code: "ru", name: "Russian" },
 	{ code: "ja", name: "Japanese" },
 	{ code: "zh", name: "Chinese" },
+	// Indian regional languages (Sarvam AI)
+	{ code: "hi", name: "Hindi" },
+	{ code: "bn", name: "Bengali" },
+	{ code: "ta", name: "Tamil" },
+	{ code: "te", name: "Telugu" },
+	{ code: "mr", name: "Marathi" },
+	{ code: "gu", name: "Gujarati" },
+	{ code: "kn", name: "Kannada" },
+	{ code: "ml", name: "Malayalam" },
+	{ code: "pa", name: "Punjabi" },
+	{ code: "od", name: "Odia" },
+	{ code: "as", name: "Assamese" },
+	{ code: "ur", name: "Urdu" },
+	{ code: "sa", name: "Sanskrit" },
+	{ code: "ne", name: "Nepali" },
+	{ code: "sd", name: "Sindhi" },
+	{ code: "ks", name: "Kashmiri" },
+	{ code: "kok", name: "Konkani" },
+	{ code: "doi", name: "Dogri" },
+	{ code: "mai", name: "Maithili" },
+	{ code: "mni", name: "Manipuri" },
+	{ code: "sat", name: "Santali" },
+	{ code: "brx", name: "Bodo" },
 ] as const;

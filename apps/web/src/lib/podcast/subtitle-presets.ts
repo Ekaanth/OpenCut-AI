@@ -37,7 +37,7 @@ export const POPOVER_SUBTITLE_PRESETS: PopoverSubtitleConfig[] = [
 		id: "word-pop",
 		name: "Word Pop",
 		description: "Each spoken word pops in and stays visible",
-		fontSize: 8,
+		fontSize: 5,
 		fontFamily: "Inter",
 		fontWeight: "bold",
 		color: "#FFFFFF",
@@ -48,13 +48,13 @@ export const POPOVER_SUBTITLE_PRESETS: PopoverSubtitleConfig[] = [
 		backgroundPaddingX: 0,
 		backgroundPaddingY: 0,
 		yPositionRatio: 0.35,
-		wordPopScale: 1.4,
+		wordPopScale: 1.3,
 	},
 	{
 		id: "hormozi",
 		name: "Hormozi",
 		description: "Large bold words pop in one by one, colored keywords",
-		fontSize: 10,
+		fontSize: 6,
 		fontFamily: "Inter",
 		fontWeight: "bold",
 		color: "#FFFFFF",
@@ -65,13 +65,13 @@ export const POPOVER_SUBTITLE_PRESETS: PopoverSubtitleConfig[] = [
 		backgroundPaddingX: 0,
 		backgroundPaddingY: 0,
 		yPositionRatio: 0.35,
-		wordPopScale: 1.3,
+		wordPopScale: 1.2,
 	},
 	{
 		id: "highlight",
 		name: "Highlight",
 		description: "Color flash on keywords with pop-in effect",
-		fontSize: 6,
+		fontSize: 4.5,
 		fontFamily: "Inter",
 		fontWeight: "bold",
 		color: "#FFFFFF",
@@ -79,10 +79,10 @@ export const POPOVER_SUBTITLE_PRESETS: PopoverSubtitleConfig[] = [
 		backgroundColor: "#000000",
 		backgroundEnabled: true,
 		backgroundCornerRadius: 6,
-		backgroundPaddingX: 16,
-		backgroundPaddingY: 8,
+		backgroundPaddingX: 14,
+		backgroundPaddingY: 6,
 		yPositionRatio: 0.38,
-		wordPopScale: 1.25,
+		wordPopScale: 1.2,
 	},
 	{
 		id: "classic-podcast",
@@ -286,6 +286,30 @@ export function buildPopoverSubtitleElements({
 		const wordTexts = segWords.map((w) => w.word);
 		const positions = layoutWordsInRows(wordTexts, config.fontSize, maxRowWidth);
 
+		// Group words by row so we can calculate when each word should end.
+		// Within the same row, a word is replaced by the next word on that row.
+		// This prevents every word from extending to the segment end and causing
+		// massive overlap (which forces the distributor to create one track per word).
+		const wordsByRow = new Map<number, number[]>();
+		for (let i = 0; i < segWords.length; i++) {
+			const row = positions[i]?.row ?? 0;
+			if (!wordsByRow.has(row)) wordsByRow.set(row, []);
+			wordsByRow.get(row)!.push(i);
+		}
+
+		// For each word, compute the end time: when the next word on the SAME
+		// row starts (so it gets visually replaced), or segment end for the last
+		// word on each row.
+		const wordEndTimes: number[] = new Array(segWords.length);
+		for (const [, indices] of wordsByRow) {
+			for (let j = 0; j < indices.length; j++) {
+				const wi = indices[j];
+				const nextWi = j + 1 < indices.length ? indices[j + 1] : -1;
+				wordEndTimes[wi] =
+					nextWi >= 0 ? segWords[nextWi].start : seg.end;
+			}
+		}
+
 		for (let i = 0; i < segWords.length; i++) {
 			const word = segWords[i];
 			const pos = positions[i];
@@ -295,9 +319,10 @@ export function buildPopoverSubtitleElements({
 				continue;
 			}
 
-			// Each word appears when spoken, stays until segment ends
+			// Each word appears when spoken, stays until the next word on the
+			// same row starts (or until the segment ends for the last word).
 			const startTime = word.start;
-			const duration = seg.end - word.start;
+			const duration = wordEndTimes[i] - word.start;
 
 			// Skip words with negligible duration
 			if (duration < 0.05) continue;

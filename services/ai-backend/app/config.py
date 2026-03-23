@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     SPEAKER_SERVICE_URL: str = "http://localhost:8424"
     FACE_SERVICE_URL: str = "http://localhost:8425"
 
+    # Sarvam AI (Indian language APIs)
+    SARVAM_API_KEY: str = ""
+    SARVAM_API_BASE_URL: str = "https://api.sarvam.ai"
+
     # Whisper (kept for local fallback / model manager)
     WHISPER_MODEL_SIZE: str = "base"
     WHISPER_DEVICE: str = "auto"
@@ -61,7 +65,7 @@ class Settings(BaseSettings):
     IMAGE_DEFAULT_GUIDANCE: float = 7.5
 
     model_config = {
-        "env_prefix": "OPENCUT_",
+        "env_prefix": "OPENCUTAI_",
         "env_file": ".env",
         "env_file_encoding": "utf-8",
     }

@@ -9,7 +9,7 @@ import { useRef } from "react";
 
 const STATS = [
 	{ value: "10", label: "AI Services" },
-	{ value: "12+", label: "Languages" },
+	{ value: "30+", label: "Languages" },
 	{ value: "$0", label: "API Cost" },
 	{ value: "100%", label: "Local" },
 ];
@@ -136,7 +136,7 @@ export function Hero() {
 					transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
 				>
 					Turn long podcasts into viral clips. Multi-speaker detection, word-pop subtitles,
-					auto-reframe for Shorts, brand kits. Everything runs locally. No cloud. No subscriptions.
+					auto-reframe for Shorts, brand kits. 22 Indian languages via Sarvam AI. Everything runs locally.
 				</motion.p>
 
 				{/* CTA buttons */}
