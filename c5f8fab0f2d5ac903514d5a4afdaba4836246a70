@@ -1,0 +1,1305 @@
+{
+  "blameprompt_version": "1.0.1",
+  "receipts": [
+    {
+      "id": "4b621831-5cbb-436e-b173-ca2055159077",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "c5cf3c61-ef91-4891-8a6b-1990506aec49",
+      "prompt_summary": "can you make the same changes in the website that is in the previous folder of this, with opencutai-website",
+      "response_summary": "Done. Here's what was updated in the `OpenCut AI website` project:\n\n| File | Changes |\n|------|---------|\n| `src/constants.ts` | Site description: added \"22 Indian language support via Sarvam AI\" |\n| `src/components/Hero.tsx` | Stats: 12+ → 30+ Languages; subtitle: added \"22 Indian languages via Sarvam AI\" |\n| `src/components/Features.tsx` | New \"22 Indian Languages\" card with Globe icon in Core AI Engine; updated AI Transcription to \"30+ languages\"; badge \"12 → 13 features\"; subtitle mentions Sarvam AI; grid changed to 3-col for 6 core items |\n| `src/components/Footer.tsx` | Brand description: added \"22 Indian languages via Sarvam AI\" |\n| `index.html` | Meta description, keywords (8 new Indian language SEO terms), OG description, Twitter description — all updated |",
+      "prompt_hash": "sha256:9a872d738c4901f0a8f9fb9797289224d76ba988913f724425c60e183c8f5536",
+      "message_count": 587,
+      "cost_usd": 1.1667777499999998,
+      "input_tokens": 239,
+      "output_tokens": 8,
+      "cache_read_tokens": 2156528,
+      "cache_creation_tokens": 13939,
+      "timestamp": "2026-03-23T16:47:29.418Z",
+      "session_start": "2026-03-23T14:59:55.423Z",
+      "session_end": "2026-03-23T17:03:02.084Z",
+      "session_duration_secs": 7386,
+      "ai_response_time_secs": 7.117022026431723,
+      "prompt_submitted_at": "2026-03-23T16:47:29.806718Z",
+      "prompt_duration_secs": 946,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "/Users/metaquity/Documents/Learning/OpenCut AI website/src/constants.ts",
+      "line_range": [
+        1,
+        10
+      ],
+      "files_changed": [
+        {
+          "path": "/Users/metaquity/Documents/Learning/OpenCut AI website/src/constants.ts",
+          "line_range": [
+            1,
+            10
+          ],
+          "blob_hash": "447460bcd3ae69e1ab4bf060bd3568153d4e46f8",
+          "additions": 10
+        },
+        {
+          "path": "/Users/metaquity/Documents/Learning/OpenCut AI website/src/components/Hero.tsx",
+          "line_range": [
+            1,
+            418
+          ],
+          "blob_hash": "fc5fe20b28b7577fa71c7cb6ff54680f146d74be",
+          "additions": 418
+        },
+        {
+          "path": "/Users/metaquity/Documents/Learning/OpenCut AI website/src/components/Features.tsx",
+          "line_range": [
+            1,
+            209
+          ],
+          "blob_hash": "9f1d269f6d42d00a7281510107c8b1459b3b263b",
+          "additions": 209
+        },
+        {
+          "path": "/Users/metaquity/Documents/Learning/OpenCut AI website/src/components/Footer.tsx",
+          "line_range": [
+            1,
+            98
+          ],
+          "blob_hash": "8cfdc6a8daf03fdba7c478801404ab0c75f38666",
+          "additions": 98
+        },
+        {
+          "path": "/Users/metaquity/Documents/Learning/OpenCut AI website/index.html",
+          "line_range": [
+            1,
+            31
+          ],
+          "blob_hash": "bbfa56e938864a1a13de492f5e717a30b5e47a17",
+          "additions": 31
+        }
+      ],
+      "prompt_number": 15,
+      "total_additions": 766,
+      "tools_used": [
+        "Bash",
+        "Edit",
+        "Read"
+      ],
+      "concurrent_tool_calls": 2,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "can you make the same changes in the website that is in the previous folder of this, with opencutai-website"
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/opencutai-website/ 2>/dev/null || ls /Use...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/ | grep -i opencut 2>/dev/null; ls /Users...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Bash(command: \"ls \"[REDACTED_HOME]/Documents/Learning/OpenCut AI website/\"\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 4,
+          "role": "assistant",
+          "content": "It's a separate Vite project. Let me explore its structure and find the matching files."
+        },
+        {
+          "turn": 5,
+          "role": "tool",
+          "content": "Bash(command: \"ls \"[REDACTED_HOME]/Documents/Learning/OpenCut AI website/src/\"\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 6,
+          "role": "tool",
+          "content": "Bash(command: \"ls \"[REDACTED_HOME]/Documents/Learning/OpenCut AI website/src/components/\"\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 7,
+          "role": "tool",
+          "content": "Read(file: \"Hero.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "Hero.tsx"
+          ]
+        },
+        {
+          "turn": 8,
+          "role": "tool",
+          "content": "Read(file: \"Features.tsx\"), Read(file: \"constants.ts\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "Features.tsx",
+            "constants.ts"
+          ]
+        },
+        {
+          "turn": 9,
+          "role": "assistant",
+          "content": "Now I have the full picture. Let me apply all the same changes."
+        },
+        {
+          "turn": 10,
+          "role": "tool",
+          "content": "Edit(file: \"constants.ts\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "constants.ts"
+          ]
+        },
+        {
+          "turn": 11,
+          "role": "tool",
+          "content": "Edit(file: \"Hero.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Hero.tsx"
+          ]
+        },
+        {
+          "turn": 12,
+          "role": "tool",
+          "content": "Edit(file: \"Hero.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Hero.tsx"
+          ]
+        },
+        {
+          "turn": 13,
+          "role": "assistant",
+          "content": "Now update Features.tsx — add the Indian Languages card, update AI Transcription, update subtitle and grid."
+        },
+        {
+          "turn": 14,
+          "role": "tool",
+          "content": "Edit(file: \"Features.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Features.tsx"
+          ]
+        },
+        {
+          "turn": 15,
+          "role": "tool",
+          "content": "Edit(file: \"Features.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Features.tsx"
+          ]
+        },
+        {
+          "turn": 16,
+          "role": "tool",
+          "content": "Edit(file: \"Features.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Features.tsx"
+          ]
+        },
+        {
+          "turn": 17,
+          "role": "assistant",
+          "content": "Update the features subtitle and badge count."
+        },
+        {
+          "turn": 18,
+          "role": "tool",
+          "content": "Edit(file: \"Features.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Features.tsx"
+          ]
+        },
+        {
+          "turn": 19,
+          "role": "tool",
+          "content": "Edit(file: \"Features.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Features.tsx"
+          ]
+        },
+        {
+          "turn": 20,
+          "role": "assistant",
+          "content": "Now update the core features grid from 4-col to handle 6 items (5 core features + was 4, now 6 total with the new card)."
+        },
+        {
+          "turn": 21,
+          "role": "tool",
+          "content": "Edit(file: \"Features.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Features.tsx"
+          ]
+        },
+        {
+          "turn": 22,
+          "role": "assistant",
+          "content": "Now let me check the Footer for any description that needs updating."
+        },
+        {
+          "turn": 23,
+          "role": "tool",
+          "content": "Read(file: \"Footer.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "Footer.tsx"
+          ]
+        },
+        {
+          "turn": 24,
+          "role": "tool",
+          "content": "Edit(file: \"Footer.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "Footer.tsx"
+          ]
+        },
+        {
+          "turn": 25,
+          "role": "tool",
+          "content": "Read(file: \"index.html\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "index.html"
+          ]
+        },
+        {
+          "turn": 26,
+          "role": "tool",
+          "content": "Edit(file: \"index.html\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "index.html"
+          ]
+        },
+        {
+          "turn": 27,
+          "role": "tool",
+          "content": "Edit(file: \"index.html\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "index.html"
+          ]
+        },
+        {
+          "turn": 28,
+          "role": "tool",
+          "content": "Edit(file: \"index.html\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "index.html"
+          ]
+        }
+      ],
+      "prompt_quality": {
+        "score": 44,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "question"
+      }
+    },
+    {
+      "id": "6776da97-c5e4-464e-84db-15934005de7e",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "c5cf3c61-ef91-4891-8a6b-1990506aec49",
+      "prompt_summary": "For the voiceover, are there any other languages that I can do voiceover with Sarvam AI? Add them into the voiceover section as well.",
+      "response_summary": "All clean. Here's what was added to the voiceover section:\n\n**Sarvam TTS supports 10 Indian languages** (plus English) with 23+ speaker voices:\n- Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Odia\n\n**Changes to `voiceover.tsx`:**\n\n1. **Language selector** — Now grouped into \"Global (Coqui XTTS — Local)\" and \"Indian Languages (Sarvam AI — Cloud)\". Selecting any Indian language automatically switches to Sarvam TTS.\n\n2. **Speaker picker** — When an Indian language is selected, the Male/Female toggle is replaced with a dropdown of 23 Sarvam speakers (Shubh, Aditya, Ritu, Priya, Neha, Rahul, etc.) with gender labels.\n\n3. **TTS routing** — Both \"Generate full voiceover\" and \"Generate per segment\" now route to `aiClient.sarvamTTS()` when an Indian language is selected, and to the local Coqui XTTS for global languages.\n\n4. **Translation** — When translating transcript text before TTS, Indian language pairs use Sarvam's translation API instead of the local LLM.\n\n5. **Generate buttons** — No longer disabled by \"model not installed\" when using Sarvam (it's cloud-based, doesn't need a local model).",
+      "prompt_hash": "sha256:a1cbebdf5e2424c801258c49f64554461d6d1d49eaa6274ac2aa46beb8786574",
+      "message_count": 644,
+      "cost_usd": 2.24944875,
+      "input_tokens": 13,
+      "output_tokens": 376,
+      "cache_read_tokens": 4309430,
+      "cache_creation_tokens": 13643,
+      "timestamp": "2026-03-23T17:03:40.554Z",
+      "session_start": "2026-03-23T14:59:55.423Z",
+      "session_end": "2026-03-23T17:08:37.991Z",
+      "session_duration_secs": 7722,
+      "ai_response_time_secs": 7.149456000000004,
+      "prompt_submitted_at": "2026-03-23T17:03:40.966590Z",
+      "prompt_duration_secs": 297,
+      "accepted_lines": 0,
+      "overridden_lines": 0,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "apps/web/src/components/editor/panels/assets/views/voiceover.tsx",
+      "line_range": [
+        12,
+        649
+      ],
+      "files_changed": [
+        {
+          "path": "apps/web/src/components/editor/panels/assets/views/voiceover.tsx",
+          "line_range": [
+            12,
+            649
+          ],
+          "blob_hash": "d3f6e9dd87faf96f38d2bc3a843059666205c6bb",
+          "additions": 137,
+          "deletions": 57
+        },
+        {
+          "path": "apps/web/tsconfig.tsbuildinfo",
+          "line_range": [
+            1,
+            1
+          ],
+          "blob_hash": "09dbd9ca33c2bc8cc405412ec1837729e6c3f18b",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "parent_receipt_id": "4b621831-5cbb-436e-b173-ca2055159077",
+      "prompt_number": 16,
+      "total_additions": 138,
+      "total_deletions": 58,
+      "tools_used": [
+        "Agent",
+        "Bash",
+        "Edit",
+        "Grep",
+        "Read"
+      ],
+      "subagent_activities": [
+        {
+          "agent_id": "a125c17f1b4540b50",
+          "agent_type": "Explore",
+          "status": "completed",
+          "started_at": "2026-03-23T17:03:50.749340Z",
+          "completed_at": "2026-03-23T17:04:54.497201Z",
+          "tools_used": [
+            "Bash",
+            "Glob",
+            "Grep",
+            "Read"
+          ]
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "For the voiceover, are there any other languages that I can do voiceover with Sarvam AI? Add them into the voiceover section as well."
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Agent()",
+          "tool_name": "Agent"
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 4,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 5,
+          "role": "assistant",
+          "content": "Now I have the full picture. The voiceover panel has `SUPPORTED_LANGUAGES` with 12 languages (Coqui XTTS), but none of the Sarvam TTS languages (11 Indian languages). I need to:\n\n1. Add Sarvam TTS languages to the voiceover language selector\n2. When an Indian language is selected, use `aiClient.sarvamTTS()` instead of `aiClient.generateSpeechBlob()`\n3. Show Sarvam speaker options when an Indian language is selected"
+        },
+        {
+          "turn": 6,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 7,
+          "role": "assistant",
+          "content": "Now let me see the rest (generate buttons and the end of the file)."
+        },
+        {
+          "turn": 8,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 9,
+          "role": "assistant",
+          "content": "Now I have the complete picture. The Sarvam TTS supports 11 Indian languages with 23+ speakers. I need to:\n\n1. Add Sarvam TTS languages to the language selector (grouped)\n2. When an Indian language is selected, show Sarvam speaker picker instead of male/female\n3. Route TTS calls to `aiClient.sarvamTTS()` for Indian languages\n4. Add Sarvam as a \"model\" option"
+        },
+        {
+          "turn": 10,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 11,
+          "role": "assistant",
+          "content": "Now add Sarvam as a TTS model and update the supported languages list."
+        },
+        {
+          "turn": 12,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 13,
+          "role": "assistant",
+          "content": "Now add state for the Sarvam speaker and a helper to check if using Sarvam TTS."
+        },
+        {
+          "turn": 14,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 15,
+          "role": "assistant",
+          "content": "Now update the `needsTranslation` logic and the `translateForTTS` to use `ALL_TTS_LANGUAGES`."
+        },
+        {
+          "turn": 16,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 17,
+          "role": "assistant",
+          "content": "Now update the `handleGenerate` function to route to Sarvam TTS for Indian languages."
+        },
+        {
+          "turn": 18,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 19,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 20,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 21,
+          "role": "tool",
+          "content": "Grep(pattern: \"generateSpeechBlob\"\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 22,
+          "role": "tool",
+          "content": "Grep(pattern: \"generateSpeechBlob\")",
+          "tool_name": "Grep"
+        },
+        {
+          "turn": 23,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 24,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 25,
+          "role": "assistant",
+          "content": "Now update the language selector UI to show grouped languages and the Sarvam speaker picker."
+        },
+        {
+          "turn": 26,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 27,
+          "role": "assistant",
+          "content": "Now update the voice type section to show Sarvam speakers when an Indian language is selected."
+        },
+        {
+          "turn": 28,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 29,
+          "role": "assistant",
+          "content": "Now update the generate button — Sarvam TTS doesn't need the local model to be installed."
+        },
+        {
+          "turn": 30,
+          "role": "tool",
+          "content": "Edit(file: \"voiceover.tsx\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 31,
+          "role": "tool",
+          "content": "Bash(command: \"npx tsc --noEmit --project [REDACTED_HOME]/Documents/Learning/OpenCut-AI/apps/w...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 32,
+          "role": "assistant",
+          "content": "All clean. Here's what was added to the voiceover section:\n\n**Sarvam TTS supports 10 Indian languages** (plus English) with 23+ speaker voices:\n- Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Odia\n\n**Changes to `voiceover.tsx`:**\n\n1. **Language selector** — Now grouped into \"Global (Coqui XTTS — Local)\" and \"Indian Languages (Sarvam AI — Cloud)\". Selecting any Indian language automatically switches to Sarvam TTS.\n\n2. **Speaker picker** — When an Indian language is selected, the Male/Female toggle is replaced with a dropdown of 23 Sarvam speakers (Shubh, Aditya, Ritu, Priya, Neha, Rahul, etc.) with gender labels.\n\n3. **TTS routing** — Both \"Generate full voiceover\" and \"Generate per segment\" now route to `aiClient.sarvamTTS()` when an Indian language is selected, and to the local Coqui XTTS for global languages.\n\n4. **Translation** — When translating transcript text before TTS, Indian language pairs use Sarvam's translation API instead of the local LLM.\n\n5. **Generate buttons** — No longer disabled by \"model not installed\" when using Sarvam (it's cloud-based, doesn't need a local model)."
+        }
+      ],
+      "prompt_quality": {
+        "score": 43,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "code_generation"
+      }
+    },
+    {
+      "id": "16462616-b99f-4b76-8fdf-3ddf9a38df6a",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "c5cf3c61-ef91-4891-8a6b-1990506aec49",
+      "prompt_summary": "an you update the product_hunt.md with the latest update?",
+      "response_summary": "Done. Key updates to PRODUCT_HUNT.md:\n\n- **Feature list expanded** from 7 to 16 bullet points — added Indian languages, podcast clips, word-pop subs, multi-speaker, auto-reframe, brand kit, question cards, emotion detection\n- **\"22 Indian languages\"** is now the second bullet point (high visibility)\n- **Indian language voiceovers** called out separately (37+ speakers)\n- **Transcription** updated to \"30+ languages\" (Whisper + Sarvam)\n- **New shoutout #2: Sarvam AI** — dedicated section explaining STT, TTS, translation across 22 languages\n- **Whisper and Coqui shoutouts** updated to mention Sarvam as the complement for Indian languages\n- **Claude Code shoutout** updated from \"8+\" to \"15+ AI features\"",
+      "prompt_hash": "sha256:63f14028f5f6fdcb8cf8152871f6571b8679d148a8b46a8f62843ff7ec0efff7",
+      "message_count": 649,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-23T17:09:12.319Z",
+      "session_start": "2026-03-23T14:59:55.423Z",
+      "session_end": "2026-03-23T17:09:48.324Z",
+      "session_duration_secs": 7792,
+      "ai_response_time_secs": 7.234706349206355,
+      "prompt_submitted_at": "2026-03-23T17:09:12.752407Z",
+      "prompt_duration_secs": 46,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "PRODUCT_HUNT.md",
+      "line_range": [
+        1,
+        73
+      ],
+      "files_changed": [
+        {
+          "path": "PRODUCT_HUNT.md",
+          "line_range": [
+            1,
+            73
+          ],
+          "blob_hash": "8ec28379e2937c66bd046cfb81a8e0b282b6a737",
+          "additions": 73
+        }
+      ],
+      "parent_receipt_id": "6776da97-c5e4-464e-84db-15934005de7e",
+      "prompt_number": 17,
+      "total_additions": 73,
+      "tools_used": [
+        "Read",
+        "Write"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "an you update the product_hunt.md with the latest update?"
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Read(file: \"PRODUCT_HUNT.md\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "PRODUCT_HUNT.md"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Write(file: \"PRODUCT_HUNT.md\")",
+          "tool_name": "Write",
+          "files_touched": [
+            "PRODUCT_HUNT.md"
+          ]
+        },
+        {
+          "turn": 3,
+          "role": "assistant",
+          "content": "Done. Key updates to PRODUCT_HUNT.md:\n\n- **Feature list expanded** from 7 to 16 bullet points — added Indian languages, podcast clips, word-pop subs, multi-speaker, auto-reframe, brand kit, question cards, emotion detection\n- **\"22 Indian languages\"** is now the second bullet point (high visibility)\n- **Indian language voiceovers** called out separately (37+ speakers)\n- **Transcription** updated to \"30+ languages\" (Whisper + Sarvam)\n- **New shoutout #2: Sarvam AI** — dedicated section explaining STT, TTS, translation across 22 languages\n- **Whisper and Coqui shoutouts** updated to mention Sarvam as the complement for Indian languages\n- **Claude Code shoutout** updated from \"8+\" to \"15+ AI features\""
+        }
+      ],
+      "prompt_quality": {
+        "score": 56,
+        "rating": "Fair",
+        "category": "question"
+      }
+    },
+    {
+      "id": "cdd3092d-63f0-4687-a04d-674f49529e27",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "c5cf3c61-ef91-4891-8a6b-1990506aec49",
+      "prompt_summary": "Well, the voice over is a little different. The voice over source is there, and the voice language has to have the same way that you said decided for the transcript. Either you can pick from the exist",
+      "response_summary": "Clean compile. Here's how the voiceover panel now works:\n\n**Engine selector at the top** (same pattern as transcription):\n- **Local (Coqui XTTS)** → shows: Language (12 global) → Voice type (Male/Female) → Voice clone → Model selector\n- **Sarvam AI (Indian Languages)** → shows: Language (10 Indian) → Speaker (23 voices) — no model selector, no voice cloning section\n\nThe UI completely swaps based on the engine. Generate buttons work for both — Sarvam doesn't need a local model installed.",
+      "prompt_hash": "sha256:9b729ab98d358f65049f687407fa6b11a462fb5e3cc66f3b1dcc523275721d8e",
+      "message_count": 659,
+      "cost_usd": 0.427825,
+      "input_tokens": 2,
+      "output_tokens": 146,
+      "cache_read_tokens": 705380,
+      "cache_creation_tokens": 11436,
+      "timestamp": "2026-03-23T17:11:48.760Z",
+      "session_start": "2026-03-23T14:59:55.423Z",
+      "session_end": "2026-03-23T17:14:09.335Z",
+      "session_duration_secs": 8053,
+      "ai_response_time_secs": 7.279338521400784,
+      "prompt_submitted_at": "2026-03-23T17:11:49.261657Z",
+      "prompt_duration_secs": 140,
+      "accepted_lines": 287,
+      "overridden_lines": 0,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "apps/web/src/components/editor/panels/assets/views/voiceover.tsx",
+      "line_range": [
+        22,
+        665
+      ],
+      "files_changed": [
+        {
+          "path": "apps/web/src/components/editor/panels/assets/views/voiceover.tsx",
+          "line_range": [
+            22,
+            665
+          ],
+          "blob_hash": "c60cb0455a32c22b2fe738fee2f0f9dbc36c32ff",
+          "additions": 287,
+          "deletions": 230
+        }
+      ],
+      "parent_receipt_id": "16462616-b99f-4b76-8fdf-3ddf9a38df6a",
+      "prompt_number": 18,
+      "total_additions": 287,
+      "total_deletions": 230,
+      "tools_used": [
+        "Bash",
+        "Read",
+        "Write"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "Well, the voice over is a little different. The voice over source is there, and the voice language has to have the same way that you said decided for the transcript. Either you can pick from the existing model or server mei. When I pick on the server mei, it will just interact with and select the language and it will interact and select the speaker. You don't need to show the model once again, so you can just go ahead and change the generate button completely. Based on the models that the user is selecting, you can change the UI of that voice over section."
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Read(file: \"voiceover.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "assistant",
+          "content": "I'll restructure the voiceover panel to match the transcription pattern — engine selector first, then the UI changes completely based on which engine is picked."
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Write(file: \"voiceover.tsx\")",
+          "tool_name": "Write",
+          "files_touched": [
+            "voiceover.tsx"
+          ]
+        },
+        {
+          "turn": 4,
+          "role": "tool",
+          "content": "Bash(command: \"npx tsc --noEmit --project [REDACTED_HOME]/Documents/Learning/OpenCut-AI/apps/w...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 5,
+          "role": "assistant",
+          "content": "Clean compile. Here's how the voiceover panel now works:\n\n**Engine selector at the top** (same pattern as transcription):\n- **Local (Coqui XTTS)** → shows: Language (12 global) → Voice type (Male/Female) → Voice clone → Model selector\n- **Sarvam AI (Indian Languages)** → shows: Language (10 Indian) → Speaker (23 voices) — no model selector, no voice cloning section\n\nThe UI completely swaps based on the engine. Generate buttons work for both — Sarvam doesn't need a local model installed."
+        }
+      ],
+      "prompt_quality": {
+        "score": 47,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "code_generation"
+      }
+    },
+    {
+      "id": "16c47ed3-1caf-4eee-a378-be46d10297c4",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "c5cf3c61-ef91-4891-8a6b-1990506aec49",
+      "prompt_summary": "Hey Product Hunt!\n\nWe're launching OpenCut AI - a fully open-source, local-first AI video editor.\n\nWe took [OpenCut](https://github.com/OpenCut-app/O...), an open-source video editor, and built an ent",
+      "response_summary": "Done. The first comment now keeps the original structure intact and adds an **UPDATE** paragraph at the bottom with:\n- Link to the X thread: `https://x.com/humblefool/status/2036125305908371528?s=20`\n- 30+ languages, 22 Indian regional languages listed\n- Sarvam AI credited with link\n- 37+ voice speakers mentioned\n- Clear CTA: \"Add your Sarvam API key in Settings and you're good to go\"\n\nYou also asked to create a `.md` file — could you clarify what content you'd like in it? A changelog, a release notes file, or something else?",
+      "prompt_hash": "sha256:f2b3fa55a5b8c24ae5bd25eadfc0e0abddaf78ed314cc7d18ac909cc0f8ca515",
+      "message_count": 662,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-23T17:23:52.828Z",
+      "session_start": "2026-03-23T14:59:55.423Z",
+      "session_end": "2026-03-23T17:24:27.695Z",
+      "session_duration_secs": 8672,
+      "ai_response_time_secs": 7.382968992248069,
+      "prompt_submitted_at": "2026-03-23T17:23:53.399453Z",
+      "prompt_duration_secs": 43,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "PRODUCT_HUNT.md",
+      "line_range": [
+        1,
+        72
+      ],
+      "files_changed": [
+        {
+          "path": "PRODUCT_HUNT.md",
+          "line_range": [
+            1,
+            72
+          ],
+          "blob_hash": "72a103423ca906b12a21ccbf29844d7f40c69455",
+          "additions": 72
+        }
+      ],
+      "parent_receipt_id": "cdd3092d-63f0-4687-a04d-674f49529e27",
+      "prompt_number": 19,
+      "total_additions": 72,
+      "tools_used": [
+        "Edit"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "Hey Product Hunt!\n\nWe're launching OpenCut AI - a fully open-source, local-first AI video editor.\n\nWe took [OpenCut](https://github.com/OpenCut-app/O...), an open-source video editor, and built an entire AI suite on top of it:\n\n- Edit by text - transcribe your video, then edit it like a Google Doc. Delete a sentence, and the video cuts itself.\n- Voice cloning - clone any voice from a 6-second sample and generate voiceovers.\n- AI image generation - create images from text and drop them on the timeline.\n- Filler word removal - one-click removal of \"um\", \"uh\", \"like\", and \"you know.\"\n- Natural language commands - tell the editor \"remove the intro\" or \"speed up the middle.\"\n- Smart subtitles - karaoke, pill, and classic styles, generated instantly.\n- Audio denoising - clean up background noise automatically.\n\nEverything runs locally. No cloud. No API keys. No subscriptions. No per-minute billing. Your videos never leave your machine.\n\nUnder the hood, we're standing on the shoulders of incredible open-source models Whisper for transcription, XTTS v2 for voice cloning, Stable Diffusion for image generation, Llama 3.2 via Ollama for natural language commands, Pyannote for speaker diarization, and MediaPipe for face detection. All of it packaged in a single `docker compose up -d`.\n\nWe built this because video editing tools are either expensive, cloud-dependent, or closed-source and we wanted one that was none of those things.\n\nSelf-host it for as low as $20/mo, or just run it on your laptop.\n\nWould love your feedback: what AI features would you want in a video editor?\nedit this first comment with X links https://x.com/humblefool/status/2036125305908371528?s=20 multilinguage support and with latest updates"
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Edit(file: \"PRODUCT_HUNT.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "PRODUCT_HUNT.md"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "assistant",
+          "content": "Done. The first comment now keeps the original structure intact and adds an **UPDATE** paragraph at the bottom with:\n- Link to the X thread: `https://x.com/humblefool/status/2036125305908371528?s=20`\n- 30+ languages, 22 Indian regional languages listed\n- Sarvam AI credited with link\n- 37+ voice speakers mentioned\n- Clear CTA: \"Add your Sarvam API key in Settings and you're good to go\"\n\nYou also asked to create a `.md` file — could you clarify what content you'd like in it? A changelog, a release notes file, or something else?"
+        }
+      ],
+      "prompt_quality": {
+        "score": 45,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "refactor"
+      }
+    },
+    {
+      "id": "f475df88-2f61-4e3b-b3db-50f6adb65514",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "c5cf3c61-ef91-4891-8a6b-1990506aec49",
+      "prompt_summary": "just the first comment updated in .md file",
+      "response_summary": "Created `PRODUCT_HUNT_FIRST_COMMENT.md` with just the first comment, ready to copy-paste.",
+      "prompt_hash": "sha256:9f851297a81407ad8c25d7472d9b2419964b61c4e73a0cc66fae2e5ffa054076",
+      "message_count": 669,
+      "cost_usd": 0.19044875,
+      "input_tokens": 1,
+      "output_tokens": 31,
+      "cache_read_tokens": 367875,
+      "cache_creation_tokens": 917,
+      "timestamp": "2026-03-23T17:24:57.986Z",
+      "session_start": "2026-03-23T14:59:55.423Z",
+      "session_end": "2026-03-23T17:25:24.460Z",
+      "session_duration_secs": 8729,
+      "ai_response_time_secs": 7.406026717557259,
+      "prompt_submitted_at": "2026-03-23T17:24:58.297277Z",
+      "prompt_duration_secs": 26,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "PRODUCT_HUNT_FIRST_COMMENT.md",
+      "line_range": [
+        1,
+        31
+      ],
+      "files_changed": [
+        {
+          "path": "PRODUCT_HUNT_FIRST_COMMENT.md",
+          "line_range": [
+            1,
+            31
+          ],
+          "blob_hash": "378de983464da684a66d87431a1ecf69ed0e29b3",
+          "additions": 31
+        }
+      ],
+      "parent_receipt_id": "16c47ed3-1caf-4eee-a378-be46d10297c4",
+      "prompt_number": 20,
+      "total_additions": 31,
+      "tools_used": [
+        "Read",
+        "Write"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "just the first comment updated in .md file"
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Read(file: \"PRODUCT_HUNT.md\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "PRODUCT_HUNT.md"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Write(file: \"PRODUCT_HUNT_FIRST_COMMENT.md\")",
+          "tool_name": "Write",
+          "files_touched": [
+            "PRODUCT_HUNT_FIRST_COMMENT.md"
+          ]
+        },
+        {
+          "turn": 3,
+          "role": "assistant",
+          "content": "Created `PRODUCT_HUNT_FIRST_COMMENT.md` with just the first comment, ready to copy-paste."
+        }
+      ],
+      "prompt_quality": {
+        "score": 43,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "bf442383-c78c-41aa-9d65-bf784cc2e4ae",
+      "provider": "claude",
+      "model": "unknown",
+      "session_id": "f400f138-bcb8-4871-b5ec-2d719e1dd029",
+      "prompt_summary": "OpenCutAI\nCompany Name\nOpenCutAI\nWebsite\nhttps://opencutai.video\nDescription\nOpenCut AI is a web-based AI video editing platform specifically designed for creating short-form vertical video content optimized for Instagram Reels, TikTok, and YouTube Shorts. The tool automates complex editing tasks to lower the barrier for high-frequency social media content creation.\nProduct\nBrowser-based AI video editor offering automated editing features such as smart captioning, jump cut detection, background removal, noise reduction, and 9:16 format optimization. Provides templates and AI-driven workflows specifically tailored for viral short-form content creation.\nTarget Users\nSocial media content creators, micro-influencers, small business marketers, and aspiring creators who publish high-frequency short-form video content but lack professional video editing skills or expensive software licenses.\nYour Identity — used by the AI to sign outreach emails correctly\n\nYour Role / Title\ne.g. CEO, Head of Growth, Founder\nReplaces \"COO\" in email sign-offs\n\nShort Bio (optional)\ne.g. Ex-Google, building B2B SaaS tools\nAdds context for more personal emails\n\nReview Emails Before Sending\n\nWhen enabled, outreach emails are saved as drafts for you to approve before they are sent. You can review and approve them from the Emails tab.\n\n\nCompetitors (one per line)\nCapCut (ByteDance)\nOpus Clip\nVeed.io\nDescript\nInShot\nGoals (one per line)\nCapture market share through a free-tier acquisition strategy to compete with established mobile editors\nConvert users to premium subscriptions via advanced AI features, 4K exports, and watermark removal\nEstablish category leadership in AI-automated short-form video editing before expanding to long-form content\nBuild viral distribution through creator-friendly features that reduce editing time from hours to minutes\nDevelop platform-specific optimization algorithms for TikTok/Reels/Shorts engagement metrics\nSave Changes\n\nupdate this and create a .md file",
+      "prompt_hash": "sha256:56cc4a4d594712ddabd96d0fab6cad105f000582e35dd8e7751423b10ecda963",
+      "message_count": 0,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-24T05:35:23.460873Z",
+      "prompt_submitted_at": "2026-03-24T05:35:23.461055Z",
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "f475df88-2f61-4e3b-b3db-50f6adb65514",
+      "prompt_number": 1,
+      "prompt_quality": {
+        "score": 49,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "code_generation"
+      }
+    },
+    {
+      "id": "03742987-d89e-4c7d-8506-d20289ceb652",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "f400f138-bcb8-4871-b5ec-2d719e1dd029",
+      "prompt_summary": "OpenCutAI\nCompany Name\nOpenCutAI\nWebsite\nhttps://opencutai.video\nDescription\nOpenCut AI is a web-based AI video editing platform specifically designed for creating short-form vertical video content op",
+      "response_summary": "Created `OPENCUTAI_PROFILE.md` with all the company info structured into clean sections — overview, product features, target users, competitors, and strategic goals. The product features are broken out into individual bullet points for easier scanning.",
+      "prompt_hash": "sha256:5e37bea86969dfd8b411fe9b4d1032e56dc9176e25c9853a9e1f31c2a60cce3a",
+      "message_count": 8,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-24T05:35:59.653Z",
+      "session_start": "2026-03-24T05:35:08.128Z",
+      "session_end": "2026-03-24T05:36:19.271Z",
+      "session_duration_secs": 71,
+      "ai_response_time_secs": 2.6345,
+      "prompt_submitted_at": "2026-03-24T05:36:00.054373Z",
+      "prompt_duration_secs": 24,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "OPENCUTAI_PROFILE.md",
+      "line_range": [
+        1,
+        48
+      ],
+      "files_changed": [
+        {
+          "path": "OPENCUTAI_PROFILE.md",
+          "line_range": [
+            1,
+            48
+          ],
+          "blob_hash": "75fe559c465e125a1e2b925bd295dd1165427b9c",
+          "additions": 48
+        }
+      ],
+      "parent_receipt_id": "bf442383-c78c-41aa-9d65-bf784cc2e4ae",
+      "prompt_number": 5,
+      "total_additions": 48,
+      "tools_used": [
+        "Write"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "OpenCutAI\nCompany Name\nOpenCutAI\nWebsite\nhttps://opencutai.video\nDescription\nOpenCut AI is a web-based AI video editing platform specifically designed for creating short-form vertical video content optimized for Instagram Reels, TikTok, and YouTube Shorts. The tool automates complex editing tasks to lower the barrier for high-frequency social media content creation.\nProduct\nBrowser-based AI video editor offering automated editing features such as smart captioning, jump cut detection, background removal, noise reduction, and 9:16 format optimization. Provides templates and AI-driven workflows specifically tailored for viral short-form content creation.\nTarget Users\nSocial media content creators, micro-influencers, small business marketers, and aspiring creators who publish high-frequency short-form video content but lack professional video editing skills or expensive software licenses.\nYour Identity — used by the AI to sign outreach emails correctly\n\nYour Role / Title\ne.g. CEO, Head of Growth, Founder\nReplaces \"COO\" in email sign-offs\n\nShort Bio (optional)\ne.g. Ex-Google, building B2B SaaS tools\nAdds context for more personal emails\n\nReview Emails Before Sending\n\nWhen enabled, outreach emails are saved as drafts for you to approve before they are sent. You can review and approve them from the Emails tab.\n\n\nCompetitors (one per line)\nCapCut (ByteDance)\nOpus Clip\nVeed.io\nDescript\nInShot\nGoals (one per line)\nCapture market share through a free-tier acquisition strategy to compete with established mobile editors\nConvert users to premium subscriptions via advanced AI features, 4K exports, and watermark removal\nEstablish category leadership in AI-automated short-form video editing before expanding to long-form content\nBuild viral distribution through creator-friendly features that reduce editing time from hours to minutes\nDevelop platform-specific optimization algorithms for TikTok/Reels/Shorts engagement metrics\nSave Changes\n\nupdate this and create a .md file"
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Write(file: \"OPENCUTAI_PROFILE.md\")",
+          "tool_name": "Write",
+          "files_touched": [
+            "OPENCUTAI_PROFILE.md"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "assistant",
+          "content": "Created `OPENCUTAI_PROFILE.md` with all the company info structured into clean sections — overview, product features, target users, competitors, and strategic goals. The product features are broken out into individual bullet points for easier scanning."
+        }
+      ],
+      "prompt_quality": {
+        "score": 49,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "code_generation"
+      }
+    },
+    {
+      "id": "517052e9-a77f-4058-8fda-737be4f0cad4",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "f400f138-bcb8-4871-b5ec-2d719e1dd029",
+      "prompt_summary": "<local-command-caveat>Caveat: The messages below were generated by the user while running local commands. DO NOT respond to these messages or otherwise consider them in your response unless the user e",
+      "prompt_hash": "sha256:5e37bea86969dfd8b411fe9b4d1032e56dc9176e25c9853a9e1f31c2a60cce3a",
+      "message_count": 8,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-24T05:35:55.523Z",
+      "session_start": "2026-03-24T05:35:08.128Z",
+      "session_end": "2026-03-24T05:36:19.271Z",
+      "session_duration_secs": 71,
+      "ai_response_time_secs": 2.6345,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "03742987-d89e-4c7d-8506-d20289ceb652",
+      "prompt_number": 2,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "<local-command-caveat>Caveat: The messages below were generated by the user while running local commands. DO NOT respond to these messages or otherwise consider them in your response unless the user explicitly asks you to.</local-command-caveat>"
+        }
+      ],
+      "prompt_quality": {
+        "score": 43,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "e5e6219f-a456-4e74-a77e-b6646784f275",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "f400f138-bcb8-4871-b5ec-2d719e1dd029",
+      "prompt_summary": "<command-name>/login</command-name>\n            <command-message>login</command-message>\n            <command-args></command-args>",
+      "prompt_hash": "sha256:5e37bea86969dfd8b411fe9b4d1032e56dc9176e25c9853a9e1f31c2a60cce3a",
+      "message_count": 8,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-24T05:35:55.519Z",
+      "session_start": "2026-03-24T05:35:08.128Z",
+      "session_end": "2026-03-24T05:36:19.271Z",
+      "session_duration_secs": 71,
+      "ai_response_time_secs": 2.6345,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "517052e9-a77f-4058-8fda-737be4f0cad4",
+      "prompt_number": 3,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "<command-name>/login</command-name>\n            <command-message>login</command-message>\n            <command-args></command-args>"
+        }
+      ],
+      "prompt_quality": {
+        "score": 41,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "5774f55f-8dd6-427b-902b-a8a2d2884cf3",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "f400f138-bcb8-4871-b5ec-2d719e1dd029",
+      "prompt_summary": "<local-command-stdout>Login successful</local-command-stdout>",
+      "prompt_hash": "sha256:5e37bea86969dfd8b411fe9b4d1032e56dc9176e25c9853a9e1f31c2a60cce3a",
+      "message_count": 8,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-24T05:35:55.519Z",
+      "session_start": "2026-03-24T05:35:08.128Z",
+      "session_end": "2026-03-24T05:36:19.271Z",
+      "session_duration_secs": 71,
+      "ai_response_time_secs": 2.6345,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "e5e6219f-a456-4e74-a77e-b6646784f275",
+      "prompt_number": 4,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "<local-command-stdout>Login successful</local-command-stdout>"
+        }
+      ],
+      "prompt_quality": {
+        "score": 38,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference",
+          "too_short"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "f7e1825b-3349-4a5b-ab75-ccb3debd6dc6",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "f400f138-bcb8-4871-b5ec-2d719e1dd029",
+      "prompt_summary": "This doesrn't talk about the free local editign with AI",
+      "response_summary": "Updated the description and product sections to emphasize that OpenCut AI is **free, open-source, and runs locally** — no uploads, no subscriptions, no watermarks, with all AI processing on-device for privacy.",
+      "prompt_hash": "sha256:0b834cc2ad6f37e717c75340e602e720cf068001d72fe05dd0b7c04523842b3f",
+      "message_count": 15,
+      "cost_usd": 0.01131675,
+      "input_tokens": 3,
+      "output_tokens": 2,
+      "cache_read_tokens": 18641,
+      "cache_creation_tokens": 309,
+      "timestamp": "2026-03-24T05:37:09.743Z",
+      "session_start": "2026-03-24T05:35:08.128Z",
+      "session_end": "2026-03-24T05:37:20.899Z",
+      "session_duration_secs": 132,
+      "ai_response_time_secs": 3.737000000000001,
+      "prompt_submitted_at": "2026-03-24T05:37:10.162743Z",
+      "prompt_duration_secs": 14,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "OPENCUTAI_PROFILE.md",
+      "line_range": [
+        1,
+        48
+      ],
+      "files_changed": [
+        {
+          "path": "OPENCUTAI_PROFILE.md",
+          "line_range": [
+            1,
+            48
+          ],
+          "blob_hash": "a9d275185f4db4d4ac262427ea91533e57776baa",
+          "additions": 48
+        }
+      ],
+      "parent_receipt_id": "5774f55f-8dd6-427b-902b-a8a2d2884cf3",
+      "prompt_number": 6,
+      "total_additions": 48,
+      "tools_used": [
+        "Edit"
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "This doesrn't talk about the free local editign with AI"
+        },
+        {
+          "turn": 1,
+          "role": "assistant",
+          "content": "\n\nGood point. Let me update the description to highlight that OpenCut AI offers free, local AI-powered editing."
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Edit(file: \"OPENCUTAI_PROFILE.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "OPENCUTAI_PROFILE.md"
+          ]
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Edit(file: \"OPENCUTAI_PROFILE.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "OPENCUTAI_PROFILE.md"
+          ]
+        }
+      ],
+      "prompt_quality": {
+        "score": 43,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "2553a7b0-27de-4b00-b3fe-ecf9b779ecd3",
+      "provider": "claude",
+      "model": "unknown",
+      "session_id": "94fcf976-b395-4e2a-852b-bd257d13d7c0",
+      "prompt_summary": "Create a plan and create a.md file for me. This is the idea that I'm looking at. I'm going to brainstorm around this idea where I want to make GitHub-type things for video, like git commit, because video editing is a lot more difficult or more complex. There's always a constant change of version that kind of triggers the editor to go back and do things. I want to brainstorm how exactly I can build a git for video and integrate that into this, keeping track of files changed and video editing, having branches and change logs, and everything that is included, just like how git for code works. I want to do git for video as well, so can you help me brainstorm around this idea?",
+      "prompt_hash": "sha256:a5b96db609fba03a98b1124fbc0ba669cae451f98c3e0ef82f89394b6f4fb48b",
+      "message_count": 0,
+      "cost_usd": 0.0,
+      "timestamp": "2026-03-25T17:27:04.122931Z",
+      "prompt_submitted_at": "2026-03-25T17:27:04.122946Z",
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "f7e1825b-3349-4a5b-ab75-ccb3debd6dc6",
+      "prompt_number": 1,
+      "subagent_activities": [
+        {
+          "agent_id": "a749db3f1eadfba95",
+          "agent_type": "Explore",
+          "status": "started",
+          "started_at": "2026-03-25T17:27:23.125846Z"
+        }
+      ],
+      "prompt_quality": {
+        "score": 65,
+        "rating": "Fair",
+        "issues": [
+          "vague_language"
+        ],
+        "category": "code_generation"
+      }
+    }
+  ]
+}
