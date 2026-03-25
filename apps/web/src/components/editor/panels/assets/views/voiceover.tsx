@@ -19,72 +19,29 @@ import { aiClient } from "@/lib/ai-client";
 import { useBackgroundTasksStore } from "@/stores/background-tasks-store";
 import { cn } from "@/utils/ui";
 import { toast } from "sonner";
+import {
+	SARVAM_TTS_LANGUAGES,
+	SARVAM_LANGUAGE_MAP,
+	SARVAM_TTS_SPEAKERS,
+	SARVAM_DEFAULT_SPEAKER,
+} from "@/constants/sarvam-constants";
 
-// Open-source TTS models
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+type TTSEngine = "local" | "sarvam";
+
 const TTS_MODELS = [
-	{
-		id: "xtts_v2",
-		name: "Coqui XTTS v2",
-		description: "Multilingual with voice cloning. Currently installed on backend.",
-		size: "~1.8 GB",
-		supportsCloning: true,
-		quality: "High",
-		speed: "Slow",
-		installed: true,
-	},
-	{
-		id: "styletts2",
-		name: "StyleTTS 2",
-		description: "Human-level quality with style transfer. Extremely natural prosody.",
-		size: "~500 MB",
-		supportsCloning: true,
-		quality: "Very High",
-		speed: "Medium",
-		installed: false,
-	},
-	{
-		id: "bark",
-		name: "Bark (Suno)",
-		description: "Expressive speech with emotions, laughter, and music.",
-		size: "~5 GB",
-		supportsCloning: false,
-		quality: "Very High",
-		speed: "Very Slow",
-		installed: false,
-	},
-	{
-		id: "piper",
-		name: "Piper",
-		description: "Fast and lightweight. Great for long narration.",
-		size: "~50 MB/voice",
-		supportsCloning: false,
-		quality: "Good",
-		speed: "Very Fast",
-		installed: false,
-	},
-	{
-		id: "fish-speech",
-		name: "Fish Speech",
-		description: "Multilingual zero-shot voice cloning.",
-		size: "~1 GB",
-		supportsCloning: true,
-		quality: "High",
-		speed: "Fast",
-		installed: false,
-	},
-	{
-		id: "kokoro",
-		name: "Kokoro TTS",
-		description: "Small, fast, surprisingly natural.",
-		size: "~80 MB",
-		supportsCloning: false,
-		quality: "High",
-		speed: "Very Fast",
-		installed: false,
-	},
+	{ id: "xtts_v2", name: "Coqui XTTS v2", description: "Multilingual with voice cloning", size: "~1.8 GB", supportsCloning: true, quality: "High", speed: "Slow", installed: true },
+	{ id: "styletts2", name: "StyleTTS 2", description: "Human-level quality with style transfer", size: "~500 MB", supportsCloning: true, quality: "Very High", speed: "Medium", installed: false },
+	{ id: "bark", name: "Bark (Suno)", description: "Expressive speech with emotions", size: "~5 GB", supportsCloning: false, quality: "Very High", speed: "Very Slow", installed: false },
+	{ id: "piper", name: "Piper", description: "Fast and lightweight", size: "~50 MB/voice", supportsCloning: false, quality: "Good", speed: "Very Fast", installed: false },
+	{ id: "fish-speech", name: "Fish Speech", description: "Multilingual zero-shot voice cloning", size: "~1 GB", supportsCloning: true, quality: "High", speed: "Fast", installed: false },
+	{ id: "kokoro", name: "Kokoro TTS", description: "Small, fast, surprisingly natural", size: "~80 MB", supportsCloning: false, quality: "High", speed: "Very Fast", installed: false },
 ];
 
-const SUPPORTED_LANGUAGES = [
+const COQUI_LANGUAGES = [
 	{ code: "en", name: "English" },
 	{ code: "es", name: "Spanish" },
 	{ code: "fr", name: "French" },
@@ -99,36 +56,57 @@ const SUPPORTED_LANGUAGES = [
 	{ code: "tr", name: "Turkish" },
 ];
 
-type GenerationMode = "full" | "per-segment";
+const ALL_TTS_LANGUAGES = [
+	...COQUI_LANGUAGES,
+	...SARVAM_TTS_LANGUAGES.filter((l) => l.code !== "en"),
+];
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function VoiceoverView() {
 	const editor = useEditor();
 	const segments = useTranscriptStore((s) => s.segments);
 	const hasTranscript = segments.length > 0;
 
+	// Engine selection — top-level toggle
+	const [engine, setEngine] = useState<TTSEngine>("local");
+
+	// Shared state
 	const [language, setLanguage] = useState("en");
-	const [selectedModel, setSelectedModel] = useState("xtts_v2");
-	const [mode, setMode] = useState<GenerationMode>("full");
-	const [voiceGender, setVoiceGender] = useState<"male" | "female">("male");
 	const [customText, setCustomText] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [generationProgress, setGenerationProgress] = useState("");
 	const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
 	const [generatedBlob, setGeneratedBlob] = useState<Blob | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const [useTranscript, setUseTranscript] = useState(true);
+	const audioRef = useRef<HTMLAudioElement>(null);
+
+	// Local engine state
+	const [selectedModel, setSelectedModel] = useState("xtts_v2");
+	const [voiceGender, setVoiceGender] = useState<"male" | "female">("male");
 	const [clonedVoicePath, setClonedVoicePath] = useState<string | null>(null);
 	const [clonedVoiceName, setClonedVoiceName] = useState<string | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [useTranscript, setUseTranscript] = useState(true);
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const audioRef = useRef<HTMLAudioElement>(null);
+
+	// Sarvam engine state
+	const [sarvamSpeaker, setSarvamSpeaker] = useState(SARVAM_DEFAULT_SPEAKER);
 
 	const currentModel = TTS_MODELS.find((m) => m.id === selectedModel) ?? TTS_MODELS[0];
 
-	// Auto-select cloning model when voice is uploaded, non-cloning otherwise
+	// Reset language when switching engine
+	const handleEngineChange = (value: string) => {
+		const e = value as TTSEngine;
+		setEngine(e);
+		setLanguage(e === "sarvam" ? "hi" : "en");
+	};
+
+	// Auto-select cloning model when voice is uploaded
 	useEffect(() => {
 		if (clonedVoicePath) {
-			// Pick first installed cloning model
 			const cloningModel = TTS_MODELS.find((m) => m.supportsCloning && m.installed);
 			if (cloningModel) setSelectedModel(cloningModel.id);
 		}
@@ -149,17 +127,42 @@ export function VoiceoverView() {
 	const addTask = useBackgroundTasksStore((s) => s.addTask);
 	const updateTask = useBackgroundTasksStore((s) => s.updateTask);
 
-	// Translate text for TTS (keeps transcript UI unchanged)
+	// Translate text for TTS
 	const translateForTTS = useCallback(async (text: string, taskId?: string): Promise<string> => {
 		if (!needsTranslation) return text;
-		const langName = SUPPORTED_LANGUAGES.find((l) => l.code === language)?.name ?? language;
+		const langName = ALL_TTS_LANGUAGES.find((l) => l.code === language)?.name ?? language;
 		const progress = `Translating to ${langName}...`;
 		setGenerationProgress(progress);
 		if (taskId) updateTask(taskId, { progress });
-		return await aiClient.translateText(text, langName);
-	}, [needsTranslation, language, updateTask]);
 
-	// Generate full voiceover (as background task)
+		if (engine === "sarvam") {
+			const sourceSarvamCode = SARVAM_LANGUAGE_MAP[transcriptLanguage] || `${transcriptLanguage}-IN`;
+			const targetSarvamCode = SARVAM_LANGUAGE_MAP[language] || `${language}-IN`;
+			try {
+				const result = await aiClient.sarvamTranslate(text, sourceSarvamCode, targetSarvamCode);
+				return result.translated_text || text;
+			} catch {
+				return await aiClient.translateText(text, langName);
+			}
+		}
+		return await aiClient.translateText(text, langName);
+	}, [needsTranslation, language, engine, transcriptLanguage, updateTask]);
+
+	// Generate speech using the selected engine
+	const generateSpeech = useCallback(async (text: string): Promise<Blob> => {
+		if (engine === "sarvam") {
+			const sarvamCode = SARVAM_LANGUAGE_MAP[language] || `${language}-IN`;
+			return aiClient.sarvamTTS(text, sarvamCode, sarvamSpeaker);
+		}
+		return aiClient.generateSpeechBlob({
+			text,
+			language,
+			speakerWav: clonedVoicePath ?? undefined,
+			speaker: clonedVoicePath ? undefined : voiceGender,
+		});
+	}, [engine, language, sarvamSpeaker, clonedVoicePath, voiceGender]);
+
+	// Generate full voiceover
 	const handleGenerate = useCallback(async () => {
 		if (!textToGenerate) {
 			toast.error("No text to generate speech from");
@@ -177,16 +180,10 @@ export function VoiceoverView() {
 
 		try {
 			const ttsText = await translateForTTS(textToGenerate, taskId);
-
 			setGenerationProgress("Generating speech...");
 			updateTask(taskId, { progress: "Generating speech..." });
 
-			const blob = await aiClient.generateSpeechBlob({
-				text: ttsText,
-				language,
-				speakerWav: clonedVoicePath ?? undefined,
-				speaker: clonedVoicePath ? undefined : voiceGender,
-			});
+			const blob = await generateSpeech(ttsText);
 
 			const url = URL.createObjectURL(blob);
 			setGeneratedAudioUrl(url);
@@ -201,9 +198,9 @@ export function VoiceoverView() {
 		} finally {
 			setIsGenerating(false);
 		}
-	}, [textToGenerate, language, clonedVoicePath, voiceGender, translateForTTS, addTask, updateTask]);
+	}, [textToGenerate, translateForTTS, generateSpeech, addTask, updateTask]);
 
-	// Generate per-segment and auto-add to timeline (as background task)
+	// Generate per-segment and auto-add to timeline
 	const handleGeneratePerSegment = useCallback(async () => {
 		if (!hasTranscript || segments.length === 0) {
 			toast.error("No transcript segments to generate from");
@@ -211,13 +208,8 @@ export function VoiceoverView() {
 		}
 
 		const taskId = `vo-seg-${Date.now()}`;
-		const langName = SUPPORTED_LANGUAGES.find((l) => l.code === language)?.name ?? language;
-		addTask({
-			id: taskId,
-			type: "voiceover",
-			label: `Voiceover (${segments.length} segments)`,
-			progress: "Starting...",
-		});
+		const langName = ALL_TTS_LANGUAGES.find((l) => l.code === language)?.name ?? language;
+		addTask({ id: taskId, type: "voiceover", label: `Voiceover (${segments.length} segments)`, progress: "Starting..." });
 
 		setIsGenerating(true);
 		setError(null);
@@ -235,19 +227,14 @@ export function VoiceoverView() {
 					const progress = `Translating ${i + 1}/${segments.length} to ${langName}...`;
 					setGenerationProgress(progress);
 					updateTask(taskId, { progress });
-					ttsText = await aiClient.translateText(originalText, langName);
+					ttsText = await translateForTTS(originalText, taskId);
 				}
 
 				const progress = `Generating ${i + 1}/${segments.length}...`;
 				setGenerationProgress(progress);
 				updateTask(taskId, { progress });
 
-				const blob = await aiClient.generateSpeechBlob({
-					text: ttsText,
-					language,
-					speakerWav: clonedVoicePath ?? undefined,
-					speaker: clonedVoicePath ? undefined : voiceGender,
-				});
+				const blob = await generateSpeech(ttsText);
 
 				const file = new File([blob], `voiceover_seg_${i}.wav`, { type: "audio/wav" });
 				const audioUrl = URL.createObjectURL(file);
@@ -280,7 +267,7 @@ export function VoiceoverView() {
 		} finally {
 			setIsGenerating(false);
 		}
-	}, [segments, hasTranscript, language, clonedVoicePath, voiceGender, editor, needsTranslation, addTask, updateTask]);
+	}, [segments, hasTranscript, language, needsTranslation, editor, translateForTTS, generateSpeech, addTask, updateTask]);
 
 	// Add full voiceover to timeline
 	const handleAddToTimeline = useCallback(async () => {
@@ -312,7 +299,7 @@ export function VoiceoverView() {
 		toast.success("Voiceover added to timeline");
 	}, [editor, generatedBlob]);
 
-	// Upload voice sample for cloning
+	// Upload voice sample for cloning (local engine only)
 	const handleUploadVoice = useCallback(async (file: File) => {
 		setIsUploading(true);
 		setError(null);
@@ -328,14 +315,14 @@ export function VoiceoverView() {
 		}
 	}, []);
 
-	const installedModels = TTS_MODELS.filter((m) => m.installed);
-	const showCloningSection = currentModel.supportsCloning;
+	// Can generate?
+	const canGenerate = engine === "sarvam" || currentModel.installed;
 
 	return (
 		<PanelView title="Voiceover">
 			<div className="flex flex-col gap-4">
 
-				{/* Source text */}
+				{/* ── Source text ── */}
 				{hasTranscript && (
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center gap-2">
@@ -390,146 +377,216 @@ export function VoiceoverView() {
 					</div>
 				)}
 
-				{/* Voice output language */}
+				{/* ── Engine selector ── */}
 				<div className="flex flex-col gap-2">
-					<Label className="text-xs">Voice language</Label>
-					<Select value={language} onValueChange={setLanguage}>
+					<Label className="text-xs">Voice engine</Label>
+					<Select value={engine} onValueChange={handleEngineChange}>
 						<SelectTrigger>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{SUPPORTED_LANGUAGES.map((lang) => (
-								<SelectItem key={lang.code} value={lang.code}>
-									{lang.name}
-								</SelectItem>
-							))}
+							<SelectItem value="local">Local (Coqui XTTS)</SelectItem>
+							<SelectItem value="sarvam">Sarvam AI (Indian Languages)</SelectItem>
 						</SelectContent>
 					</Select>
-					{needsTranslation && (
-						<div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5">
-							<p className="text-[10px] text-blue-400 leading-relaxed">
-								The transcript ({SUPPORTED_LANGUAGES.find((l) => l.code === transcriptLanguage)?.name || transcriptLanguage}) will be auto-translated to {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.name || language} before generating speech. The transcript panel stays in the original language.
-							</p>
+					<p className="text-[10px] text-muted-foreground">
+						{engine === "sarvam"
+							? "Cloud — 10 Indian languages, 37+ natural speakers"
+							: "On-device — 12 global languages, voice cloning"}
+					</p>
+				</div>
+
+				{/* ── Engine-specific UI ── */}
+				{engine === "sarvam" ? (
+					<>
+						{/* Sarvam: Language */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Language</Label>
+							<Select value={language} onValueChange={setLanguage}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{SARVAM_TTS_LANGUAGES.filter((l) => l.code !== "en").map((lang) => (
+										<SelectItem key={lang.code} value={lang.code}>
+											{lang.name}
+										</SelectItem>
+									))}
+									<SelectItem value="en">English (Indian)</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
-					)}
-				</div>
 
-				{/* Voice gender */}
-				<div className="flex flex-col gap-2">
-					<Label className="text-xs">Voice type</Label>
-					<div className="flex gap-1.5">
-						<button
-							type="button"
-							className={cn(
-								"flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
-								voiceGender === "male"
-									? "bg-primary text-primary-foreground border-primary"
-									: "text-muted-foreground hover:bg-accent border-border",
-							)}
-							onClick={() => setVoiceGender("male")}
-						>
-							Male
-						</button>
-						<button
-							type="button"
-							className={cn(
-								"flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
-								voiceGender === "female"
-									? "bg-primary text-primary-foreground border-primary"
-									: "text-muted-foreground hover:bg-accent border-border",
-							)}
-							onClick={() => setVoiceGender("female")}
-						>
-							Female
-						</button>
-					</div>
-					{clonedVoiceName && (
-						<p className="text-[9px] text-muted-foreground">
-							Voice type is overridden by the cloned voice below.
-						</p>
-					)}
-				</div>
+						{/* Sarvam: Speaker */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Speaker</Label>
+							<Select value={sarvamSpeaker} onValueChange={setSarvamSpeaker}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{SARVAM_TTS_SPEAKERS.map((s) => (
+										<SelectItem key={s.id} value={s.id}>
+											{s.name} ({s.gender})
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
 
-				{/* Voice cloning */}
-				<div className="flex flex-col gap-2">
-					<Label className="text-xs">Voice clone (optional)</Label>
-					{clonedVoiceName ? (
-						<div className="flex items-center justify-between rounded-md bg-green-500/10 border border-green-500/20 px-2.5 py-2">
-							<div className="flex items-center gap-2">
-								<span className="size-1.5 rounded-full bg-green-500" />
-								<span className="text-[11px] font-medium">Cloned: {clonedVoiceName}</span>
+						{needsTranslation && (
+							<div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5">
+								<p className="text-[10px] text-blue-400 leading-relaxed">
+									Transcript will be auto-translated to {ALL_TTS_LANGUAGES.find((l) => l.code === language)?.name || language} via Sarvam before generating speech.
+								</p>
 							</div>
-							<button
-								type="button"
-								className="text-[10px] text-destructive hover:text-destructive/80"
-								onClick={() => { setClonedVoicePath(null); setClonedVoiceName(null); }}
-							>
-								Remove
-							</button>
-						</div>
-					) : (
-						<div className="flex flex-col gap-1.5">
-							<div className="flex gap-1.5">
-								<Button
-									variant="outline"
-									size="sm"
-									className="flex-1 text-[10px] h-7"
-									disabled={isUploading}
-									onClick={() => fileInputRef.current?.click()}
-								>
-									{isUploading ? <><Spinner className="size-3 mr-1" />Uploading...</> : "Upload voice sample"}
-								</Button>
-								<Badge variant="secondary" className="text-[9px] px-1.5 py-0 self-center">
-									or use default
-								</Badge>
-							</div>
-							<p className="text-[9px] text-muted-foreground">
-								Upload 10-30s audio to clone a specific voice. Without a sample, the default model voice is used.
-							</p>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept=".wav,.mp3,.flac,.ogg,.m4a"
-								className="hidden"
-								onChange={(e) => {
-									const file = e.target.files?.[0];
-									if (file) handleUploadVoice(file);
-									e.target.value = "";
-								}}
-							/>
-						</div>
-					)}
-				</div>
-
-				{/* Model info */}
-				<div className="flex flex-col gap-1.5">
-					<Label className="text-xs">Model</Label>
-					<Select value={selectedModel} onValueChange={setSelectedModel}>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{TTS_MODELS.map((model) => (
-								<SelectItem key={model.id} value={model.id}>
-									<div className="flex items-center gap-2">
-										<span>{model.name}</span>
-										{model.installed && <Badge variant="secondary" className="text-[8px] px-1 py-0">Installed</Badge>}
-										{!model.installed && <Badge variant="outline" className="text-[8px] px-1 py-0">Not installed</Badge>}
-									</div>
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<div className="flex items-center gap-1.5 flex-wrap">
-						<Badge variant="secondary" className="text-[9px] px-1 py-0">{currentModel.quality}</Badge>
-						<Badge variant="secondary" className="text-[9px] px-1 py-0">{currentModel.speed}</Badge>
-						<Badge variant="secondary" className="text-[9px] px-1 py-0">{currentModel.size}</Badge>
-						{currentModel.supportsCloning && (
-							<Badge variant="outline" className="text-[9px] px-1 py-0 text-green-500 border-green-500/30">Cloning</Badge>
 						)}
-					</div>
-				</div>
+					</>
+				) : (
+					<>
+						{/* Local: Language */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Language</Label>
+							<Select value={language} onValueChange={setLanguage}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{COQUI_LANGUAGES.map((lang) => (
+										<SelectItem key={lang.code} value={lang.code}>
+											{lang.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{needsTranslation && (
+								<div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5">
+									<p className="text-[10px] text-blue-400 leading-relaxed">
+										Transcript will be auto-translated to {COQUI_LANGUAGES.find((l) => l.code === language)?.name || language} before generating speech.
+									</p>
+								</div>
+							)}
+						</div>
 
+						{/* Local: Voice type */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Voice type</Label>
+							<div className="flex gap-1.5">
+								<button
+									type="button"
+									className={cn(
+										"flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
+										voiceGender === "male"
+											? "bg-primary text-primary-foreground border-primary"
+											: "text-muted-foreground hover:bg-accent border-border",
+									)}
+									onClick={() => setVoiceGender("male")}
+								>
+									Male
+								</button>
+								<button
+									type="button"
+									className={cn(
+										"flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
+										voiceGender === "female"
+											? "bg-primary text-primary-foreground border-primary"
+											: "text-muted-foreground hover:bg-accent border-border",
+									)}
+									onClick={() => setVoiceGender("female")}
+								>
+									Female
+								</button>
+							</div>
+							{clonedVoiceName && (
+								<p className="text-[9px] text-muted-foreground">
+									Voice type is overridden by the cloned voice below.
+								</p>
+							)}
+						</div>
+
+						{/* Local: Voice cloning */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Voice clone (optional)</Label>
+							{clonedVoiceName ? (
+								<div className="flex items-center justify-between rounded-md bg-green-500/10 border border-green-500/20 px-2.5 py-2">
+									<div className="flex items-center gap-2">
+										<span className="size-1.5 rounded-full bg-green-500" />
+										<span className="text-[11px] font-medium">Cloned: {clonedVoiceName}</span>
+									</div>
+									<button
+										type="button"
+										className="text-[10px] text-destructive hover:text-destructive/80"
+										onClick={() => { setClonedVoicePath(null); setClonedVoiceName(null); }}
+									>
+										Remove
+									</button>
+								</div>
+							) : (
+								<div className="flex flex-col gap-1.5">
+									<div className="flex gap-1.5">
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1 text-[10px] h-7"
+											disabled={isUploading}
+											onClick={() => fileInputRef.current?.click()}
+										>
+											{isUploading ? <><Spinner className="size-3 mr-1" />Uploading...</> : "Upload voice sample"}
+										</Button>
+										<Badge variant="secondary" className="text-[9px] px-1.5 py-0 self-center">
+											or use default
+										</Badge>
+									</div>
+									<p className="text-[9px] text-muted-foreground">
+										Upload 10-30s audio to clone a specific voice.
+									</p>
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept=".wav,.mp3,.flac,.ogg,.m4a"
+										className="hidden"
+										onChange={(e) => {
+											const file = e.target.files?.[0];
+											if (file) handleUploadVoice(file);
+											e.target.value = "";
+										}}
+									/>
+								</div>
+							)}
+						</div>
+
+						{/* Local: Model */}
+						<div className="flex flex-col gap-1.5">
+							<Label className="text-xs">Model</Label>
+							<Select value={selectedModel} onValueChange={setSelectedModel}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{TTS_MODELS.map((model) => (
+										<SelectItem key={model.id} value={model.id}>
+											<div className="flex items-center gap-2">
+												<span>{model.name}</span>
+												{model.installed && <Badge variant="secondary" className="text-[8px] px-1 py-0">Installed</Badge>}
+												{!model.installed && <Badge variant="outline" className="text-[8px] px-1 py-0">Not installed</Badge>}
+											</div>
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<div className="flex items-center gap-1.5 flex-wrap">
+								<Badge variant="secondary" className="text-[9px] px-1 py-0">{currentModel.quality}</Badge>
+								<Badge variant="secondary" className="text-[9px] px-1 py-0">{currentModel.speed}</Badge>
+								<Badge variant="secondary" className="text-[9px] px-1 py-0">{currentModel.size}</Badge>
+								{currentModel.supportsCloning && (
+									<Badge variant="outline" className="text-[9px] px-1 py-0 text-green-500 border-green-500/30">Cloning</Badge>
+								)}
+							</div>
+						</div>
+					</>
+				)}
+
+				{/* ── Errors & progress ── */}
 				{error && (
 					<div className="bg-destructive/10 border-destructive/20 rounded-md border p-2.5">
 						<p className="text-destructive text-[11px]">{error}</p>
@@ -543,16 +600,16 @@ export function VoiceoverView() {
 					</div>
 				)}
 
-				{/* Generate buttons */}
+				{/* ── Generate buttons ── */}
 				<div className="flex flex-col gap-1.5">
 					{hasTranscript && useTranscript && (
 						<Button
 							className="w-full"
 							onClick={handleGeneratePerSegment}
-							disabled={isGenerating || !currentModel.installed}
+							disabled={isGenerating || !canGenerate}
 						>
 							{isGenerating && <Spinner className="mr-1" />}
-							Generate voiceover per segment
+							Generate per segment
 						</Button>
 					)}
 
@@ -560,20 +617,20 @@ export function VoiceoverView() {
 						variant={hasTranscript && useTranscript ? "outline" : "default"}
 						className="w-full"
 						onClick={handleGenerate}
-						disabled={isGenerating || !textToGenerate || !currentModel.installed}
+						disabled={isGenerating || !textToGenerate || !canGenerate}
 					>
 						{isGenerating && !generationProgress.includes("segment") && <Spinner className="mr-1" />}
 						Generate full voiceover
 					</Button>
 
-					{!currentModel.installed && (
+					{engine === "local" && !currentModel.installed && (
 						<p className="text-[10px] text-yellow-500 text-center">
 							This model is not installed. Use Coqui XTTS v2 (installed) or install this model on the backend.
 						</p>
 					)}
 				</div>
 
-				{/* Audio preview */}
+				{/* ── Audio preview ── */}
 				{generatedAudioUrl && (
 					<div className="flex flex-col gap-2 rounded-md border p-2.5 bg-muted/30">
 						<p className="text-[10px] text-muted-foreground font-medium">Preview</p>
@@ -605,7 +662,7 @@ function getAudioDuration(url: string): Promise<number> {
 			resolve(audio.duration);
 		});
 		audio.addEventListener("error", () => {
-			resolve(5); // fallback
+			resolve(5);
 		});
 	});
 }
