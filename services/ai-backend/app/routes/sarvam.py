@@ -342,7 +342,7 @@ async def sarvam_transcribe(
                     "word": word,
                     "start": round(cursor + w_idx * wd, 3),
                     "end": round(cursor + (w_idx + 1) * wd, 3),
-                    "probability": 0.9,
+                    "confidence": 0.9,
                 })
 
             segments.append({

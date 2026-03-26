@@ -25,12 +25,18 @@ import {
 	SARVAM_TTS_SPEAKERS,
 	SARVAM_DEFAULT_SPEAKER,
 } from "@/constants/sarvam-constants";
+import {
+	SMALLEST_TTS_LANGUAGES,
+	SMALLEST_TTS_VOICES,
+	SMALLEST_DEFAULT_VOICE,
+	getSmallestVoicesForLanguage,
+} from "@/constants/smallest-constants";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-type TTSEngine = "local" | "sarvam";
+type TTSEngine = "local" | "sarvam" | "smallest";
 
 const TTS_MODELS = [
 	{ id: "xtts_v2", name: "Coqui XTTS v2", description: "Multilingual with voice cloning", size: "~1.8 GB", supportsCloning: true, quality: "High", speed: "Slow", installed: true },
@@ -59,6 +65,9 @@ const COQUI_LANGUAGES = [
 const ALL_TTS_LANGUAGES = [
 	...COQUI_LANGUAGES,
 	...SARVAM_TTS_LANGUAGES.filter((l) => l.code !== "en"),
+	...SMALLEST_TTS_LANGUAGES.filter(
+		(l) => !COQUI_LANGUAGES.some((c) => c.code === l.code) && !SARVAM_TTS_LANGUAGES.some((s) => s.code === l.code),
+	),
 ];
 
 // ---------------------------------------------------------------------------
@@ -95,13 +104,25 @@ export function VoiceoverView() {
 	// Sarvam engine state
 	const [sarvamSpeaker, setSarvamSpeaker] = useState(SARVAM_DEFAULT_SPEAKER);
 
+	// Smallest AI engine state
+	const [smallestVoice, setSmallestVoice] = useState(SMALLEST_DEFAULT_VOICE);
+	const [smallestSpeed, setSmallestSpeed] = useState(1.0);
+
 	const currentModel = TTS_MODELS.find((m) => m.id === selectedModel) ?? TTS_MODELS[0];
+
+	// Available voices for the selected language (Smallest)
+	const smallestVoicesForLang = useMemo(
+		() => getSmallestVoicesForLanguage(language),
+		[language],
+	);
 
 	// Reset language when switching engine
 	const handleEngineChange = (value: string) => {
 		const e = value as TTSEngine;
 		setEngine(e);
-		setLanguage(e === "sarvam" ? "hi" : "en");
+		if (e === "sarvam") setLanguage("hi");
+		else if (e === "smallest") setLanguage("en");
+		else setLanguage("en");
 	};
 
 	// Auto-select cloning model when voice is uploaded
@@ -154,13 +175,16 @@ export function VoiceoverView() {
 			const sarvamCode = SARVAM_LANGUAGE_MAP[language] || `${language}-IN`;
 			return aiClient.sarvamTTS(text, sarvamCode, sarvamSpeaker);
 		}
+		if (engine === "smallest") {
+			return aiClient.smallestTTS(text, smallestVoice, language, smallestSpeed);
+		}
 		return aiClient.generateSpeechBlob({
 			text,
 			language,
 			speakerWav: clonedVoicePath ?? undefined,
 			speaker: clonedVoicePath ? undefined : voiceGender,
 		});
-	}, [engine, language, sarvamSpeaker, clonedVoicePath, voiceGender]);
+	}, [engine, language, sarvamSpeaker, smallestVoice, smallestSpeed, clonedVoicePath, voiceGender]);
 
 	// Generate full voiceover
 	const handleGenerate = useCallback(async () => {
@@ -316,7 +340,7 @@ export function VoiceoverView() {
 	}, []);
 
 	// Can generate?
-	const canGenerate = engine === "sarvam" || currentModel.installed;
+	const canGenerate = engine === "sarvam" || engine === "smallest" || currentModel.installed;
 
 	return (
 		<PanelView title="Voiceover">
@@ -387,12 +411,15 @@ export function VoiceoverView() {
 						<SelectContent>
 							<SelectItem value="local">Local (Coqui XTTS)</SelectItem>
 							<SelectItem value="sarvam">Sarvam AI (Indian Languages)</SelectItem>
+							<SelectItem value="smallest">Smallest AI (Lightning TTS)</SelectItem>
 						</SelectContent>
 					</Select>
 					<p className="text-[10px] text-muted-foreground">
 						{engine === "sarvam"
 							? "Cloud — 10 Indian languages, 37+ natural speakers"
-							: "On-device — 12 global languages, voice cloning"}
+							: engine === "smallest"
+								? "Cloud — 15 languages, 80+ voices, ~100ms latency"
+								: "On-device — 12 global languages, voice cloning"}
 					</p>
 				</div>
 
@@ -438,6 +465,84 @@ export function VoiceoverView() {
 							<div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5">
 								<p className="text-[10px] text-blue-400 leading-relaxed">
 									Transcript will be auto-translated to {ALL_TTS_LANGUAGES.find((l) => l.code === language)?.name || language} via Sarvam before generating speech.
+								</p>
+							</div>
+						)}
+					</>
+				) : engine === "smallest" ? (
+					<>
+						{/* Smallest: Language */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Language</Label>
+							<Select value={language} onValueChange={(val) => {
+								setLanguage(val);
+								const voicesForLang = getSmallestVoicesForLanguage(val);
+								if (voicesForLang.length > 0) {
+									if (!voicesForLang.some((v) => v.id === smallestVoice)) {
+										setSmallestVoice(voicesForLang[0].id);
+									}
+								} else {
+									// No dedicated voices for this language — fall back to English default
+									const enVoices = getSmallestVoicesForLanguage("en");
+									if (!enVoices.some((v) => v.id === smallestVoice)) {
+										setSmallestVoice(enVoices[0]?.id ?? "emily");
+									}
+								}
+							}}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{SMALLEST_TTS_LANGUAGES.map((lang) => (
+										<SelectItem key={lang.code} value={lang.code}>
+											{lang.name}
+											{lang.status === "beta" && " (Beta)"}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						{/* Smallest: Voice */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Voice</Label>
+							<Select value={smallestVoice} onValueChange={setSmallestVoice}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{(smallestVoicesForLang.length > 0 ? smallestVoicesForLang : SMALLEST_TTS_VOICES.filter((v) => v.language === "en")).map((v) => (
+										<SelectItem key={v.id} value={v.id}>
+											{v.name} ({v.gender})
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						{/* Smallest: Speed */}
+						<div className="flex flex-col gap-2">
+							<Label className="text-xs">Speed ({smallestSpeed.toFixed(1)}x)</Label>
+							<input
+								type="range"
+								min={0.5}
+								max={2.0}
+								step={0.1}
+								value={smallestSpeed}
+								onChange={(e) => setSmallestSpeed(parseFloat(e.target.value))}
+								className="w-full accent-primary"
+							/>
+							<div className="flex justify-between text-[9px] text-muted-foreground">
+								<span>0.5x</span>
+								<span>1.0x</span>
+								<span>2.0x</span>
+							</div>
+						</div>
+
+						{needsTranslation && (
+							<div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5">
+								<p className="text-[10px] text-blue-400 leading-relaxed">
+									Transcript will be auto-translated to {ALL_TTS_LANGUAGES.find((l) => l.code === language)?.name || language} before generating speech.
 								</p>
 							</div>
 						)}
