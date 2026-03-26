@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, transcribe, transcribe_ws, tts
+from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, transcribe, transcribe_ws, tts
 
 # Configure logging
 logging.basicConfig(
@@ -33,6 +33,11 @@ async def lifespan(app: FastAPI):
         "Sarvam AI: %s (key %s)",
         settings.SARVAM_API_BASE_URL,
         "configured" if settings.SARVAM_API_KEY else "NOT configured",
+    )
+    logger.info(
+        "Smallest AI: %s (key %s)",
+        settings.SMALLEST_API_BASE_URL,
+        "configured" if settings.SMALLEST_API_KEY else "NOT configured",
     )
     yield
     logger.info("Shutdown complete.")
@@ -71,6 +76,7 @@ app.include_router(setup.router)
 app.include_router(factcheck.router)
 app.include_router(podcast.router)
 app.include_router(sarvam.router)
+app.include_router(smallest.router)
 
 
 @app.get("/health")

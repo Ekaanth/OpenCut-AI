@@ -241,6 +241,16 @@ const API_KEY_FIELDS = [
 		info: "Enables transcription, translation, and text-to-speech for 22 Indian regional languages (Hindi, Bengali, Tamil, Telugu, etc.) via Sarvam AI. Get your key at dashboard.sarvam.ai — free credits on signup.",
 		required: false,
 	},
+	{
+		key: "smallest",
+		label: "Smallest AI API Key",
+		placeholder: "Your Smallest AI key",
+		description: "Lightning TTS (15 languages, 80+ voices) & Pulse STT (39 languages)",
+		envVar: "OPENCUTAI_SMALLEST_API_KEY",
+		envValue: process.env.NEXT_PUBLIC_SMALLEST_API_KEY || process.env.OPENCUTAI_SMALLEST_API_KEY || "",
+		info: "Enables ultra-low-latency text-to-speech with 80+ natural voices across 15 languages, and speech-to-text supporting 39 languages with speaker diarization and emotion detection. Get your key at app.smallest.ai.",
+		required: false,
+	},
 ];
 
 function APIKeysSection() {

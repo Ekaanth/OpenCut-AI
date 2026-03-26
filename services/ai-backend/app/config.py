@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     SARVAM_API_KEY: str = ""
     SARVAM_API_BASE_URL: str = "https://api.sarvam.ai"
 
+    # Smallest AI (Waves — Lightning TTS + Pulse STT)
+    SMALLEST_API_KEY: str = ""
+    SMALLEST_API_BASE_URL: str = "https://api.smallest.ai/waves/v1"
+
     # Whisper (kept for local fallback / model manager)
     WHISPER_MODEL_SIZE: str = "base"
     WHISPER_DEVICE: str = "auto"

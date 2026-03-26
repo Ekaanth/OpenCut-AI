@@ -2,8 +2,8 @@ import type { LanguageCode } from "./language";
 
 export type TranscriptionLanguage = LanguageCode | "auto";
 
-/** Engine used for transcription: local Whisper or cloud Sarvam AI */
-export type TranscriptionEngine = "whisper" | "sarvam";
+/** Engine used for transcription: local Whisper, cloud Sarvam AI, or cloud Smallest AI */
+export type TranscriptionEngine = "whisper" | "sarvam" | "smallest";
 
 /** Sarvam STT modes */
 export type SarvamSTTMode = "transcribe" | "translate";
@@ -38,7 +38,8 @@ export type TranscriptionModelId =
 	| "whisper-small"
 	| "whisper-medium"
 	| "whisper-large-v3-turbo"
-	| "saaras-v3";
+	| "saaras-v3"
+	| "pulse-v1";
 
 export interface TranscriptionModel {
 	id: TranscriptionModelId;

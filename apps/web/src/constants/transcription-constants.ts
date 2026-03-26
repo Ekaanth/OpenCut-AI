@@ -71,6 +71,13 @@ export const TRANSCRIPTION_MODELS: TranscriptionModel[] = [
 		description: "Best for Indian regional languages (cloud, 22 languages)",
 		engine: "sarvam",
 	},
+	{
+		id: "pulse-v1",
+		name: "Smallest AI Pulse",
+		huggingFaceId: "",
+		description: "39 languages, speaker diarization, emotion detection (cloud)",
+		engine: "smallest",
+	},
 ];
 
 export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModelId =

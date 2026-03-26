@@ -146,6 +146,22 @@ class AIClient {
 		return { "X-Sarvam-Api-Key": key };
 	}
 
+	/** Get the Smallest AI API key from localStorage or env. */
+	private getSmallestApiKey(): string {
+		return (
+			getStoredApiKey("smallest") ||
+			process.env.NEXT_PUBLIC_SMALLEST_API_KEY ||
+			""
+		);
+	}
+
+	/** Build extra headers that include the Smallest AI API key for passthrough. */
+	private smallestHeaders(): Record<string, string> {
+		const key = this.getSmallestApiKey();
+		if (!key) return {};
+		return { "X-Smallest-Api-Key": key };
+	}
+
 	private async request<T>(
 		endpoint: string,
 		options: RequestInit = {},
@@ -574,6 +590,112 @@ class AIClient {
 		return this.request<{ available: boolean; reason?: string }>(
 			"/api/sarvam/status",
 			{ headers: this.sarvamHeaders() },
+			HEALTH_TIMEOUT_MS,
+		);
+	}
+
+	// ── Smallest AI (Waves — Lightning TTS + Pulse STT) ─────────────
+
+	async smallestTTS(
+		text: string,
+		voiceId: string = "emily",
+		language: string = "auto",
+		speed: number = 1.0,
+		outputFormat: string = "mp3",
+	): Promise<Blob> {
+		const url = `${this.baseUrl}/api/smallest/tts`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					...this.smallestHeaders(),
+				},
+				body: JSON.stringify({
+					text,
+					voice_id: voiceId,
+					language,
+					speed,
+					output_format: outputFormat,
+					sample_rate: 24000,
+				}),
+				signal: controller.signal,
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text().catch(() => "Unknown error");
+				throw new AIClientError(
+					`Smallest TTS error (${response.status}): ${errorBody}`,
+					response.status >= 500 ? "backend_error" : "network_error",
+					response.status,
+				);
+			}
+
+			return await response.blob();
+		} catch (error) {
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
+	async smallestTranscribe(
+		file: File,
+		language: string = "en",
+	): Promise<TranscriptionResult> {
+		const formData = new FormData();
+		formData.append("file", file);
+		formData.append("language", language);
+
+		const url = `${this.baseUrl}/api/smallest/transcribe`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				body: formData,
+				signal: controller.signal,
+				headers: this.smallestHeaders(),
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text().catch(() => "Unknown error");
+				throw new AIClientError(
+					`Smallest STT error (${response.status}): ${errorBody}`,
+					response.status >= 500 ? "backend_error" : "network_error",
+					response.status,
+				);
+			}
+
+			return response.json() as Promise<TranscriptionResult>;
+		} catch (error) {
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
+	async smallestVoices(): Promise<{
+		voices: { id: string; name: string; language: string; gender: string }[];
+		languages: { code: string; name: string; status: string }[];
+	}> {
+		return this.request("/api/smallest/voices", {
+			headers: this.smallestHeaders(),
+		});
+	}
+
+	async smallestStatus(): Promise<{ available: boolean; reason?: string }> {
+		return this.request<{ available: boolean; reason?: string }>(
+			"/api/smallest/status",
+			{ headers: this.smallestHeaders() },
 			HEALTH_TIMEOUT_MS,
 		);
 	}

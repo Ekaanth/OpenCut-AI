@@ -20,6 +20,7 @@ import {
 	SARVAM_SUPPORTED_CODES,
 	isSarvamSTTSupported,
 } from "@/constants/sarvam-constants";
+import { SMALLEST_STT_LANGUAGES } from "@/constants/smallest-constants";
 import type { TranscriptionLanguage, TranscriptionEngine } from "@/types/transcription";
 
 import { Spinner } from "@/components/ui/spinner";
@@ -54,7 +55,9 @@ export function Captions() {
 	// Determine which languages to show based on engine
 	const availableLanguages = selectedEngine === "sarvam"
 		? SARVAM_STT_LANGUAGES
-		: WHISPER_LANGUAGES;
+		: selectedEngine === "smallest"
+			? SMALLEST_STT_LANGUAGES
+			: WHISPER_LANGUAGES;
 
 	// Filter out tracks that no longer exist on the timeline (user may have deleted them)
 	const timelineTracks = editor.timeline.getTracks();
@@ -72,6 +75,7 @@ export function Captions() {
 	/** Determine the effective engine for a given language code */
 	const getEffectiveEngine = (langCode: string): TranscriptionEngine => {
 		if (selectedEngine === "sarvam") return "sarvam";
+		if (selectedEngine === "smallest") return "smallest";
 		// Auto-switch to Sarvam if an Indian language is explicitly selected with Whisper
 		if (langCode !== "auto" && isSarvamSTTSupported(langCode) && !WHISPER_LANGUAGES.some(l => l.code === langCode)) {
 			return "sarvam";
@@ -88,7 +92,7 @@ export function Captions() {
 			setError(null);
 
 			const engine = getEffectiveEngine(selectedLanguage);
-			const engineLabel = engine === "sarvam" ? "Sarvam AI" : "Whisper";
+			const engineLabel = engine === "sarvam" ? "Sarvam AI" : engine === "smallest" ? "Smallest AI" : "Whisper";
 
 			bgTasks.addTask({
 				id: taskId,
@@ -177,6 +181,10 @@ export function Captions() {
 					? undefined
 					: SARVAM_LANGUAGE_MAP[selectedLanguage] || undefined;
 				result = await aiClient.sarvamTranscribe(file, sarvamLangCode);
+			} else if (engine === "smallest") {
+				// Use Smallest AI Pulse for multilingual STT
+				const language = selectedLanguage === "auto" ? "en" : selectedLanguage;
+				result = await aiClient.smallestTranscribe(file, language);
 			} else {
 				// Use Whisper (local)
 				const language = selectedLanguage === "auto" ? undefined : selectedLanguage;
@@ -377,6 +385,8 @@ export function Captions() {
 				setError("Cannot connect to AI backend. Make sure it is running (docker compose up -d).");
 			} else if (message.includes("Sarvam API key")) {
 				setError("Sarvam API key is not configured. Add OPENCUTAI_SARVAM_API_KEY to your environment.");
+			} else if (message.includes("Smallest AI API key")) {
+				setError("Smallest AI API key is not configured. Add it in Settings > API Keys, or set OPENCUTAI_SMALLEST_API_KEY in your environment.");
 			} else {
 				setError(message);
 			}
@@ -631,6 +641,8 @@ export function Captions() {
 				);
 			} else if (message.includes("Sarvam API key")) {
 				setError("Sarvam API key is not configured. Add OPENCUTAI_SARVAM_API_KEY to your environment.");
+			} else if (message.includes("Smallest AI API key")) {
+				setError("Smallest AI API key is not configured. Add it in Settings > API Keys, or set OPENCUTAI_SMALLEST_API_KEY in your environment.");
 			} else {
 				setError(message);
 			}
@@ -703,12 +715,17 @@ export function Captions() {
 							<SelectItem value="sarvam">
 								Sarvam AI (Indian Languages)
 							</SelectItem>
+							<SelectItem value="smallest">
+								Smallest AI Pulse (39 Languages)
+							</SelectItem>
 						</SelectContent>
 					</Select>
 					<p className="text-[10px] text-muted-foreground">
 						{selectedEngine === "sarvam"
 							? "Cloud-based, optimized for 22 Indian regional languages"
-							: "On-device, best for global languages (English, Spanish, French, etc.)"}
+							: selectedEngine === "smallest"
+								? "Cloud-based, 39 languages with speaker diarization & emotion detection"
+								: "On-device, best for global languages (English, Spanish, French, etc.)"}
 					</p>
 				</div>
 
