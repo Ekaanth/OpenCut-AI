@@ -11,10 +11,19 @@ import type {
 	ImageGenParams,
 	ImageGenResult,
 	InfographicData,
+	KVCacheConfig,
 	KeywordResult,
+	ModelRecommendation,
+	ModelTierSpec,
 	QuestionCardsResult,
+	ReelTemplate,
+	StackMemoryEstimate,
+	TQDownloadProgress,
+	TQLoadResult,
+	TQModelsResponse,
 	TranscriptionResult,
 	TranscriptionSegment,
+	TurboQuantStatus,
 	FillerWord,
 	SilenceRegion,
 	StructureAnalysis,
@@ -54,6 +63,7 @@ export interface ServicesStatus {
 
 const HEALTH_TIMEOUT_MS = 5_000;
 const REQUEST_TIMEOUT_MS = 120_000;
+const LLM_TIMEOUT_MS = 600_000; // 10 min — LLM generation can be slow on CPU
 
 export class AIClientError extends Error {
 	readonly errorType: AIErrorType;
@@ -235,6 +245,165 @@ class AIClient {
 		}
 	}
 
+	/**
+	 * Make a request to a streaming NDJSON endpoint that sends keepalive pings.
+	 * Ignores {"ping": true} lines and returns the {"result": ...} payload.
+	 * Falls back to parsing plain JSON if the backend hasn't been updated yet.
+	 */
+	private async requestWithKeepalive<T>(
+		endpoint: string,
+		options: RequestInit = {},
+	): Promise<T> {
+		const url = `${this.baseUrl}${endpoint}`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+
+		let response: Response;
+		try {
+			response = await fetch(url, {
+				...options,
+				signal: controller.signal,
+				headers: {
+					"Content-Type": "application/json",
+					...options.headers,
+				},
+			});
+		} catch (error) {
+			clearTimeout(timeoutId);
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		}
+		clearTimeout(timeoutId);
+
+		if (!response.ok) {
+			const errorBody = await response.text().catch(() => "Unknown error");
+			throw new AIClientError(
+				`AI Backend error (${response.status}): ${errorBody}`,
+				response.status >= 500 ? "backend_error" : "network_error",
+				response.status,
+			);
+		}
+
+		// Check content type — if it's regular JSON, the backend is old (no streaming)
+		const contentType = response.headers.get("content-type") || "";
+		if (contentType.includes("application/json")) {
+			return response.json() as Promise<T>;
+		}
+
+		// NDJSON streaming response with keepalives
+		if (!response.body) {
+			throw new AIClientError("Empty response body", "backend_error");
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value, { stream: true });
+				const lines = chunk.split("\n").filter(Boolean);
+
+				for (const line of lines) {
+					try {
+						const data = JSON.parse(line) as {
+							ping?: boolean;
+							result?: T;
+							error?: string;
+						};
+						if (data.ping) continue;
+						if (data.error) {
+							throw new AIClientError(data.error, "backend_error");
+						}
+						if (data.result !== undefined) {
+							return data.result;
+						}
+					} catch (e) {
+						if (e instanceof AIClientError) throw e;
+					}
+				}
+			}
+		} finally {
+			reader.releaseLock();
+		}
+
+		throw new AIClientError("Stream ended without result", "backend_error");
+	}
+
+	/**
+	 * Like requestWithKeepalive but for FormData uploads.
+	 * Falls back to plain JSON if the backend hasn't been updated.
+	 */
+	private async requestFormDataWithKeepalive<T>(
+		endpoint: string,
+		formData: FormData,
+	): Promise<T> {
+		const url = `${this.baseUrl}${endpoint}`;
+
+		const response = await fetch(url, {
+			method: "POST",
+			body: formData,
+		});
+
+		if (!response.ok) {
+			const errorBody = await response.text().catch(() => "Unknown error");
+			throw new AIClientError(
+				`AI Backend error (${response.status}): ${errorBody}`,
+				response.status >= 500 ? "backend_error" : "network_error",
+				response.status,
+			);
+		}
+
+		// Fallback: if backend returns plain JSON, parse it directly
+		const contentType = response.headers.get("content-type") || "";
+		if (contentType.includes("application/json")) {
+			return response.json() as Promise<T>;
+		}
+
+		if (!response.body) {
+			throw new AIClientError("Empty response body", "backend_error");
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value, { stream: true });
+				const lines = chunk.split("\n").filter(Boolean);
+
+				for (const line of lines) {
+					try {
+						const data = JSON.parse(line) as {
+							ping?: boolean;
+							result?: T;
+							error?: string;
+						};
+						if (data.ping) continue;
+						if (data.error) {
+							throw new AIClientError(data.error, "backend_error");
+						}
+						if (data.result !== undefined) {
+							return data.result;
+						}
+					} catch (e) {
+						if (e instanceof AIClientError) throw e;
+					}
+				}
+			}
+		} finally {
+			reader.releaseLock();
+		}
+
+		throw new AIClientError("Stream ended without result", "backend_error");
+	}
+
 	async health(): Promise<AIBackendStatus> {
 		return this.request<AIBackendStatus>("/health", {}, HEALTH_TIMEOUT_MS);
 	}
@@ -289,7 +458,7 @@ class AIClient {
 		formData.append("file", file);
 		if (language) formData.append("language", language);
 
-		return this.requestFormData("/api/analyze/structure", formData);
+		return this.requestFormDataWithKeepalive("/api/analyze/structure", formData);
 	}
 
 	async getSuggestions(
@@ -300,14 +469,14 @@ class AIClient {
 		formData.append("file", file);
 		if (language) formData.append("language", language);
 
-		return this.requestFormData("/api/analyze/suggestions", formData);
+		return this.requestFormDataWithKeepalive("/api/analyze/suggestions", formData);
 	}
 
 	async executeCommand(
 		command: string,
 		timelineState: unknown,
 	): Promise<CommandResult> {
-		return this.request<CommandResult>("/api/llm/command", {
+		return this.requestWithKeepalive<CommandResult>("/api/llm/command", {
 			method: "POST",
 			body: JSON.stringify({ command, timelineState }),
 		});
@@ -324,7 +493,7 @@ class AIClient {
 		prompt: string,
 		style?: string,
 	): Promise<{ enhanced: string; original: string; style: string }> {
-		return this.request<{ enhanced: string; original: string; style: string }>(
+		return this.requestWithKeepalive<{ enhanced: string; original: string; style: string }>(
 			"/api/generate/enhance-prompt",
 			{
 				method: "POST",
@@ -426,7 +595,97 @@ class AIClient {
 		return this.request<{ response: string }>("/api/llm/chat", {
 			method: "POST",
 			body: JSON.stringify({ message, system }),
-		});
+		}, LLM_TIMEOUT_MS);
+	}
+
+	/**
+	 * Streaming chat — tokens arrive via newline-delimited JSON.
+	 * Calls `onToken` for each token as it arrives, preventing timeouts.
+	 * Falls back to non-streaming /api/llm/chat if the stream endpoint is unavailable (404).
+	 * Returns the full accumulated response when done.
+	 */
+	async chatStream(
+		message: string,
+		onToken: (token: string, accumulated: string) => void,
+		system?: string,
+	): Promise<{ response: string }> {
+		const url = `${this.baseUrl}/api/llm/chat/stream`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+		let response: Response;
+		try {
+			response = await fetch(url, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ message, system }),
+				signal: controller.signal,
+			});
+			clearTimeout(timeoutId);
+		} catch (error) {
+			clearTimeout(timeoutId);
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		}
+
+		// If stream endpoint doesn't exist yet (backend not updated), fall back
+		if (response.status === 404) {
+			const fallback = await this.chat(message, system);
+			onToken(fallback.response, fallback.response);
+			return fallback;
+		}
+
+		if (!response.ok) {
+			const errorBody = await response.text().catch(() => "Unknown error");
+			throw new AIClientError(
+				`AI Backend error (${response.status}): ${errorBody}`,
+				response.status >= 500 ? "backend_error" : "network_error",
+				response.status,
+			);
+		}
+
+		if (!response.body) {
+			return { response: "" };
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+		let accumulated = "";
+
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value, { stream: true });
+				const lines = chunk.split("\n").filter(Boolean);
+
+				for (const line of lines) {
+					try {
+						const data = JSON.parse(line) as {
+							token?: string;
+							done?: boolean;
+							error?: string;
+						};
+						if (data.error) {
+							throw new AIClientError(data.error, "backend_error");
+						}
+						if (data.token) {
+							accumulated += data.token;
+							onToken(data.token, accumulated);
+						}
+					} catch (e) {
+						if (e instanceof AIClientError) throw e;
+						// skip non-JSON lines
+					}
+				}
+			}
+		} finally {
+			reader.releaseLock();
+		}
+
+		return { response: accumulated };
 	}
 
 	async translateText(
@@ -710,20 +969,33 @@ class AIClient {
 		}[];
 		summary: string;
 	}> {
-		return this.request("/api/factcheck", {
+		return this.requestWithKeepalive("/api/factcheck", {
 			method: "POST",
 			body: JSON.stringify({ text }),
 		});
 	}
 
-	async llmStatus(): Promise<{ available: boolean; models: string[] }> {
-		return this.request<{ available: boolean; models: string[] }>(
-			"/api/llm/status",
-		);
+	async llmStatus(): Promise<{
+		available: boolean;
+		default_model: string;
+		models: { name: string; size: number; modified_at: string; details?: Record<string, unknown> }[];
+	}> {
+		return this.request("/api/llm/status");
 	}
 
 	async pullModel(modelName: string): Promise<void> {
 		await this.request<void>("/api/llm/pull-model", {
+			method: "POST",
+			body: JSON.stringify({ model: modelName }),
+		});
+	}
+
+	async setLLMModel(modelName: string): Promise<{
+		status: string;
+		previous_model: string;
+		current_model: string;
+	}> {
+		return this.request("/api/llm/set-model", {
 			method: "POST",
 			body: JSON.stringify({ model: modelName }),
 		});
@@ -804,6 +1076,13 @@ class AIClient {
 		});
 	}
 
+	async updateConfig(updates: Record<string, string | number>): Promise<{ status: string; updates: Record<string, string> }> {
+		return this.request("/api/config/update", {
+			method: "POST",
+			body: JSON.stringify({ updates }),
+		});
+	}
+
 	async prepareDiffusion(): Promise<{ status: string; message: string }> {
 		return this.request<{ status: string; message: string }>("/api/setup/download-model", {
 			method: "POST",
@@ -863,7 +1142,7 @@ class AIClient {
 		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
 		options?: { minDuration?: number; maxDuration?: number; maxClips?: number },
 	): Promise<FindClipsResult> {
-		return this.request<FindClipsResult>("/api/analyze/find-clips", {
+		return this.requestWithKeepalive<FindClipsResult>("/api/analyze/find-clips", {
 			method: "POST",
 			body: JSON.stringify({
 				segments,
@@ -877,7 +1156,7 @@ class AIClient {
 	async extractKeywords(
 		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
 	): Promise<KeywordResult> {
-		return this.request<KeywordResult>("/api/analyze/keywords", {
+		return this.requestWithKeepalive<KeywordResult>("/api/analyze/keywords", {
 			method: "POST",
 			body: JSON.stringify({ segments }),
 		});
@@ -887,7 +1166,7 @@ class AIClient {
 		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
 		maxCards?: number,
 	): Promise<QuestionCardsResult> {
-		return this.request<QuestionCardsResult>("/api/analyze/question-cards", {
+		return this.requestWithKeepalive<QuestionCardsResult>("/api/analyze/question-cards", {
 			method: "POST",
 			body: JSON.stringify({ segments, max_cards: maxCards ?? 5 }),
 		});
@@ -913,6 +1192,288 @@ class AIClient {
 		return this.request<{ videoUrl: string }>("/api/export/render", {
 			method: "POST",
 			body: JSON.stringify(projectData),
+		});
+	}
+
+	// ── Reel Templates ───────────────────────────────────────────────
+
+	async generateReelTemplate(
+		topic: string,
+		duration: number = 15,
+		style: string = "engaging",
+	): Promise<ReelTemplate> {
+		return this.requestWithKeepalive<ReelTemplate>("/api/template/generate", {
+			method: "POST",
+			body: JSON.stringify({ topic, duration, style }),
+		});
+	}
+
+	/**
+	 * Start a background template generation job.
+	 * Returns {job_id, status: "running"} for polling.
+	 * Falls back to direct generation if the backend doesn't support jobs.
+	 */
+	async startTemplateJob(
+		topic: string,
+		duration: number = 15,
+		style: string = "engaging",
+	): Promise<{ job_id: string; status: string; result?: ReelTemplate }> {
+		const url = `${this.baseUrl}/api/template/generate`;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+
+		let response: Response;
+		try {
+			response = await fetch(url, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ topic, duration, style }),
+				signal: controller.signal,
+			});
+			clearTimeout(timeoutId);
+		} catch (error) {
+			clearTimeout(timeoutId);
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		}
+
+		if (!response.ok) {
+			const errorBody = await response.text().catch(() => "Unknown error");
+			throw new AIClientError(
+				`AI Backend error (${response.status}): ${errorBody}`,
+				response.status >= 500 ? "backend_error" : "network_error",
+				response.status,
+			);
+		}
+
+		const contentType = response.headers.get("content-type") || "";
+
+		// New backend: returns JSON with job_id
+		if (contentType.includes("application/json")) {
+			const data = await response.json();
+			if (data.job_id) return data;
+			// Old backend returned full template as JSON — wrap it
+			return { job_id: "__direct__", status: "completed", result: data as ReelTemplate };
+		}
+
+		// Old backend with streaming (NDJSON) — read the stream and extract result
+		if (response.body) {
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let lastResult: ReelTemplate | undefined;
+
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					const chunk = decoder.decode(value, { stream: true });
+					for (const line of chunk.split("\n").filter(Boolean)) {
+						try {
+							const data = JSON.parse(line);
+							if (data.result) lastResult = data.result as ReelTemplate;
+							if (data.ping) continue;
+						} catch { /* skip */ }
+					}
+				}
+			} finally {
+				reader.releaseLock();
+			}
+
+			if (lastResult) {
+				return { job_id: "__direct__", status: "completed", result: lastResult };
+			}
+		}
+
+		throw new AIClientError("Failed to generate template", "backend_error");
+	}
+
+	/** Poll a template job for its status and result. */
+	async getTemplateJob(
+		jobId: string,
+	): Promise<{
+		job_id: string;
+		status: "running" | "completed" | "failed";
+		topic: string;
+		duration: number;
+		style: string;
+		result?: ReelTemplate;
+		error?: string;
+	}> {
+		return this.request("/api/template/jobs/" + jobId);
+	}
+
+	/** List all template jobs. */
+	async listTemplateJobs(): Promise<{
+		jobs: { job_id: string; status: string; topic: string; style: string; title?: string }[];
+	}> {
+		return this.request("/api/template/jobs");
+	}
+
+	// ── TurboQuant Optimization ───────────────────────────────────────
+
+	async turboquantStatus(): Promise<TurboQuantStatus> {
+		return this.request<TurboQuantStatus>(
+			"/api/turboquant/status",
+			{},
+			HEALTH_TIMEOUT_MS,
+		);
+	}
+
+	async turboquantModelTiers(): Promise<{
+		tiers: ModelTierSpec[];
+		recommended_tier: string;
+		recommended_model: string;
+		current_model: string;
+		hardware: TurboQuantStatus["hardware"];
+	}> {
+		return this.request("/api/turboquant/model-tiers");
+	}
+
+	async turboquantKVConfigurations(): Promise<{
+		configurations: KVCacheConfig[];
+		current_bits: number;
+	}> {
+		return this.request("/api/turboquant/kv-configurations");
+	}
+
+	async turboquantEstimate(
+		modelTag?: string,
+		contextLength?: number,
+		kvBits?: number,
+	): Promise<{
+		model: string;
+		model_tag: string;
+		context_length: number;
+		model_weight_mb: number;
+		kv_cache: {
+			baseline_kv_cache_mb: number;
+			compressed_kv_cache_mb: number;
+			savings_mb: number;
+			compression_ratio: number;
+			quality: string;
+		};
+		total_with_turboquant_mb: number;
+		total_without_turboquant_mb: number;
+		memory_saved_mb: number;
+		memory_saved_percent: number;
+	}> {
+		return this.request("/api/turboquant/estimate", {
+			method: "POST",
+			body: JSON.stringify({
+				model_tag: modelTag,
+				context_length: contextLength ?? 8192,
+				kv_bits: kvBits,
+			}),
+		});
+	}
+
+	async turboquantRecommend(
+		budget: string = "auto",
+		tier: string = "auto",
+	): Promise<ModelRecommendation> {
+		const params = new URLSearchParams({ budget, tier });
+		return this.request<ModelRecommendation>(
+			`/api/turboquant/recommend?${params.toString()}`,
+		);
+	}
+
+	async turboquantApplyTier(
+		tier: string,
+	): Promise<{
+		tier: string;
+		configuration: Record<string, string | number>;
+		model: {
+			name: string;
+			tag: string;
+			memory_mb: number;
+			quality: string;
+			description: string;
+		};
+	}> {
+		const params = new URLSearchParams({ tier });
+		return this.request(`/api/turboquant/apply-tier?${params.toString()}`, {
+			method: "POST",
+		});
+	}
+
+	// ── TurboQuant Multi-Model Management ─────────────────────────────
+
+	async turboquantListModels(): Promise<TQModelsResponse> {
+		return this.request<TQModelsResponse>("/api/turboquant/models");
+	}
+
+	async turboquantModelCatalog(): Promise<{
+		catalog: TQModelsResponse["data"];
+		device: string;
+		gpu_available: boolean;
+		memory: Record<string, number>;
+	}> {
+		return this.request("/api/turboquant/models/catalog");
+	}
+
+	async turboquantDownloadModel(
+		modelId: string,
+		onProgress?: (progress: TQDownloadProgress) => void,
+	): Promise<void> {
+		const url = `${this.baseUrl}/api/turboquant/models/download`;
+		const response = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ model_id: modelId }),
+		});
+
+		if (!response.ok) {
+			const errorBody = await response.text().catch(() => "Unknown error");
+			throw new AIClientError(
+				`Download failed (${response.status}): ${errorBody}`,
+				response.status >= 500 ? "backend_error" : "network_error",
+				response.status,
+			);
+		}
+
+		if (!response.body) return;
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+
+			const chunk = decoder.decode(value, { stream: true });
+			const lines = chunk.split("\n").filter(Boolean);
+
+			for (const line of lines) {
+				try {
+					const data = JSON.parse(line) as TQDownloadProgress;
+					if (onProgress) onProgress(data);
+				} catch {
+					// skip non-JSON lines
+				}
+			}
+		}
+	}
+
+	async turboquantLoadModel(modelId: string): Promise<TQLoadResult> {
+		return this.request<TQLoadResult>(
+			"/api/turboquant/models/load",
+			{
+				method: "POST",
+				body: JSON.stringify({ model_id: modelId }),
+			},
+			300_000, // 5 min — model loading on CPU can be slow
+		);
+	}
+
+	async turboquantUnloadModel(): Promise<{ status: string }> {
+		return this.request("/api/turboquant/models/unload", {
+			method: "POST",
+		});
+	}
+
+	async turboquantDeleteModel(modelId: string): Promise<{ status: string }> {
+		return this.request(`/api/turboquant/models/${encodeURIComponent(modelId)}`, {
+			method: "DELETE",
 		});
 	}
 }

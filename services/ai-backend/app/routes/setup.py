@@ -2,12 +2,14 @@
 
 import asyncio
 import logging
+import os
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.config import settings
+from app.config import Settings, settings
 from app.services.model_manager import model_manager
 from app.services.ollama_service import ollama_service
 
@@ -61,6 +63,7 @@ async def services_status():
         _check_service("whisper", settings.WHISPER_SERVICE_URL),
         _check_service("tts", settings.TTS_SERVICE_URL),
         _check_service("image", settings.IMAGE_SERVICE_URL),
+        _check_service("turboquant", settings.TURBOQUANT_SERVICE_URL),
         _check_ollama(settings.OLLAMA_URL),
         return_exceptions=True,
     )
@@ -194,6 +197,7 @@ async def load_service_model(service: str) -> dict:
         "whisper": settings.WHISPER_SERVICE_URL,
         "tts": settings.TTS_SERVICE_URL,
         "image": settings.IMAGE_SERVICE_URL,
+        "turboquant": settings.TURBOQUANT_SERVICE_URL,
     }
 
     if service not in service_urls:
@@ -231,3 +235,93 @@ async def system_memory() -> dict:
     except Exception:
         logger.exception("Failed to get memory status")
         raise HTTPException(status_code=500, detail="Failed to get memory status.")
+
+
+# ---------------------------------------------------------------------------
+# Configuration update — writes to .env and reloads in-memory settings
+# ---------------------------------------------------------------------------
+
+# Only allow updating these specific keys (safety)
+_ALLOWED_CONFIG_KEYS = {
+    "KV_CACHE_BITS",
+    "AI_MEMORY_BUDGET",
+    "AI_MODEL_TIER",
+    "AI_LLM_BACKEND",
+    "OLLAMA_DEFAULT_MODEL",
+}
+
+
+class ConfigUpdateRequest(BaseModel):
+    updates: dict[str, str | int] = Field(
+        ..., description="Key-value pairs to update. Keys are setting names without the OPENCUTAI_ prefix."
+    )
+
+
+def _update_env_file(updates: dict[str, str]) -> None:
+    """Update .env file with new values, preserving existing entries."""
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+
+    # Read existing lines
+    existing_lines: list[str] = []
+    if env_path.exists():
+        existing_lines = env_path.read_text().splitlines()
+
+    # Build a map of existing keys → line index
+    key_line_map: dict[str, int] = {}
+    for i, line in enumerate(existing_lines):
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key = stripped.split("=", 1)[0].strip()
+            key_line_map[key] = i
+
+    # Update or append
+    for key, value in updates.items():
+        env_key = f"OPENCUTAI_{key}"
+        if env_key in key_line_map:
+            existing_lines[key_line_map[env_key]] = f"{env_key}={value}"
+        else:
+            existing_lines.append(f"{env_key}={value}")
+
+    env_path.write_text("\n".join(existing_lines) + "\n")
+
+
+@router.post("/api/config/update")
+async def update_config(request: ConfigUpdateRequest) -> dict:
+    """Update backend configuration.
+
+    Writes to .env and reloads in-memory settings so changes take
+    effect immediately without a full restart.
+    """
+    # Validate keys
+    invalid = set(request.updates.keys()) - _ALLOWED_CONFIG_KEYS
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid config keys: {', '.join(invalid)}. Allowed: {', '.join(sorted(_ALLOWED_CONFIG_KEYS))}",
+        )
+
+    # Convert all values to strings for .env
+    str_updates = {k: str(v) for k, v in request.updates.items()}
+
+    try:
+        _update_env_file(str_updates)
+    except Exception:
+        logger.exception("Failed to write .env file")
+        raise HTTPException(status_code=500, detail="Failed to save configuration.")
+
+    # Reload settings in-memory
+    for key, value in request.updates.items():
+        field = getattr(settings, key, None)
+        if field is not None:
+            # Cast to the correct type
+            if isinstance(field, int):
+                setattr(settings, key, int(value))
+            else:
+                setattr(settings, key, str(value))
+
+    logger.info("Configuration updated: %s", str_updates)
+
+    return {
+        "status": "applied",
+        "updates": str_updates,
+    }

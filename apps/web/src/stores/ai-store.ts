@@ -42,6 +42,7 @@ interface AIState {
 	removeIdea: (id: string) => void;
 	clearIdeas: () => void;
 	addStudioMessage: (message: StudioMessage) => void;
+	updateStudioMessage: (id: string, content: string) => void;
 	clearStudioMessages: () => void;
 }
 
@@ -138,6 +139,13 @@ export const useAIStore = create<AIState>()((set) => ({
 	addStudioMessage: (message) =>
 		set((state) => ({
 			studioMessages: [...state.studioMessages, message],
+		})),
+
+	updateStudioMessage: (id, content) =>
+		set((state) => ({
+			studioMessages: state.studioMessages.map((msg) =>
+				msg.id === id ? { ...msg, content } : msg,
+			),
 		})),
 
 	clearStudioMessages: () => set({ studioMessages: [] }),

@@ -297,3 +297,157 @@ export interface ModelTier {
 	totalSize: string;
 	models: ModelInfo[];
 }
+
+// Reel template types
+export interface ReelTemplateSegment {
+	order: number;
+	start_time: number;
+	end_time: number;
+	duration: number;
+	title: string;
+	narration: string;
+	visual_description: string;
+	key_message: string;
+	audio_mood: string;
+}
+
+export interface AudioSuggestion {
+	query: string;
+	mood: string;
+	tags: string[];
+}
+
+export interface ReelTemplate {
+	topic: string;
+	total_duration: number;
+	style: string;
+	title: string;
+	segments: ReelTemplateSegment[];
+	background_audio: AudioSuggestion;
+}
+
+// TurboQuant optimization types
+export interface TurboQuantStatus {
+	kv_cache_bits: number;
+	kv_compression_ratio: number;
+	kv_quality: string;
+	kv_cosine_similarity: number;
+	memory_budget: string;
+	model_tier: string;
+	recommended_tier: string;
+	recommended_model: {
+		name: string;
+		ollama_tag: string;
+		memory_mb: number;
+		quality: string;
+		quantization: string;
+	};
+	hardware: {
+		ram_total_mb: number;
+		ram_available_mb: number;
+		gpu_available: boolean;
+		gpu_vram_mb: number;
+		gpu_name: string | null;
+	};
+	stack_memory_estimate: StackMemoryEstimate;
+	inference_service: {
+		available: boolean;
+		reason?: string;
+		model?: string;
+	};
+}
+
+export interface StackMemoryEstimate {
+	ollama_mb: number;
+	whisper_mb: number;
+	tts_mb: number;
+	kv_cache_compressed_mb: number;
+	kv_cache_baseline_mb: number;
+	total_with_turboquant_mb: number;
+	total_without_turboquant_mb: number;
+	savings_mb: number;
+	kv_bits: number;
+}
+
+export interface KVCacheConfig {
+	bits: number;
+	compression_ratio: number;
+	cosine_similarity: number;
+	quality: string;
+	recommended: boolean;
+	description: string;
+}
+
+export interface ModelTierSpec {
+	name: string;
+	label: string;
+	description: string;
+	min_ram_mb: number;
+	models: {
+		name: string;
+		ollama_tag: string;
+		memory_mb: number;
+		quality: string;
+		description: string;
+		quantization: string;
+	}[];
+}
+
+export interface ModelRecommendation {
+	recommendation: {
+		ollama_model: string;
+		ollama_model_name: string;
+		ollama_memory_mb: number;
+		ollama_quality: string;
+		ollama_quantization: string;
+		whisper_model: string;
+		whisper_compute_type: string;
+		whisper_memory_mb: number;
+		kv_cache_bits: number;
+	};
+	tier: string;
+	budget: string;
+	hardware: TurboQuantStatus["hardware"];
+	stack_estimate: StackMemoryEstimate;
+}
+
+// TurboQuant multi-model types
+export interface TQModelEntry {
+	id: string;
+	name: string;
+	family: string;
+	params: string;
+	memory_fp16_mb: number;
+	memory_4bit_mb: number;
+	context_length: number;
+	description: string;
+	turboquant_validated: boolean;
+	downloaded: boolean;
+	loaded: boolean;
+	downloading: boolean;
+	loading: boolean;
+	size_on_disk_mb?: number;
+	download_progress?: { status: string; progress: number; message: string };
+	quantization?: string;
+	request_count?: number;
+}
+
+export interface TQModelsResponse {
+	object: string;
+	data: TQModelEntry[];
+	active_model: string | null;
+}
+
+export interface TQDownloadProgress {
+	status: "downloading" | "completed" | "error";
+	progress: number;
+	message: string;
+}
+
+export interface TQLoadResult {
+	status: string;
+	model_id: string;
+	device: string;
+	quantization: string;
+	memory: Record<string, number>;
+}

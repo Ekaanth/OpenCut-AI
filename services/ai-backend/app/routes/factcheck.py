@@ -10,7 +10,8 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.ollama_service import ollama_service
+from app.services.model_backend import llm_backend
+from app.services.stream_utils import streamed_llm_response
 
 logger = logging.getLogger(__name__)
 
@@ -58,82 +59,80 @@ VERIFY_CLAIM_SYSTEM = (
 )
 
 
-@router.post("/factcheck", response_model=FactCheckResponse)
-async def factcheck(request: FactCheckRequest) -> FactCheckResponse:
+@router.post("/factcheck")
+async def factcheck(request: FactCheckRequest):
     """Fact-check transcript text.
 
-    1. Extracts verifiable claims from the text using the LLM.
-    2. Verifies each claim using the LLM's knowledge.
-    3. Returns structured results.
+    Streams keepalive pings while the LLM works (multiple calls),
+    preventing timeouts on slow hardware.
     """
-    available = await ollama_service.check_available()
+    available = await llm_backend.check_available()
     if not available:
         raise HTTPException(
             status_code=503,
             detail="Ollama is not available. Start Ollama and pull a model first.",
         )
 
-    # Step 1: Extract claims
-    try:
-        claims_data = await ollama_service.generate_json(
+    async def _work():
+        # Step 1: Extract claims
+        claims_data = await llm_backend.generate_json(
             prompt=f"Extract verifiable factual claims from this transcript:\n\n{request.text}",
             model=request.model,
             system=EXTRACT_CLAIMS_SYSTEM,
         )
-    except Exception:
-        logger.exception("Failed to extract claims")
-        raise HTTPException(status_code=500, detail="Failed to extract claims from text.")
 
-    raw_claims = claims_data.get("claims", [])
-    if not raw_claims:
-        return FactCheckResponse(
-            claims=[],
-            summary="No verifiable factual claims found in this text.",
-        )
+        raw_claims = claims_data.get("claims", [])
+        if not raw_claims:
+            return {
+                "claims": [],
+                "summary": "No verifiable factual claims found in this text.",
+            }
 
-    # Step 2: Verify each claim
-    verified_claims: list[Claim] = []
-    for claim_text in raw_claims[:10]:  # Limit to 10 claims
-        if not isinstance(claim_text, str) or len(claim_text.strip()) == 0:
-            continue
+        # Step 2: Verify each claim
+        verified_claims: list[dict] = []
+        for claim_text in raw_claims[:10]:
+            if not isinstance(claim_text, str) or len(claim_text.strip()) == 0:
+                continue
+            try:
+                result = await llm_backend.generate_json(
+                    prompt=f"Verify this claim:\n\n\"{claim_text}\"",
+                    model=request.model,
+                    system=VERIFY_CLAIM_SYSTEM,
+                )
+                verified_claims.append({
+                    "claim": claim_text,
+                    "verdict": result.get("verdict", "Unverifiable"),
+                    "confidence": result.get("confidence", "Low"),
+                    "explanation": result.get("explanation", ""),
+                    "source": result.get("source", ""),
+                })
+            except Exception:
+                logger.warning("Failed to verify claim: %s", claim_text[:100])
+                verified_claims.append({
+                    "claim": claim_text,
+                    "verdict": "Unverifiable",
+                    "confidence": "Low",
+                    "explanation": "Verification failed.",
+                    "source": "",
+                })
 
-        try:
-            result = await ollama_service.generate_json(
-                prompt=f"Verify this claim:\n\n\"{claim_text}\"",
-                model=request.model,
-                system=VERIFY_CLAIM_SYSTEM,
-            )
-            verified_claims.append(Claim(
-                claim=claim_text,
-                verdict=result.get("verdict", "Unverifiable"),
-                confidence=result.get("confidence", "Low"),
-                explanation=result.get("explanation", ""),
-                source=result.get("source", ""),
-            ))
-        except Exception:
-            logger.warning("Failed to verify claim: %s", claim_text[:100])
-            verified_claims.append(Claim(
-                claim=claim_text,
-                verdict="Unverifiable",
-                confidence="Low",
-                explanation="Verification failed.",
-            ))
+        # Step 3: Generate summary
+        true_count = sum(1 for c in verified_claims if c["verdict"] == "True")
+        false_count = sum(1 for c in verified_claims if c["verdict"] == "False")
+        partial_count = sum(1 for c in verified_claims if c["verdict"] == "Partially True")
+        total = len(verified_claims)
 
-    # Step 3: Generate summary
-    true_count = sum(1 for c in verified_claims if c.verdict == "True")
-    false_count = sum(1 for c in verified_claims if c.verdict == "False")
-    partial_count = sum(1 for c in verified_claims if c.verdict == "Partially True")
-    total = len(verified_claims)
+        summary_parts = [f"{total} claim{'s' if total != 1 else ''} analyzed"]
+        if true_count:
+            summary_parts.append(f"{true_count} verified true")
+        if false_count:
+            summary_parts.append(f"{false_count} found false")
+        if partial_count:
+            summary_parts.append(f"{partial_count} partially true")
 
-    summary_parts = [f"{total} claim{'s' if total != 1 else ''} analyzed"]
-    if true_count:
-        summary_parts.append(f"{true_count} verified true")
-    if false_count:
-        summary_parts.append(f"{false_count} found false")
-    if partial_count:
-        summary_parts.append(f"{partial_count} partially true")
+        return {
+            "claims": verified_claims,
+            "summary": ". ".join(summary_parts) + ".",
+        }
 
-    return FactCheckResponse(
-        claims=verified_claims,
-        summary=". ".join(summary_parts) + ".",
-    )
+    return streamed_llm_response(_work, error_detail="Fact-checking failed.")

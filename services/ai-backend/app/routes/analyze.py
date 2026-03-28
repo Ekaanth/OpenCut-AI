@@ -15,8 +15,9 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.config import settings
 from app.services.audio_service import extract_audio
-from app.services.ollama_service import ollama_service
+from app.services.model_backend import llm_backend
 from app.services.silence_service import detect_silences
+from app.services.stream_utils import streamed_llm_response
 
 logger = logging.getLogger(__name__)
 
@@ -163,113 +164,108 @@ async def analyze_silences(
 async def analyze_structure(
     file: UploadFile = File(...),
     language: str | None = Form(default=None),
-) -> dict:
+):
     """Analyze content structure and suggest chapters.
 
-    Proxies transcription to whisper-service, then uses Ollama LLM
-    to identify logical chapters from the transcript.
+    Streams keepalive pings during transcription + LLM analysis.
     """
     upload_path, ext = await _save_upload(file, "struct")
 
-    try:
-        audio_path = await _get_audio_path(upload_path, ext)
-        transcript = await _transcribe_via_service(audio_path, language=language)
-
-        # Use LLM to identify chapters
-        available = await ollama_service.check_available()
-        if not available:
-            raise HTTPException(
-                status_code=503, detail="Ollama is required for structure analysis."
-            )
-
-        prompt = (
-            "Analyze this transcript and identify logical chapters or sections. "
-            "For each chapter, provide a title and the approximate start time based "
-            "on the segment timestamps.\n\n"
-            "Transcript with timestamps:\n"
-        )
-        for seg in transcript.get("segments", []):
-            prompt += f"[{seg.get('start', 0):.1f}s] {seg.get('text', '')}\n"
-
-        prompt += (
-            "\nRespond with JSON: {\"chapters\": [{\"title\": \"...\", "
-            "\"start\": float, \"end\": float, \"summary\": \"...\"}]}"
-        )
-
-        data = await ollama_service.generate_json(prompt=prompt)
-
-        return {
-            "chapters": data.get("chapters", []),
-            "duration": transcript.get("duration", 0),
-            "language": transcript.get("language", ""),
-        }
-
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Structure analysis failed")
-        raise HTTPException(status_code=500, detail="Structure analysis failed.")
-    finally:
+    available = await llm_backend.check_available()
+    if not available:
         if os.path.exists(upload_path):
             os.remove(upload_path)
+        raise HTTPException(
+            status_code=503, detail="Ollama is required for structure analysis."
+        )
+
+    async def _work():
+        try:
+            audio_path = await _get_audio_path(upload_path, ext)
+            transcript = await _transcribe_via_service(audio_path, language=language)
+
+            prompt = (
+                "Analyze this transcript and identify logical chapters or sections. "
+                "For each chapter, provide a title and the approximate start time based "
+                "on the segment timestamps.\n\n"
+                "Transcript with timestamps:\n"
+            )
+            for seg in transcript.get("segments", []):
+                prompt += f"[{seg.get('start', 0):.1f}s] {seg.get('text', '')}\n"
+
+            prompt += (
+                "\nRespond with JSON: {\"chapters\": [{\"title\": \"...\", "
+                "\"start\": float, \"end\": float, \"summary\": \"...\"}]}"
+            )
+
+            data = await llm_backend.generate_json(prompt=prompt)
+
+            return {
+                "chapters": data.get("chapters", []),
+                "duration": transcript.get("duration", 0),
+                "language": transcript.get("language", ""),
+            }
+        finally:
+            if os.path.exists(upload_path):
+                os.remove(upload_path)
+
+    return streamed_llm_response(_work, error_detail="Structure analysis failed.")
 
 
 @router.post("/suggestions")
 async def smart_suggestions(
     file: UploadFile = File(...),
     language: str | None = Form(default=None),
-) -> dict:
+):
     """Generate smart editing suggestions for the content.
 
-    Proxies transcription to whisper-service, then uses Ollama LLM
-    for analysis and actionable editing recommendations.
+    Streams keepalive pings during transcription + LLM analysis.
     """
     upload_path, ext = await _save_upload(file, "suggest")
 
-    try:
-        audio_path = await _get_audio_path(upload_path, ext)
-        transcript = await _transcribe_via_service(audio_path, language=language)
-
-        available = await ollama_service.check_available()
-        if not available:
-            raise HTTPException(
-                status_code=503, detail="Ollama is required for suggestions."
-            )
-
-        prompt = (
-            "You are a professional video editor. Analyze this transcript and "
-            "provide specific, actionable editing suggestions. Consider:\n"
-            "- Pacing and flow\n"
-            "- Repetitive content that could be cut\n"
-            "- Sections that could benefit from B-roll or graphics\n"
-            "- Filler words and dead air\n"
-            "- Strong opening and closing\n\n"
-            "Transcript with timestamps:\n"
-        )
-        for seg in transcript.get("segments", []):
-            start = seg.get("start", 0)
-            end = seg.get("end", 0)
-            text = seg.get("text", "")
-            prompt += f"[{start:.1f}s-{end:.1f}s] {text}\n"
-
-        prompt += (
-            "\nRespond with JSON: {\"suggestions\": [{\"type\": \"cut|add|modify\", "
-            "\"start\": float, \"end\": float, \"description\": \"...\", "
-            "\"priority\": \"high|medium|low\"}]}"
-        )
-
-        data = await ollama_service.generate_json(prompt=prompt)
-
-        return {
-            "suggestions": data.get("suggestions", []),
-            "duration": transcript.get("duration", 0),
-        }
-
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Suggestions failed")
-        raise HTTPException(status_code=500, detail="Suggestion generation failed.")
-    finally:
+    available = await llm_backend.check_available()
+    if not available:
         if os.path.exists(upload_path):
             os.remove(upload_path)
+        raise HTTPException(
+            status_code=503, detail="Ollama is required for suggestions."
+        )
+
+    async def _work():
+        try:
+            audio_path = await _get_audio_path(upload_path, ext)
+            transcript = await _transcribe_via_service(audio_path, language=language)
+
+            prompt = (
+                "You are a professional video editor. Analyze this transcript and "
+                "provide specific, actionable editing suggestions. Consider:\n"
+                "- Pacing and flow\n"
+                "- Repetitive content that could be cut\n"
+                "- Sections that could benefit from B-roll or graphics\n"
+                "- Filler words and dead air\n"
+                "- Strong opening and closing\n\n"
+                "Transcript with timestamps:\n"
+            )
+            for seg in transcript.get("segments", []):
+                start = seg.get("start", 0)
+                end = seg.get("end", 0)
+                text = seg.get("text", "")
+                prompt += f"[{start:.1f}s-{end:.1f}s] {text}\n"
+
+            prompt += (
+                "\nRespond with JSON: {\"suggestions\": [{\"type\": \"cut|add|modify\", "
+                "\"start\": float, \"end\": float, \"description\": \"...\", "
+                "\"priority\": \"high|medium|low\"}]}"
+            )
+
+            data = await llm_backend.generate_json(prompt=prompt)
+
+            return {
+                "suggestions": data.get("suggestions", []),
+                "duration": transcript.get("duration", 0),
+            }
+        finally:
+            if os.path.exists(upload_path):
+                os.remove(upload_path)
+
+    return streamed_llm_response(_work, error_detail="Suggestion generation failed.")

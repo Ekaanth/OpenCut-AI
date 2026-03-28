@@ -192,11 +192,20 @@ export function useServiceHealth(pollEnabled = true) {
 		}
 	}, [checkAll, pollEnabled]);
 
-	const loadModel = useCallback(async (service: "whisper" | "tts" | "image") => {
+	const loadModel = useCallback(async (
+		service: "whisper" | "tts" | "image",
+		options?: { model_name?: string; model_size?: string },
+	) => {
 		const url = SERVICE_URLS[service];
+		const params = new URLSearchParams();
+		if (options?.model_name) params.set("model_name", options.model_name);
+		if (options?.model_size) params.set("model_size", options.model_size);
+		const queryString = params.toString();
+		const loadUrl = queryString ? `${url}/load?${queryString}` : `${url}/load`;
+
 		let resp: Response;
 		try {
-			resp = await fetch(`${url}/load`, {
+			resp = await fetch(loadUrl, {
 				method: "POST",
 				signal: AbortSignal.timeout(300_000),
 			});
@@ -254,5 +263,32 @@ export function useServiceHealth(pollEnabled = true) {
 		return { isLoaded: true };
 	}, []);
 
-	return { services, isChecking, checkAll, loadModel, verifyModel };
+	const testModel = useCallback(async (service: "whisper" | "tts" | "image"): Promise<{
+		ok: boolean;
+		message?: string;
+	}> => {
+		const url = SERVICE_URLS[service];
+		try {
+			const resp = await fetch(`${url}/test`, {
+				method: "POST",
+				signal: AbortSignal.timeout(60_000),
+			});
+			if (!resp.ok) {
+				let detail = "";
+				try {
+					const body = await resp.json();
+					detail = body.detail ?? body.message ?? "";
+				} catch {
+					detail = await resp.text().catch(() => "");
+				}
+				return { ok: false, message: detail || `Test failed (HTTP ${resp.status})` };
+			}
+			const data = await resp.json().catch(() => ({}));
+			return { ok: true, message: data.message ?? "Model is working correctly." };
+		} catch {
+			return { ok: false, message: `Cannot reach ${service} service at ${url}.` };
+		}
+	}, []);
+
+	return { services, isChecking, checkAll, loadModel, verifyModel, testModel };
 }

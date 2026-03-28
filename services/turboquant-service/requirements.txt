@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+pydantic==2.9.0
+pydantic-settings>=2.5.0
+psutil>=5.9.0
+httpx==0.27.0
+torch>=2.0.0
+transformers>=4.40.0
+accelerate>=0.30.0
+scipy>=1.10.0
+huggingface_hub>=0.23.0

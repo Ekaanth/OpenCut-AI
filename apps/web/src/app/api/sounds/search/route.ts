@@ -18,75 +18,40 @@ const searchParamsSchema = z.object({
 const freesoundResultSchema = z.object({
 	id: z.number(),
 	name: z.string(),
-	description: z.string(),
-	url: z.string().url(),
+	description: z.string().default(""),
+	url: z.string(),
 	previews: z
 		.object({
-			"preview-hq-mp3": z.string().url(),
-			"preview-lq-mp3": z.string().url(),
-			"preview-hq-ogg": z.string().url(),
-			"preview-lq-ogg": z.string().url(),
+			"preview-hq-mp3": z.string().optional(),
+			"preview-lq-mp3": z.string().optional(),
+			"preview-hq-ogg": z.string().optional(),
+			"preview-lq-ogg": z.string().optional(),
 		})
 		.optional(),
-	download: z.string().url().optional(),
-	duration: z.number(),
-	filesize: z.number(),
-	type: z.string(),
-	channels: z.number(),
-	bitrate: z.number(),
-	bitdepth: z.number(),
-	samplerate: z.number(),
-	username: z.string(),
-	tags: z.array(z.string()),
-	license: z.string(),
-	created: z.string(),
+	download: z.string().optional(),
+	duration: z.number().default(0),
+	filesize: z.number().default(0),
+	type: z.string().default(""),
+	channels: z.number().default(1),
+	bitrate: z.number().default(0),
+	bitdepth: z.number().default(0),
+	samplerate: z.number().default(0),
+	username: z.string().default(""),
+	tags: z.array(z.string()).default([]),
+	license: z.string().default(""),
+	created: z.string().default(""),
 	num_downloads: z.number().optional(),
 	avg_rating: z.number().optional(),
 	num_ratings: z.number().optional(),
-});
+}).passthrough();
 
 const freesoundResponseSchema = z.object({
-	count: z.number(),
-	next: z.string().url().nullable(),
-	previous: z.string().url().nullable(),
-	results: z.array(freesoundResultSchema),
-});
+	count: z.number().default(0),
+	next: z.string().nullable().default(null),
+	previous: z.string().nullable().default(null),
+	results: z.array(freesoundResultSchema).default([]),
+}).passthrough();
 
-const transformedResultSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
-	url: z.string(),
-	previewUrl: z.string().optional(),
-	downloadUrl: z.string().optional(),
-	duration: z.number(),
-	filesize: z.number(),
-	type: z.string(),
-	channels: z.number(),
-	bitrate: z.number(),
-	bitdepth: z.number(),
-	samplerate: z.number(),
-	username: z.string(),
-	tags: z.array(z.string()),
-	license: z.string(),
-	created: z.string(),
-	downloads: z.number().optional(),
-	rating: z.number().optional(),
-	ratingCount: z.number().optional(),
-});
-
-const apiResponseSchema = z.object({
-	count: z.number(),
-	next: z.string().nullable(),
-	previous: z.string().nullable(),
-	results: z.array(transformedResultSchema),
-	query: z.string().optional(),
-	type: z.string(),
-	page: z.number(),
-	pageSize: z.number(),
-	sort: z.string(),
-	minRating: z.number().optional(),
-});
 
 function buildSortParameter({ query, sort }: { query?: string; sort: string }) {
 	if (!query) return `${sort}_desc`;
@@ -251,9 +216,51 @@ export async function GET(request: NextRequest) {
 		const freesoundValidation = freesoundResponseSchema.safeParse(rawData);
 		if (!freesoundValidation.success) {
 			console.error(
-				"Invalid Freesound API response:",
-				freesoundValidation.error,
+				"Freesound response parse issue (using raw data):",
+				freesoundValidation.error.flatten(),
 			);
+			// Fall back to raw data — partial results are better than none
+			if (rawData?.results) {
+				const data = {
+					count: rawData.count ?? 0,
+					next: rawData.next ?? null,
+					previous: rawData.previous ?? null,
+					results: Array.isArray(rawData.results) ? rawData.results : [],
+				};
+				const transformedResults = data.results.map((r: Record<string, unknown>) => ({
+					id: r.id,
+					name: r.name ?? "Unknown",
+					description: r.description ?? "",
+					url: r.url ?? "",
+					previewUrl: (r.previews as Record<string, string>)?.["preview-hq-mp3"] || (r.previews as Record<string, string>)?.["preview-lq-mp3"],
+					downloadUrl: r.download,
+					duration: r.duration ?? 0,
+					filesize: r.filesize ?? 0,
+					type: r.type ?? "",
+					channels: r.channels ?? 1,
+					bitrate: r.bitrate ?? 0,
+					bitdepth: r.bitdepth ?? 0,
+					samplerate: r.samplerate ?? 0,
+					username: r.username ?? "",
+					tags: Array.isArray(r.tags) ? r.tags : [],
+					license: r.license ?? "",
+					created: r.created ?? "",
+					downloads: (r.num_downloads as number) ?? 0,
+					rating: (r.avg_rating as number) ?? 0,
+					ratingCount: (r.num_ratings as number) ?? 0,
+				}));
+				return NextResponse.json({
+					count: data.count,
+					next: data.next,
+					previous: data.previous,
+					results: transformedResults,
+					query: query || "",
+					type: type || "effects",
+					page,
+					pageSize,
+					sort,
+				});
+			}
 			return NextResponse.json(
 				{ error: "Invalid response from Freesound API" },
 				{ status: 502 },
@@ -277,19 +284,8 @@ export async function GET(request: NextRequest) {
 			minRating: min_rating,
 		};
 
-		const responseValidation = apiResponseSchema.safeParse(responseData);
-		if (!responseValidation.success) {
-			console.error(
-				"Invalid API response structure:",
-				responseValidation.error,
-			);
-			return NextResponse.json(
-				{ error: "Internal response formatting error" },
-				{ status: 500 },
-			);
-		}
-
-		return NextResponse.json(responseValidation.data);
+		// Skip strict output validation — the data is already validated from Freesound
+		return NextResponse.json(responseData);
 	} catch (error) {
 		console.error("Error searching sounds:", error);
 		return NextResponse.json(

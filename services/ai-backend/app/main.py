@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, transcribe, transcribe_ws, tts
+from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, template, transcribe, transcribe_ws, tts, turboquant
 
 # Configure logging
 logging.basicConfig(
@@ -38,6 +38,13 @@ async def lifespan(app: FastAPI):
         "Smallest AI: %s (key %s)",
         settings.SMALLEST_API_BASE_URL,
         "configured" if settings.SMALLEST_API_KEY else "NOT configured",
+    )
+    logger.info(
+        "TurboQuant: service=%s  kv_bits=%d  memory_budget=%s  model_tier=%s",
+        settings.TURBOQUANT_SERVICE_URL,
+        settings.KV_CACHE_BITS,
+        settings.AI_MEMORY_BUDGET,
+        settings.AI_MODEL_TIER,
     )
     yield
     logger.info("Shutdown complete.")
@@ -77,6 +84,8 @@ app.include_router(factcheck.router)
 app.include_router(podcast.router)
 app.include_router(sarvam.router)
 app.include_router(smallest.router)
+app.include_router(template.router)
+app.include_router(turboquant.router)
 
 
 @app.get("/health")
@@ -119,6 +128,7 @@ async def health() -> dict:
         _ping("image", settings.IMAGE_SERVICE_URL),
         _ping("speaker", settings.SPEAKER_SERVICE_URL),
         _ping("face", settings.FACE_SERVICE_URL),
+        _ping("turboquant", settings.TURBOQUANT_SERVICE_URL),
     )
 
     # System RAM via psutil
@@ -232,6 +242,7 @@ async def services_health() -> dict:
         _check("image", settings.IMAGE_SERVICE_URL),
         _check("speaker", settings.SPEAKER_SERVICE_URL),
         _check("face", settings.FACE_SERVICE_URL),
+        _check("turboquant", settings.TURBOQUANT_SERVICE_URL),
     )
 
     # Backend is always running if we're responding

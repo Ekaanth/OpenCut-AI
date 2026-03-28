@@ -1,7 +1,6 @@
 """TTS (Text-to-Speech) microservice.
 
-Standalone FastAPI service for voice generation. Currently a stub that returns
-clear 501 messages until coqui-tts is installed.
+Standalone FastAPI service for voice generation with multiple model support.
 Runs on port 8422.
 """
 
@@ -27,6 +26,83 @@ os.makedirs(GENERATED_DIR, exist_ok=True)
 os.makedirs(VOICES_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
+# Available TTS models
+# ---------------------------------------------------------------------------
+
+AVAILABLE_TTS_MODELS = [
+    {
+        "name": "xtts_v2",
+        "full_name": "tts_models/multilingual/multi-dataset/xtts_v2",
+        "description": "Best quality — multilingual, voice cloning",
+        "size": "~1.8 GB",
+        "size_mb": 1800,
+        "multilingual": True,
+        "voice_cloning": True,
+        "languages": 16,
+        "device": "cpu",
+    },
+    {
+        "name": "your_tts",
+        "full_name": "tts_models/multilingual/multi-dataset/your_tts",
+        "description": "Multilingual, voice cloning, lighter",
+        "size": "~290 MB",
+        "size_mb": 290,
+        "multilingual": True,
+        "voice_cloning": True,
+        "languages": 16,
+        "device": "cpu",
+    },
+    {
+        "name": "kitten_tts",
+        "full_name": "tts_models/en/ljspeech/fast_pitch",
+        "description": "Fast, expressive — small footprint",
+        "size": "~500 MB",
+        "size_mb": 500,
+        "multilingual": False,
+        "voice_cloning": False,
+        "languages": 1,
+        "device": "cpu",
+    },
+    {
+        "name": "vits-en",
+        "full_name": "tts_models/en/ljspeech/vits",
+        "description": "English only — fast and lightweight",
+        "size": "~110 MB",
+        "size_mb": 110,
+        "multilingual": False,
+        "voice_cloning": False,
+        "languages": 1,
+        "device": "cpu",
+    },
+    {
+        "name": "vits-en-multi",
+        "full_name": "tts_models/en/vctk/vits",
+        "description": "English multi-speaker",
+        "size": "~140 MB",
+        "size_mb": 140,
+        "multilingual": False,
+        "voice_cloning": False,
+        "languages": 1,
+        "device": "cpu",
+    },
+    {
+        "name": "tacotron2-en",
+        "full_name": "tts_models/en/ljspeech/tacotron2-DDC",
+        "description": "English — classic, reliable",
+        "size": "~130 MB",
+        "size_mb": 130,
+        "multilingual": False,
+        "voice_cloning": False,
+        "languages": 1,
+        "device": "cpu",
+    },
+]
+
+# Quick lookup
+_MODEL_MAP = {m["name"]: m for m in AVAILABLE_TTS_MODELS}
+
+
+# ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
 
@@ -43,11 +119,11 @@ class TTSGenerateRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# TTS service singleton (stub)
+# TTS service singleton
 # ---------------------------------------------------------------------------
 
 class TTSService:
-    """Text-to-speech generation service (stub)."""
+    """Text-to-speech generation service with multi-model support."""
 
     _instance: "TTSService | None" = None
     _model = None
@@ -62,9 +138,33 @@ class TTSService:
     def is_loaded(self) -> bool:
         return self._model is not None
 
-    def load_model(self) -> dict:
-        """Load the TTS model. Returns status dict."""
-        if self._model is not None:
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+
+    @property
+    def device(self) -> str:
+        """Return the device the model is running on."""
+        if self._model is None:
+            return "cpu"
+        try:
+            import torch
+            if hasattr(self._model, "device"):
+                return str(self._model.device)
+            if torch.cuda.is_available():
+                # Check if model parameters are on GPU
+                for p in getattr(self._model, "parameters", lambda: [])():
+                    return "cuda" if p.is_cuda else "cpu"
+        except (ImportError, Exception):
+            pass
+        return "cpu"
+
+    def load_model(self, model_name: str | None = None) -> dict:
+        """Load a TTS model by name. Returns status dict."""
+        target = model_name or TTS_MODEL
+
+        # If same model already loaded, skip
+        if self._model is not None and self._model_name == target:
             return {"status": "already_loaded", "model": self._model_name}
 
         try:
@@ -74,11 +174,22 @@ class TTSService:
             logger.warning(msg)
             return {"status": "not_installed", "error": msg, "install_command": "pip install coqui-tts"}
 
+        # Unload current model if switching
+        if self._model is not None:
+            self.unload_model()
+
+        # Resolve full model name
+        model_info = _MODEL_MAP.get(target)
+        if model_info:
+            full_name = model_info["full_name"]
+        else:
+            # If not in curated list, try as a full Coqui model path
+            full_name = target if "/" in target else f"tts_models/multilingual/multi-dataset/{target}"
+
         try:
-            logger.info("Loading TTS model '%s'... (first run downloads ~1.8 GB)", TTS_MODEL)
-            model_name = f"tts_models/multilingual/multi-dataset/{TTS_MODEL}"
-            self._model = CoquiTTS(model_name)
-            self._model_name = TTS_MODEL
+            logger.info("Loading TTS model '%s' (%s)...", target, full_name)
+            self._model = CoquiTTS(full_name)
+            self._model_name = target
 
             try:
                 import torch
@@ -90,13 +201,14 @@ class TTSService:
             except ImportError:
                 logger.info("TTS model loaded on CPU.")
 
-            return {"status": "loaded", "model": TTS_MODEL}
+            return {"status": "loaded", "model": target}
         except Exception as e:
-            logger.exception("Failed to load TTS model")
+            logger.exception("Failed to load TTS model '%s'", target)
             return {"status": "error", "error": str(e)}
 
     def unload_model(self) -> None:
         if self._model is not None:
+            logger.info("Unloading TTS model '%s'...", self._model_name)
             del self._model
             self._model = None
             self._model_name = ""
@@ -197,7 +309,9 @@ class TTSService:
                 raise NotImplementedError(result.get("error", "TTS model not available"))
 
         # XTTS v2 is multi-speaker and requires a speaker reference
-        if not speaker_wav:
+        model_info = _MODEL_MAP.get(self._model_name, {})
+        needs_speaker_ref = model_info.get("voice_cloning", True)
+        if needs_speaker_ref and not speaker_wav:
             speaker_wav = self._ensure_speaker_ref(speaker or "default")
 
         import uuid
@@ -211,7 +325,7 @@ class TTSService:
             self._generate_sync,
             text,
             language,
-            speaker_wav,
+            speaker_wav if needs_speaker_ref else None,
             output_path,
         )
         return output_path
@@ -269,21 +383,61 @@ async def health():
         "service": "tts",
         "model": {
             "loaded": tts_service.is_loaded,
-            "model_name": TTS_MODEL if tts_service.is_loaded else None,
+            "model_name": tts_service.model_name if tts_service.is_loaded else None,
             "installed": installed,
+            "device": tts_service.device if tts_service.is_loaded else None,
         },
         "install_command": "pip install coqui-tts" if not installed else None,
         "supported_languages": SUPPORTED_LANGUAGES,
     }
 
 
+@app.get("/models")
+async def list_models():
+    """List available TTS models with metadata."""
+    active = tts_service.model_name if tts_service.is_loaded else None
+    device = tts_service.device if tts_service.is_loaded else "cpu"
+    models = []
+    for m in AVAILABLE_TTS_MODELS:
+        is_active = m["name"] == active
+        models.append({
+            **m,
+            "active": is_active,
+            # Override device with actual runtime device for active model
+            "device": device if is_active else m["device"],
+        })
+    return {"models": models, "active_model": active, "device": device}
+
+
+@app.post("/test")
+async def test_model():
+    """Quick test: generate a short phrase to verify the model works."""
+    if not tts_service.is_loaded:
+        raise HTTPException(status_code=400, detail="No model loaded. Load a model first.")
+
+    try:
+        output_path = await tts_service.generate_speech(
+            text="Test successful.",
+            language="en",
+        )
+        # Clean up the test file
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+        return {
+            "status": "ok",
+            "model": tts_service.model_name,
+            "device": tts_service.device,
+            "message": f"Model '{tts_service.model_name}' is working correctly.",
+        }
+    except Exception as e:
+        logger.exception("TTS test failed")
+        raise HTTPException(status_code=500, detail=f"Test failed: {e}")
+
+
 @app.post("/generate")
 async def generate_speech(request: TTSGenerateRequest):
-    """Generate speech audio from text.
-
-    Returns the generated WAV file. Currently returns 501 until coqui-tts
-    is installed.
-    """
+    """Generate speech audio from text."""
     try:
         output_path = await tts_service.generate_speech(
             text=request.text,
@@ -347,9 +501,9 @@ async def clone_voice(
 
 
 @app.post("/load")
-async def load_model():
-    """Pre-load the TTS model."""
-    result = tts_service.load_model()
+async def load_model(model_name: str | None = None):
+    """Load a TTS model by name. Downloads on first use."""
+    result = tts_service.load_model(model_name)
 
     if result["status"] == "not_installed":
         raise HTTPException(
