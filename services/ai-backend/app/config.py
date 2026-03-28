@@ -26,12 +26,19 @@ class Settings(BaseSettings):
     OLLAMA_DEFAULT_MODEL: str = "llama3.2:1b"
     OLLAMA_TIMEOUT: int = 300
 
+    # AI Memory Budget & Model Tiers
+    AI_MEMORY_BUDGET: str = "auto"  # "auto", "4GB", "8GB", "16GB", "32GB"
+    AI_MODEL_TIER: str = "auto"  # "lite", "standard", "pro", "auto"
+    AI_LLM_BACKEND: str = "auto"  # "ollama", "turboquant", "auto" (TQ when available, else Ollama)
+    KV_CACHE_BITS: int = 4  # 2, 3, or 4 — TurboQuant KV cache quantization bits
+
     # Microservice URLs
     WHISPER_SERVICE_URL: str = "http://localhost:8421"
     TTS_SERVICE_URL: str = "http://localhost:8422"
     IMAGE_SERVICE_URL: str = "http://localhost:8423"
     SPEAKER_SERVICE_URL: str = "http://localhost:8424"
     FACE_SERVICE_URL: str = "http://localhost:8425"
+    TURBOQUANT_SERVICE_URL: str = "http://localhost:8430"
 
     # Sarvam AI (Indian language APIs)
     SARVAM_API_KEY: str = ""

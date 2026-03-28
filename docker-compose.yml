@@ -83,6 +83,11 @@ services:
       - OPENCUTAI_IMAGE_SERVICE_URL=http://image-service:8423
       - OPENCUTAI_SPEAKER_SERVICE_URL=http://speaker-service:8424
       - OPENCUTAI_FACE_SERVICE_URL=http://face-service:8425
+      - OPENCUTAI_TURBOQUANT_SERVICE_URL=http://turboquant-service:8430
+      - OPENCUTAI_AI_MEMORY_BUDGET=${AI_MEMORY_BUDGET:-auto}
+      - OPENCUTAI_AI_MODEL_TIER=${AI_MODEL_TIER:-auto}
+      - OPENCUTAI_KV_CACHE_BITS=${KV_CACHE_BITS:-4}
+      - OPENCUTAI_AI_LLM_BACKEND=${AI_LLM_BACKEND:-auto}
       - OPENCUTAI_SARVAM_API_KEY=${SARVAM_API_KEY:-}
     volumes:
       - ai_models:/app/models
@@ -190,6 +195,31 @@ services:
       retries: 5
       start_period: 15s
 
+  turboquant-service:
+    build:
+      context: ./services/turboquant-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8430:8430"
+    environment:
+      - MODEL_NAME=${TURBOQUANT_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
+      - KV_CACHE_BITS=${KV_CACHE_BITS:-4}
+      - MAX_CONTEXT_LENGTH=8192
+      - DEVICE=auto
+    volumes:
+      - turboquant_models:/app/models
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8430/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
   # --- Web App ---
 
   web:
@@ -247,6 +277,7 @@ volumes:
   image_models:
   speaker_models:
   face_models:
+  turboquant_models:
   image_generated:
 
 networks:

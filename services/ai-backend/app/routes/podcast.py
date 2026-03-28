@@ -16,7 +16,8 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.services.audio_service import extract_audio
-from app.services.ollama_service import ollama_service
+from app.services.model_backend import llm_backend
+from app.services.stream_utils import streamed_llm_response
 
 logger = logging.getLogger(__name__)
 
@@ -96,28 +97,22 @@ class QuestionCardsResponse(BaseModel):
 # ── Endpoints ──────────────────────────────────────────────────────────
 
 
-@router.post("/find-clips", response_model=FindClipsResponse)
-async def find_clips(request: FindClipsRequest) -> dict[str, Any]:
+@router.post("/find-clips")
+async def find_clips(request: FindClipsRequest):
     """Find the best clip-worthy moments in a podcast transcript.
 
-    Uses LLM to score transcript segments by engagement potential:
-    - Strong statements / hot takes
-    - Questions with surprising answers
-    - Statistics / numbers / claims
-    - Emotional peaks
-    - Complete thought arcs (setup → punchline)
+    Streams keepalive pings to prevent timeouts on slow hardware.
     """
     if not request.segments:
         return {"clips": [], "total_duration": 0}
 
-    available = await ollama_service.check_available()
+    available = await llm_backend.check_available()
     if not available:
         raise HTTPException(
             status_code=503,
             detail="Ollama LLM is required for clip finding. Start it with: docker compose up -d ollama",
         )
 
-    # Build a timestamped transcript for the LLM
     transcript_lines: list[str] = []
     total_duration = 0.0
     for seg in request.segments:
@@ -144,11 +139,10 @@ Respond with JSON: {{"clips": [{{"title": "short catchy title", "start": float, 
 
 Sort by score descending. Only include clips scoring 50 or above."""
 
-    try:
-        data = await ollama_service.generate_json(prompt=prompt)
+    async def _work():
+        data = await llm_backend.generate_json(prompt=prompt)
         clips = data.get("clips", [])
 
-        # Validate and clamp clip boundaries
         validated_clips: list[dict[str, Any]] = []
         for clip in clips:
             start = max(0, float(clip.get("start", 0)))
@@ -164,7 +158,6 @@ Sort by score descending. Only include clips scoring 50 or above."""
                 "tags": [str(t) for t in clip.get("tags", [])],
             })
 
-        # Sort by score descending
         validated_clips.sort(key=lambda c: c["score"], reverse=True)
 
         return {
@@ -172,34 +165,20 @@ Sort by score descending. Only include clips scoring 50 or above."""
             "total_duration": round(total_duration, 2),
         }
 
-    except ValueError as e:
-        logger.error("LLM returned invalid response for clip finding: %s", e)
-        raise HTTPException(
-            status_code=502,
-            detail="LLM returned an invalid response. Try again or use a larger model.",
-        )
-    except Exception:
-        logger.exception("Clip finding failed")
-        raise HTTPException(status_code=500, detail="Clip finding failed.")
+    return streamed_llm_response(_work, error_detail="Clip finding failed.")
 
 
-@router.post("/keywords", response_model=KeywordResponse)
-async def extract_keywords(request: KeywordRequest) -> dict[str, Any]:
+@router.post("/keywords")
+async def extract_keywords(request: KeywordRequest):
     """Extract important keywords from transcript for subtitle highlighting.
 
-    Identifies words that should be visually emphasized:
-    - Names and proper nouns → cyan (#06B6D4)
-    - Numbers and statistics → green (#22C55E)
-    - Strong/emotional words → red (#EF4444)
-    - Positive words → green (#22C55E)
-    - Key concepts → yellow (#FACC15)
+    Streams keepalive pings to prevent timeouts.
     """
     if not request.segments:
         return {"keywords": []}
 
-    available = await ollama_service.check_available()
+    available = await llm_backend.check_available()
     if not available:
-        # Fall back to rule-based extraction
         return {"keywords": _rule_based_keywords(request.segments)}
 
     full_text = " ".join(seg.text for seg in request.segments)
@@ -220,8 +199,8 @@ Respond with JSON: {{"keywords": [{{"word": "exact word from text", "color": "#h
 
 Return 15-30 keywords maximum. Only include truly impactful words."""
 
-    try:
-        data = await ollama_service.generate_json(prompt=prompt)
+    async def _work():
+        data = await llm_backend.generate_json(prompt=prompt)
         keywords = data.get("keywords", [])
 
         color_map = {
@@ -240,17 +219,11 @@ Return 15-30 keywords maximum. Only include truly impactful words."""
             if not word:
                 continue
             color = kw.get("color", color_map.get(category, "#FACC15"))
-            validated.append({
-                "word": word,
-                "color": color,
-                "category": category,
-            })
+            validated.append({"word": word, "color": color, "category": category})
 
         return {"keywords": validated}
 
-    except (ValueError, Exception):
-        logger.warning("LLM keyword extraction failed, falling back to rules")
-        return {"keywords": _rule_based_keywords(request.segments)}
+    return streamed_llm_response(_work, error_detail="Keyword extraction failed.")
 
 
 def _rule_based_keywords(segments: list[TranscriptSegment]) -> list[dict[str, str]]:
@@ -281,17 +254,16 @@ def _rule_based_keywords(segments: list[TranscriptSegment]) -> list[dict[str, st
     return keywords[:30]
 
 
-@router.post("/question-cards", response_model=QuestionCardsResponse)
-async def generate_question_cards(request: QuestionCardsRequest) -> dict[str, Any]:
+@router.post("/question-cards")
+async def generate_question_cards(request: QuestionCardsRequest):
     """Generate AI question/topic cards for podcast clip intros.
 
-    Analyzes the transcript to find topic shifts and generates
-    engaging questions that introduce each topic segment.
+    Streams keepalive pings to prevent timeouts.
     """
     if not request.segments:
         return {"cards": []}
 
-    available = await ollama_service.check_available()
+    available = await llm_backend.check_available()
     if not available:
         raise HTTPException(
             status_code=503,
@@ -301,7 +273,6 @@ async def generate_question_cards(request: QuestionCardsRequest) -> dict[str, An
     transcript_lines: list[str] = []
     for seg in request.segments:
         transcript_lines.append(f"[{seg.start:.1f}s] {seg.text}")
-
     transcript_text = "\n".join(transcript_lines)
 
     prompt = f"""You are a social media content producer. Analyze this podcast transcript and create {request.max_cards} engaging question/topic cards that would appear as animated title slides in a short-form video clip.
@@ -322,10 +293,9 @@ Choose themes:
 - "gradient": inspirational/positive topics
 - "bold": controversial/surprising topics"""
 
-    try:
-        data = await ollama_service.generate_json(prompt=prompt)
+    async def _work():
+        data = await llm_backend.generate_json(prompt=prompt)
         cards = data.get("cards", [])
-
         total_duration = max((seg.end for seg in request.segments), default=0)
 
         validated: list[dict[str, Any]] = []
@@ -343,15 +313,7 @@ Choose themes:
 
         return {"cards": validated[:request.max_cards]}
 
-    except ValueError as e:
-        logger.error("LLM returned invalid response for question cards: %s", e)
-        raise HTTPException(
-            status_code=502,
-            detail="LLM returned an invalid response. Try again.",
-        )
-    except Exception:
-        logger.exception("Question card generation failed")
-        raise HTTPException(status_code=500, detail="Question card generation failed.")
+    return streamed_llm_response(_work, error_detail="Question card generation failed.")
 
 
 # ── Speaker Diarization ────────────────────────────────────────────────

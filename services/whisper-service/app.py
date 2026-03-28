@@ -1,6 +1,7 @@
 """Whisper transcription microservice.
 
 Standalone FastAPI service for speech-to-text transcription using faster-whisper.
+Supports multiple model sizes with download and switching.
 Runs on port 8421.
 """
 
@@ -25,6 +26,60 @@ WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# Available Whisper models
+# ---------------------------------------------------------------------------
+
+AVAILABLE_WHISPER_MODELS = [
+    {
+        "name": "tiny",
+        "description": "Fastest — minimal accuracy",
+        "size": "~75 MB",
+        "size_mb": 75,
+        "languages": 99,
+        "relative_speed": 32,
+        "device": "cpu",
+    },
+    {
+        "name": "base",
+        "description": "Good balance of speed and accuracy",
+        "size": "~140 MB",
+        "size_mb": 140,
+        "languages": 99,
+        "relative_speed": 16,
+        "device": "cpu",
+    },
+    {
+        "name": "small",
+        "description": "Better accuracy, moderate speed",
+        "size": "~460 MB",
+        "size_mb": 460,
+        "languages": 99,
+        "relative_speed": 6,
+        "device": "cpu",
+    },
+    {
+        "name": "medium",
+        "description": "High accuracy, slower",
+        "size": "~1.5 GB",
+        "size_mb": 1500,
+        "languages": 99,
+        "relative_speed": 2,
+        "device": "cpu",
+    },
+    {
+        "name": "large-v3",
+        "description": "Best accuracy — needs 4+ GB",
+        "size": "~3 GB",
+        "size_mb": 3000,
+        "languages": 99,
+        "relative_speed": 1,
+        "device": "gpu",
+    },
+]
+
+_MODEL_MAP = {m["name"]: m for m in AVAILABLE_WHISPER_MODELS}
 
 # ---------------------------------------------------------------------------
 # Pydantic models
@@ -220,6 +275,62 @@ async def health():
     }
 
 
+@app.get("/models")
+async def list_models():
+    """List available Whisper model sizes with metadata."""
+    active = whisper_service.model_size if whisper_service.is_loaded else None
+    models = []
+    for m in AVAILABLE_WHISPER_MODELS:
+        models.append({
+            **m,
+            "active": m["name"] == active,
+        })
+    return {"models": models, "active_model": active, "device": WHISPER_DEVICE}
+
+
+@app.post("/test")
+async def test_model():
+    """Quick test: verify the whisper model is loaded and responsive."""
+    if not whisper_service.is_loaded:
+        raise HTTPException(status_code=400, detail="No model loaded. Load a model first.")
+
+    import struct
+    import asyncio
+
+    test_path = os.path.join(UPLOAD_DIR, "_whisper_test.wav")
+    try:
+        # Generate a tiny 0.5s silent WAV for a quick transcription test
+        sample_rate = 16000
+        num_samples = sample_rate // 2
+        with open(test_path, "wb") as f:
+            data_size = num_samples * 2
+            f.write(b"RIFF")
+            f.write(struct.pack("<I", 36 + data_size))
+            f.write(b"WAVE")
+            f.write(b"fmt ")
+            f.write(struct.pack("<IHHIIHH", 16, 1, 1, sample_rate, sample_rate * 2, 2, 16))
+            f.write(b"data")
+            f.write(struct.pack("<I", data_size))
+            f.write(b"\x00" * data_size)
+
+        # Run transcription in a thread so we don't block
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, whisper_service.transcribe, test_path, None)
+
+        return {
+            "status": "ok",
+            "model_size": whisper_service.model_size,
+            "device": WHISPER_DEVICE,
+            "message": f"Model '{whisper_service.model_size}' is working correctly.",
+        }
+    except Exception as e:
+        logger.exception("Whisper test failed")
+        raise HTTPException(status_code=500, detail=f"Test failed: {e}")
+    finally:
+        if os.path.exists(test_path):
+            os.remove(test_path)
+
+
 @app.post("/transcribe", response_model=TranscriptionResult)
 async def transcribe(
     file: UploadFile = File(...),
@@ -288,7 +399,7 @@ async def transcribe(
 
 @app.post("/load")
 async def load_model(model_size: str | None = None):
-    """Pre-load the whisper model."""
+    """Load a whisper model by size. Downloads on first use."""
     try:
         whisper_service.load_model(model_size)
         return {

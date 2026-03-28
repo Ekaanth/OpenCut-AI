@@ -1,8 +1,7 @@
 """Image generation and background removal microservice.
 
 Standalone FastAPI service for image generation (diffusion) and background
-removal (rembg). Currently stubs that return clear 501 messages until
-diffusers/torch/rembg are installed.
+removal (rembg). Supports multiple open-source models with GPU/CPU selection.
 Runs on port 8423.
 """
 
@@ -34,6 +33,99 @@ os.makedirs(GENERATED_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
+# Available image generation models
+# ---------------------------------------------------------------------------
+
+AVAILABLE_IMAGE_MODELS = [
+    {
+        "name": "stable-diffusion-2-1",
+        "full_name": "stabilityai/stable-diffusion-2-1",
+        "description": "Good quality — versatile default",
+        "size": "~5 GB",
+        "size_mb": 5000,
+        "device": "gpu",
+        "default_steps": 20,
+    },
+    {
+        "name": "sdxl-turbo",
+        "full_name": "stabilityai/sdxl-turbo",
+        "description": "Fast SDXL — 1-4 step generation",
+        "size": "~7 GB",
+        "size_mb": 7000,
+        "device": "gpu",
+        "default_steps": 4,
+    },
+    {
+        "name": "sdxl-base",
+        "full_name": "stabilityai/stable-diffusion-xl-base-1.0",
+        "description": "Highest quality — SDXL 1.0",
+        "size": "~7 GB",
+        "size_mb": 7000,
+        "device": "gpu",
+        "default_steps": 30,
+    },
+    {
+        "name": "sd-1.5",
+        "full_name": "runwayml/stable-diffusion-v1-5",
+        "description": "Classic SD 1.5 — huge ecosystem",
+        "size": "~4 GB",
+        "size_mb": 4000,
+        "device": "gpu",
+        "default_steps": 20,
+    },
+    {
+        "name": "flux-schnell",
+        "full_name": "black-forest-labs/FLUX.1-schnell",
+        "description": "FLUX.1 Schnell — fast, high quality",
+        "size": "~12 GB",
+        "size_mb": 12000,
+        "device": "gpu",
+        "default_steps": 4,
+    },
+    {
+        "name": "segmind-tiny",
+        "full_name": "segmind/tiny-sd",
+        "description": "Tiny SD — CPU-friendly, compact",
+        "size": "~1 GB",
+        "size_mb": 1000,
+        "device": "cpu",
+        "default_steps": 25,
+    },
+    {
+        "name": "small-sd",
+        "full_name": "OFA-Sys/small-stable-diffusion-v0",
+        "description": "Small SD — runs on CPU, decent quality",
+        "size": "~1.5 GB",
+        "size_mb": 1500,
+        "device": "cpu",
+        "default_steps": 25,
+    },
+]
+
+_MODEL_MAP = {m["name"]: m for m in AVAILABLE_IMAGE_MODELS}
+# Also allow lookup by full HuggingFace name
+_FULL_NAME_MAP = {m["full_name"]: m for m in AVAILABLE_IMAGE_MODELS}
+
+
+def _resolve_model_name(name: str) -> str:
+    """Given a short name or full HF name, return the full HuggingFace model ID."""
+    if name in _MODEL_MAP:
+        return _MODEL_MAP[name]["full_name"]
+    if name in _FULL_NAME_MAP:
+        return name
+    # Assume it's a full HuggingFace model path
+    return name
+
+
+def _short_name(full_name: str) -> str:
+    """Given a full HF model name, return the short display name."""
+    for m in AVAILABLE_IMAGE_MODELS:
+        if m["full_name"] == full_name:
+            return m["name"]
+    return full_name
+
+
+# ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
 
@@ -48,15 +140,16 @@ class ImageGenParams(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Diffusion service singleton (stub)
+# Diffusion service singleton
 # ---------------------------------------------------------------------------
 
 class DiffusionService:
-    """Image generation via diffusion models."""
+    """Image generation via diffusion models with multi-model support."""
 
     _instance: "DiffusionService | None" = None
     _pipeline = None
     _model_name: str = ""
+    _device: str = "cpu"
 
     def __new__(cls) -> "DiffusionService":
         if cls._instance is None:
@@ -68,6 +161,14 @@ class DiffusionService:
         return self._pipeline is not None
 
     @property
+    def model_name(self) -> str:
+        return self._model_name
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    @property
     def is_installed(self) -> bool:
         try:
             import torch  # noqa: F401
@@ -76,37 +177,45 @@ class DiffusionService:
         except ImportError:
             return False
 
-    def load_model(self) -> dict:
-        """Load the diffusion pipeline. Returns status dict."""
-        if self._pipeline is not None:
-            return {"status": "already_loaded", "model": self._model_name}
+    def load_model(self, model_name: str | None = None) -> dict:
+        """Load a diffusion model by name. Returns status dict."""
+        target = _resolve_model_name(model_name or DIFFUSION_MODEL)
+
+        if self._pipeline is not None and self._model_name == target:
+            return {"status": "already_loaded", "model": _short_name(target), "device": self._device}
 
         if not self.is_installed:
             msg = "diffusers and/or torch are not installed. Install with: pip install torch diffusers accelerate safetensors transformers"
             logger.warning(msg)
             return {"status": "not_installed", "error": msg, "install_command": "pip install torch diffusers accelerate"}
 
+        # Unload current model if switching
+        if self._pipeline is not None:
+            self.unload()
+
         try:
             import torch
             from diffusers import AutoPipelineForText2Image
 
-            dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            has_cuda = torch.cuda.is_available()
+            dtype = torch.float16 if has_cuda else torch.float32
+            device = "cuda" if has_cuda else "cpu"
 
-            logger.info("Loading diffusion model '%s' on %s... This may take a while.", DIFFUSION_MODEL, device)
+            logger.info("Loading diffusion model '%s' on %s...", target, device)
 
             self._pipeline = AutoPipelineForText2Image.from_pretrained(
-                DIFFUSION_MODEL,
+                target,
                 torch_dtype=dtype,
-                variant="fp16" if torch.cuda.is_available() else None,
+                variant="fp16" if has_cuda else None,
             )
             self._pipeline = self._pipeline.to(device)
-            self._model_name = DIFFUSION_MODEL
+            self._model_name = target
+            self._device = device
 
-            logger.info("Diffusion model '%s' loaded on %s.", DIFFUSION_MODEL, device)
-            return {"status": "loaded", "model": DIFFUSION_MODEL, "device": device}
+            logger.info("Diffusion model '%s' loaded on %s.", target, device)
+            return {"status": "loaded", "model": _short_name(target), "device": device}
         except Exception as e:
-            logger.exception("Failed to load diffusion model")
+            logger.exception("Failed to load diffusion model '%s'", target)
             return {"status": "error", "error": str(e)}
 
     def unload(self) -> None:
@@ -114,6 +223,7 @@ class DiffusionService:
             del self._pipeline
             self._pipeline = None
             self._model_name = ""
+            self._device = "cpu"
             try:
                 import torch
                 if torch.cuda.is_available():
@@ -204,8 +314,9 @@ async def health():
         "models": {
             "diffusion": {
                 "loaded": diffusion_service.is_loaded,
-                "model_name": diffusion_service._model_name if diffusion_service.is_loaded else None,
+                "model_name": _short_name(diffusion_service.model_name) if diffusion_service.is_loaded else None,
                 "installed": diffusion_installed,
+                "device": diffusion_service.device if diffusion_service.is_loaded else None,
             },
             "rembg": {
                 "available": rembg_available,
@@ -215,12 +326,27 @@ async def health():
     }
 
 
+@app.get("/models")
+async def list_models():
+    """List available image generation models with metadata."""
+    active_full = diffusion_service.model_name if diffusion_service.is_loaded else None
+    active_short = _short_name(active_full) if active_full else None
+    device = diffusion_service.device if diffusion_service.is_loaded else "cpu"
+
+    models = []
+    for m in AVAILABLE_IMAGE_MODELS:
+        is_active = m["full_name"] == active_full
+        models.append({
+            **m,
+            "active": is_active,
+            "device": device if is_active else m["device"],
+        })
+    return {"models": models, "active_model": active_short, "device": device}
+
+
 @app.post("/generate")
 async def generate_image(params: ImageGenParams):
-    """Generate an image from a text prompt using a diffusion model.
-
-    Returns 501 until diffusers/torch are installed.
-    """
+    """Generate an image from a text prompt using the loaded diffusion model."""
     try:
         output_path = await diffusion_service.generate(
             prompt=params.prompt,
@@ -245,10 +371,7 @@ async def generate_image(params: ImageGenParams):
 
 @app.post("/remove-bg")
 async def remove_bg(file: UploadFile = File(...)):
-    """Remove the background from an uploaded image.
-
-    Returns 501 until rembg is installed.
-    """
+    """Remove the background from an uploaded image."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided.")
 
@@ -299,9 +422,9 @@ async def remove_bg(file: UploadFile = File(...)):
 
 
 @app.post("/load")
-async def load_model():
-    """Pre-load the image generation model."""
-    result = diffusion_service.load_model()
+async def load_model(model_name: str | None = None):
+    """Load an image generation model by name. Downloads on first use."""
+    result = diffusion_service.load_model(model_name)
 
     if result["status"] == "not_installed":
         raise HTTPException(
@@ -315,6 +438,34 @@ async def load_model():
         )
 
     return result
+
+
+@app.post("/test")
+async def test_model():
+    """Quick test: generate a tiny image to verify the model works."""
+    if not diffusion_service.is_loaded:
+        raise HTTPException(status_code=400, detail="No model loaded. Load a model first.")
+
+    try:
+        output_path = await diffusion_service.generate(
+            prompt="test",
+            width=64,
+            height=64,
+            steps=1,
+            guidance_scale=1.0,
+        )
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+        return {
+            "status": "ok",
+            "model": _short_name(diffusion_service.model_name),
+            "device": diffusion_service.device,
+            "message": f"Model '{_short_name(diffusion_service.model_name)}' is working correctly.",
+        }
+    except Exception as e:
+        logger.exception("Image test failed")
+        raise HTTPException(status_code=500, detail=f"Test failed: {e}")
 
 
 @app.post("/unload")

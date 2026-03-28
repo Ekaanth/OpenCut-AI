@@ -6,7 +6,8 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from app.models.command import CommandRequest, CommandResponse, EditorAction
-from app.services.ollama_service import ollama_service
+from app.services.model_backend import llm_backend
+from app.services.stream_utils import streamed_llm_response
 
 logger = logging.getLogger(__name__)
 
@@ -48,53 +49,43 @@ Respond with ONLY a JSON object in this format:
 """
 
 
-@router.post("/command", response_model=CommandResponse)
-async def process_command(request: CommandRequest) -> CommandResponse:
+@router.post("/command")
+async def process_command(request: CommandRequest):
     """Process a natural-language editing command.
 
     Takes a command string and optional timeline state, uses the LLM to
     interpret the command, and returns structured editor actions.
+    Streams keepalive pings to prevent timeouts.
     """
-    available = await ollama_service.check_available()
+    available = await llm_backend.check_available()
     if not available:
         raise HTTPException(
             status_code=503,
-            detail="Ollama server is not available. Please start Ollama first.",
+            detail="No LLM backend available. Start Ollama or TurboQuant service.",
         )
 
-    # Build the prompt with timeline context
     prompt_parts = [f"User command: {request.command}"]
     if request.timeline_state:
         prompt_parts.append(
             f"\nCurrent timeline state:\n{json.dumps(request.timeline_state, indent=2)}"
         )
-
     prompt = "\n".join(prompt_parts)
 
-    try:
-        data = await ollama_service.generate_json(
+    async def _work():
+        data = await llm_backend.generate_json(
             prompt=prompt,
             model=request.model,
             system=COMMAND_SYSTEM_PROMPT,
         )
-
         actions = [
-            EditorAction(**a) for a in data.get("actions", [])
+            {"type": a.get("type"), "target": a.get("target"), "params": a.get("params", {})}
+            for a in data.get("actions", [])
         ]
+        return {
+            "actions": actions,
+            "explanation": data.get("explanation", ""),
+            "confidence": data.get("confidence", 0.5),
+            "raw_response": json.dumps(data),
+        }
 
-        return CommandResponse(
-            actions=actions,
-            explanation=data.get("explanation", ""),
-            confidence=data.get("confidence", 0.5),
-            raw_response=json.dumps(data),
-        )
-
-    except ValueError as e:
-        logger.error("LLM returned invalid response: %s", e)
-        raise HTTPException(
-            status_code=502,
-            detail="The LLM returned an invalid response. Try rephrasing your command.",
-        )
-    except Exception:
-        logger.exception("Command processing failed")
-        raise HTTPException(status_code=500, detail="Command processing failed.")
+    return streamed_llm_response(_work, error_detail="Command processing failed.")

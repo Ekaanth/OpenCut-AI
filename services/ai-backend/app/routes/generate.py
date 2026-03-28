@@ -13,8 +13,9 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from app.config import settings
+from app.services.stream_utils import streamed_llm_response
 from app.models.generation import EnhancePromptRequest, ImageGenParams, InfographicRequest
-from app.services.ollama_service import ollama_service
+from app.services.model_backend import llm_backend
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +64,12 @@ async def generate_image(params: ImageGenParams):
 
 
 @router.post("/enhance-prompt")
-async def enhance_prompt(request: EnhancePromptRequest) -> dict:
-    """Enhance a short prompt into a detailed image generation prompt using the LLM."""
-    available = await ollama_service.check_available()
+async def enhance_prompt(request: EnhancePromptRequest):
+    """Enhance a short prompt into a detailed image generation prompt using the LLM.
+
+    Streams keepalive pings to prevent timeouts.
+    """
+    available = await llm_backend.check_available()
     if not available:
         raise HTTPException(status_code=503, detail="Ollama is not available.")
 
@@ -77,8 +81,8 @@ async def enhance_prompt(request: EnhancePromptRequest) -> dict:
         "Respond with only the enhanced prompt text, no explanations."
     )
 
-    try:
-        enhanced = await ollama_service.generate(
+    async def _work():
+        enhanced = await llm_backend.generate(
             prompt=f"Style: {request.style}\nOriginal prompt: {request.prompt}",
             system=system,
         )
@@ -87,9 +91,8 @@ async def enhance_prompt(request: EnhancePromptRequest) -> dict:
             "enhanced": enhanced.strip(),
             "style": request.style,
         }
-    except Exception:
-        logger.exception("Prompt enhancement failed")
-        raise HTTPException(status_code=500, detail="Prompt enhancement failed.")
+
+    return streamed_llm_response(_work, error_detail="Prompt enhancement failed.")
 
 
 @router.post("/infographic")

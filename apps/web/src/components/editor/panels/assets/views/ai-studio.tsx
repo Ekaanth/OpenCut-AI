@@ -19,9 +19,53 @@ import {
 } from "@hugeicons/core-free-icons";
 import { aiClient } from "@/lib/ai-client";
 import { useAIStatus } from "@/hooks/use-ai-status";
-import { useAIStore, type StudioMessage } from "@/stores/ai-store";
+import { useAIStore } from "@/stores/ai-store";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { toast } from "sonner";
+import { TemplatePanel } from "@/components/editor/ai/template-panel";
+
+// ----- Thinking Messages -----
+
+const THINKING_MESSAGES = [
+	"Rewinding the creative tape...",
+	"Adjusting the white balance on this idea...",
+	"Adding a dramatic zoom to my thoughts...",
+	"Scrubbing through the timeline of possibilities...",
+	"Applying a smooth transition between neurons...",
+	"Color grading this response for maximum impact...",
+	"Removing the awkward silence from my thinking...",
+	"Adding B-roll to my train of thought...",
+	"Stabilizing this shaky idea...",
+	"Rendering a rough cut of my answer...",
+	"Trimming the fat, keeping the hook...",
+	"Keyframing the perfect response...",
+	"De-noising my thought process...",
+	"Jump cutting to the good part...",
+	"Pulling focus on what matters...",
+	"Adding a lens flare for dramatic effect...",
+	"Speed ramping through the boring bits...",
+	"Checking if this take is a keeper...",
+	"Syncing audio with my brainwaves...",
+	"Applying the viral filter to this answer...",
+];
+
+function useThinkingMessage(isThinking: boolean) {
+	const [index, setIndex] = useState(() => Math.floor(Math.random() * THINKING_MESSAGES.length));
+
+	useEffect(() => {
+		if (!isThinking) return;
+		// Pick a random starting message each time thinking begins
+		setIndex(Math.floor(Math.random() * THINKING_MESSAGES.length));
+
+		const interval = setInterval(() => {
+			setIndex((prev) => (prev + 1) % THINKING_MESSAGES.length);
+		}, 3000);
+
+		return () => clearInterval(interval);
+	}, [isThinking]);
+
+	return THINKING_MESSAGES[index];
+}
 
 // ----- Types -----
 
@@ -34,7 +78,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas";
 
 // ----- Workflow Steps -----
 
@@ -260,8 +304,12 @@ export function AIStudioView() {
 	const { isConnected } = useAIStatus();
 	const toggleSetupGuide = useAIStore((s) => s.toggleSetupGuide);
 	const saveIdea = useAIStore((s) => s.saveIdea);
+	const savedIdeas = useAIStore((s) => s.savedIdeas);
+	const removeIdea = useAIStore((s) => s.removeIdea);
+	const clearIdeas = useAIStore((s) => s.clearIdeas);
 	const messages = useAIStore((s) => s.studioMessages);
 	const addMessage = useAIStore((s) => s.addStudioMessage);
+	const updateMessage = useAIStore((s) => s.updateStudioMessage);
 	const clearMessages = useAIStore((s) => s.clearStudioMessages);
 	const transcriptSegments = useTranscriptStore((s) => s.segments);
 	const hasTranscript = transcriptSegments.length > 0;
@@ -269,6 +317,7 @@ export function AIStudioView() {
 	const [mode, setMode] = useState<StudioMode>("chat");
 	const [inputValue, setInputValue] = useState("");
 	const [isThinking, setIsThinking] = useState(false);
+	const thinkingMessage = useThinkingMessage(isThinking);
 	const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(
 		null,
 	);
@@ -277,6 +326,17 @@ export function AIStudioView() {
 	);
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
+
+	// ── Model name display ──
+	const [activeModel, setActiveModel] = useState("");
+
+	useEffect(() => {
+		aiClient.llmStatus().then((data) => {
+			if (data.available) {
+				setActiveModel(data.default_model || "");
+			}
+		}).catch(() => {});
+	}, []);
 
 	// Auto-scroll on new messages
 	useEffect(() => {
@@ -304,6 +364,9 @@ export function AIStudioView() {
 		setInputValue("");
 		setIsThinking(true);
 
+		const assistantId = crypto.randomUUID();
+		let messageAdded = false;
+
 		try {
 			let prompt = trimmed;
 			let systemPrompt: string | undefined;
@@ -314,35 +377,57 @@ export function AIStudioView() {
 					"You are a video script editor. The user has a video transcript and wants you to help edit, rewrite, or improve it. " +
 					"When rewriting, preserve the key information but improve the text as requested. " +
 					"Return only the improved text, not explanations.";
-				// If the prompt doesn't already include the transcript, append it
 				if (!prompt.includes(fullText.slice(0, 50))) {
 					prompt = `${prompt}\n\nTranscript:\n${fullText}`;
 				}
 			}
 
-			const result = await aiClient.chat(prompt, systemPrompt);
+			const result = await aiClient.chatStream(
+				prompt,
+				(_token, accumulated) => {
+					if (!messageAdded) {
+						// Add the assistant message only when the first token arrives
+						addMessage({
+							id: assistantId,
+							role: "assistant",
+							content: accumulated,
+						});
+						messageAdded = true;
+					} else {
+						updateMessage(assistantId, accumulated);
+					}
+				},
+				systemPrompt,
+			);
 
-			addMessage({
-				id: crypto.randomUUID(),
-				role: "assistant",
-				content:
-					result.response || "Here's what I suggest based on your request.",
-			});
+			// Final update with complete response
+			if (!result.response) {
+				if (!messageAdded) {
+					addMessage({
+						id: assistantId,
+						role: "assistant",
+						content: "Here's what I suggest based on your request.",
+					});
+				} else {
+					updateMessage(assistantId, "Here's what I suggest based on your request.");
+				}
+			}
 		} catch (error) {
 			const detail = error instanceof Error ? error.message : "";
 			const isOllamaDown = detail.includes("503") || detail.includes("Ollama");
+			const errorContent = isOllamaDown
+				? "Ollama is not running or no LLM model is loaded. Open the AI Setup guide (click the AI indicator in the header) to pull a model like `llama3.2:1b`."
+				: `Something went wrong: ${detail || "Unknown error"}. Make sure the AI backend and Ollama are running with a model loaded.`;
 
-			addMessage({
-				id: crypto.randomUUID(),
-				role: "assistant",
-				content: isOllamaDown
-					? "Ollama is not running or no LLM model is loaded. Open the AI Setup guide (click the AI indicator in the header) to pull a model like `llama3.2:1b`."
-					: `Something went wrong: ${detail || "Unknown error"}. Make sure the AI backend and Ollama are running with a model loaded.`,
-			});
+			if (!messageAdded) {
+				addMessage({ id: assistantId, role: "assistant", content: errorContent });
+			} else {
+				updateMessage(assistantId, errorContent);
+			}
 		} finally {
 			setIsThinking(false);
 		}
-	}, [inputValue, isThinking, isConnected]);
+	}, [inputValue, isThinking, isConnected, mode, hasTranscript, transcriptSegments, addMessage, updateMessage]);
 
 	const handleKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -385,9 +470,18 @@ export function AIStudioView() {
 		<div className="relative flex h-full flex-col overflow-hidden">
 			{/* Header */}
 			<div className="bg-background h-11 shrink-0 px-4 pr-2 flex items-center justify-between border-b">
-				<span className="text-muted-foreground text-sm">
-					AI Studio
-				</span>
+				<div className="flex items-center gap-2">
+					{activeModel && (
+						<Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
+							{activeModel}
+						</Badge>
+					)}
+					{!isConnected && (
+						<Badge variant="outline" className="text-[8px] px-1.5 py-0 text-yellow-500 border-yellow-500/30">
+							Offline
+						</Badge>
+					)}
+				</div>
 				<div className="flex items-center gap-1">
 					{(mode === "chat" || mode === "transcript") && messages.length > 0 && (
 						<Button
@@ -416,6 +510,27 @@ export function AIStudioView() {
 						onClick={() => setMode("chat")}
 					>
 						Chat
+					</Button>
+					<Button
+						variant={mode === "templates" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2"
+						onClick={() => setMode("templates")}
+					>
+						Templates
+					</Button>
+					<Button
+						variant={mode === "ideas" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2 gap-1"
+						onClick={() => setMode("ideas")}
+					>
+						Ideas
+						{savedIdeas.length > 0 && (
+							<span className="bg-primary text-primary-foreground rounded-full text-[8px] size-4 flex items-center justify-center font-bold">
+								{savedIdeas.length}
+							</span>
+						)}
 					</Button>
 					<Button
 						variant={mode === "workflow" ? "secondary" : "ghost"}
@@ -577,7 +692,16 @@ export function AIStudioView() {
 												variant="ghost"
 												size="sm"
 												className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground gap-1"
-												onClick={() => saveIdea(msg.content)}
+												onClick={() => {
+													saveIdea(msg.content);
+													toast.success("Idea saved", {
+														description: "View it in the Ideas tab.",
+														action: {
+															label: "View",
+															onClick: () => setMode("ideas"),
+														},
+													});
+												}}
 											>
 												<HugeiconsIcon icon={Bookmark01Icon} className="size-3" />
 												Save idea
@@ -589,9 +713,15 @@ export function AIStudioView() {
 						))}
 
 						{isThinking && (
-							<div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-								<Spinner className="size-3" />
-								Thinking...
+							<div className="mx-2 my-1">
+								<div className="border border-dashed border-primary/30 rounded-lg px-3 py-2.5 bg-primary/[0.03]">
+									<div className="flex items-center gap-2">
+										<Spinner className="size-3 text-primary/60" />
+										<span className="text-[11px] text-primary/70 font-medium animate-pulse">
+											{thinkingMessage}
+										</span>
+									</div>
+								</div>
 							</div>
 						)}
 					</div>
@@ -656,6 +786,97 @@ export function AIStudioView() {
 						</p>
 					</div>
 				</>
+			)}
+
+			{/* ── Templates Mode ── */}
+			{mode === "templates" && (
+				<TemplatePanel className="flex-1 min-h-0" />
+			)}
+
+			{/* ── Ideas Mode ── */}
+			{mode === "ideas" && (
+				<div className="flex-1 min-h-0 overflow-y-auto px-2 py-3">
+					{savedIdeas.length === 0 ? (
+						<div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
+							<HugeiconsIcon
+								icon={Bookmark01Icon}
+								className="size-8 text-muted-foreground/30"
+							/>
+							<p className="text-xs font-medium">No saved ideas yet</p>
+							<p className="text-[10px] text-muted-foreground leading-relaxed">
+								Chat with AI and hit &ldquo;Save idea&rdquo; on any response to collect it here.
+							</p>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-7 text-[11px] mt-2"
+								onClick={() => setMode("chat")}
+							>
+								<HugeiconsIcon icon={SparklesIcon} className="size-3 mr-1" />
+								Start brainstorming
+							</Button>
+						</div>
+					) : (
+						<>
+							<div className="flex items-center justify-between px-1 mb-2">
+								<p className="text-[11px] text-muted-foreground">
+									{savedIdeas.length} saved idea{savedIdeas.length !== 1 ? "s" : ""}
+								</p>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-6 text-[10px] px-1.5 text-muted-foreground"
+									onClick={clearIdeas}
+								>
+									<HugeiconsIcon icon={Delete02Icon} className="size-3 mr-0.5" />
+									Clear all
+								</Button>
+							</div>
+							<div className="flex flex-col gap-2">
+								{savedIdeas.map((idea) => (
+									<div
+										key={idea.id}
+										className="rounded-lg border px-3 py-2.5 group relative"
+									>
+										<div className="text-xs leading-relaxed line-clamp-6 pr-6">
+											<ReactMarkdown
+												components={{
+													p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+													strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+													ul: ({ children }) => <ul className="list-disc pl-4 mb-1 space-y-0.5">{children}</ul>,
+													ol: ({ children }) => <ol className="list-decimal pl-4 mb-1 space-y-0.5">{children}</ol>,
+													li: ({ children }) => <li>{children}</li>,
+												}}
+											>
+												{idea.content.length > 500
+													? `${idea.content.slice(0, 500)}...`
+													: idea.content}
+											</ReactMarkdown>
+										</div>
+										<div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/50">
+											<span className="text-[9px] text-muted-foreground">
+												{new Date(idea.savedAt).toLocaleDateString(undefined, {
+													month: "short",
+													day: "numeric",
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
+											</span>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-destructive"
+												onClick={() => removeIdea(idea.id)}
+											>
+												<HugeiconsIcon icon={Delete02Icon} className="size-3" />
+											</Button>
+										</div>
+									</div>
+								))}
+							</div>
+						</>
+					)}
+				</div>
 			)}
 
 			{/* ── Workflow Mode ── */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PanelView } from "@/components/editor/panels/assets/views/base-view";
 import {
 	Select,
@@ -27,6 +27,9 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/ui";
+import { aiClient } from "@/lib/ai-client";
+import type { TurboQuantStatus } from "@/types/ai";
+import { toast } from "sonner";
 
 const ORIGINAL_PRESET_VALUE = "original";
 
@@ -59,22 +62,14 @@ export function SettingsView() {
 						<ProjectInfoContent />
 					</SectionContent>
 				</Section>
-				<Popover>
-					<Section className="cursor-pointer">
-						<PopoverTrigger asChild>
-							<div>
-								<SectionHeader
-									trailing={<div className="size-4 rounded-sm bg-red-500" />}
-								>
-									<SectionTitle>Background</SectionTitle>
-								</SectionHeader>
-							</div>
-						</PopoverTrigger>
-					</Section>
-					<PopoverContent>
-						<div className="size-4 rounded-sm bg-red-500" />
-					</PopoverContent>
-				</Popover>
+				<Section>
+					<SectionHeader>
+						<SectionTitle>AI Optimization</SectionTitle>
+					</SectionHeader>
+					<SectionContent>
+						<AIOptimizationSection />
+					</SectionContent>
+				</Section>
 				<Section>
 					<SectionHeader>
 						<SectionTitle>API Keys</SectionTitle>
@@ -178,6 +173,333 @@ function ProjectInfoContent() {
 	);
 }
 
+// ----- AI Optimization Section -----
+
+import {
+	KV_CACHE_CONFIGS,
+	MODEL_TIERS,
+	MEMORY_BUDGETS,
+} from "@/constants/turboquant-constants";
+
+const CONFIG_STORAGE_KEY = "opencut-ai-config";
+
+function loadSavedConfig(): Record<string, string | number> {
+	try {
+		const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+		return raw ? JSON.parse(raw) : {};
+	} catch { return {}; }
+}
+
+function saveConfig(updates: Record<string, string | number>) {
+	try {
+		const existing = loadSavedConfig();
+		localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({ ...existing, ...updates }));
+	} catch { /* ignore */ }
+}
+
+/** Merge user's saved preferences over backend status so selections persist across navigation. */
+function mergeWithSavedConfig(data: TurboQuantStatus): TurboQuantStatus {
+	const saved = loadSavedConfig();
+	if (Object.keys(saved).length === 0) return data;
+	const merged = { ...data };
+	if ("AI_MODEL_TIER" in saved) merged.model_tier = String(saved.AI_MODEL_TIER);
+	if ("KV_CACHE_BITS" in saved) merged.kv_cache_bits = Number(saved.KV_CACHE_BITS);
+	if ("AI_MEMORY_BUDGET" in saved) merged.memory_budget = String(saved.AI_MEMORY_BUDGET);
+	return merged;
+}
+
+function AIOptimizationSection() {
+	const [status, setStatus] = useState<TurboQuantStatus | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	const fetchStatus = useCallback(() => {
+		setLoading(true);
+		aiClient
+			.turboquantStatus()
+			.then((data) => { setStatus(mergeWithSavedConfig(data)); setError(null); })
+			.catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
+			.finally(() => setLoading(false));
+	}, []);
+
+	useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+	// On mount, push any saved config to the backend
+	useEffect(() => {
+		const saved = loadSavedConfig();
+		if (Object.keys(saved).length === 0) return;
+		aiClient.updateConfig(saved)
+			.then(() => fetchStatus())
+			.catch(() => { /* backend not ready yet, config stays in localStorage */ });
+	}, [fetchStatus]);
+
+	const handleConfigUpdate = useCallback((updates: Record<string, string | number>, label: string) => {
+		// 1. Save to localStorage (persists across navigation)
+		saveConfig(updates);
+
+		// 2. Update UI immediately
+		setStatus((prev) => {
+			if (!prev) return prev;
+			const next = { ...prev };
+			if ("AI_MODEL_TIER" in updates) next.model_tier = String(updates.AI_MODEL_TIER);
+			if ("KV_CACHE_BITS" in updates) next.kv_cache_bits = Number(updates.KV_CACHE_BITS);
+			if ("AI_MEMORY_BUDGET" in updates) next.memory_budget = String(updates.AI_MEMORY_BUDGET);
+			return next;
+		});
+		toast.success(`${label} applied`);
+
+		// 3. Push to backend in background
+		aiClient.updateConfig(updates)
+			.then(() => fetchStatus())
+			.catch(() => { /* stays in localStorage for next sync */ });
+	}, [fetchStatus]);
+
+	if (loading) {
+		return <p className="text-[10px] text-muted-foreground">Loading optimization status...</p>;
+	}
+
+	if (error) {
+		return (
+			<p className="text-[10px] text-muted-foreground">
+				AI backend not reachable. Start the backend to configure optimization.
+			</p>
+		);
+	}
+
+	if (!status) return null;
+
+	const hw = status.hardware;
+	const stack = status.stack_memory_estimate;
+	const savingsPercent = stack.total_without_turboquant_mb > 0
+		? Math.round((stack.savings_mb / stack.total_without_turboquant_mb) * 100)
+		: 0;
+
+	// Compute recommendations based on system RAM
+	const ramGb = Math.round(hw.ram_total_mb / 1024);
+	const activeTier = status.model_tier === "auto" ? status.recommended_tier : status.model_tier;
+	const recommendedTier = status.recommended_tier;
+	const recommendedKvBits = ramGb <= 8 ? 3 : 4;
+	const recommendedBudget = ramGb >= 32 ? "32GB" : ramGb >= 16 ? "16GB" : ramGb >= 8 ? "8GB" : "4GB";
+	// Resolve "auto" budget to the actual best match
+	const activeBudget = status.memory_budget === "auto" ? recommendedBudget : status.memory_budget;
+
+	return (
+		<div className="flex flex-col gap-3">
+			{/* Current status row */}
+			<div className="flex items-center justify-between rounded-md border px-2.5 py-1.5 bg-muted/20">
+				<div className="flex items-center gap-1.5">
+					<span
+						className={cn(
+							"size-1.5 rounded-full shrink-0",
+							status.inference_service.available ? "bg-green-500" : "bg-muted-foreground/30",
+						)}
+					/>
+					<span className="text-[10px] font-medium">
+						{status.recommended_model.name}
+					</span>
+				</div>
+				<div className="flex items-center gap-1.5">
+					<Badge variant="secondary" className="text-[8px] px-1 py-0">
+						{Math.round(hw.ram_available_mb / 1024)} / {Math.round(hw.ram_total_mb / 1024)} GB
+					</Badge>
+					{hw.gpu_available && (
+						<Badge variant="secondary" className="text-[8px] px-1 py-0">
+							{hw.gpu_name || "GPU"}
+						</Badge>
+					)}
+				</div>
+			</div>
+
+			{/* Memory savings */}
+			{savingsPercent > 0 && (
+				<div className="flex items-center justify-between rounded-md border border-green-500/20 bg-green-500/5 px-2.5 py-1.5">
+					<span className="text-[10px]">
+						<span className="font-mono font-medium">{(stack.total_with_turboquant_mb / 1024).toFixed(1)} GB</span>
+						<span className="text-muted-foreground line-through ml-1.5 font-mono text-[9px]">
+							{(stack.total_without_turboquant_mb / 1024).toFixed(1)} GB
+						</span>
+					</span>
+					<Badge variant="outline" className="text-[8px] px-1.5 py-0 text-green-500 border-green-500/30">
+						{savingsPercent}% saved
+					</Badge>
+				</div>
+			)}
+
+			{/* Performance tier selector */}
+			<div className="flex flex-col gap-1.5">
+				<Label className="text-xs">Performance Tier</Label>
+				<div className="flex flex-col gap-1">
+					{MODEL_TIERS.map((tier) => {
+						const isActive = activeTier === tier.name;
+						const isRecommended = recommendedTier === tier.name;
+						return (
+							<button
+								key={tier.name}
+								type="button"
+
+								onClick={() => {
+									if (isActive) return;
+									handleConfigUpdate({ AI_MODEL_TIER: tier.name }, `${tier.label} tier`);
+								}}
+								className={cn(
+									"flex items-center justify-between rounded-md border px-2.5 py-1.5 text-left transition-colors",
+									isActive
+										? "border-primary/40 bg-primary/5"
+										: isRecommended
+											? "border-amber-500/30 hover:bg-amber-500/5 cursor-pointer"
+											: "border-border hover:bg-accent cursor-pointer",
+								)}
+							>
+								<div className="flex items-center gap-1.5">
+									{isActive ? (
+										<svg className="size-3 text-primary shrink-0" viewBox="0 0 16 16" fill="none">
+											<path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+										</svg>
+									) : (
+										<span className="size-3 shrink-0" />
+									)}
+									<span className="text-[10px] font-medium">{tier.label}</span>
+									<span className="text-[9px] text-muted-foreground">{tier.ramRange}</span>
+									{isRecommended && (
+										<Badge variant="outline" className={cn(
+											"text-[7px] px-1 py-0",
+											isActive ? "text-primary border-primary/40" : "text-amber-500 border-amber-500/40",
+										)}>
+											Best for {ramGb} GB
+										</Badge>
+									)}
+								</div>
+								<Badge
+									variant={isActive ? "default" : "secondary"}
+									className="text-[8px] px-1 py-0"
+								>
+									{tier.quality}
+								</Badge>
+							</button>
+						);
+					})}
+				</div>
+			</div>
+
+			{/* KV Cache compression selector */}
+			<div className="flex flex-col gap-1.5">
+				<Label className="text-xs">KV Cache Compression</Label>
+				<p className="text-[9px] text-muted-foreground">
+					Lower bits = more memory saved, slightly less accuracy.
+				</p>
+				<div className="flex flex-col gap-1">
+					{KV_CACHE_CONFIGS.map((config) => {
+						const isActive = status.kv_cache_bits === config.bits;
+						const isRecommended = recommendedKvBits === config.bits;
+						return (
+							<button
+								key={config.bits}
+								type="button"
+
+								onClick={() => {
+									if (isActive) return;
+									handleConfigUpdate({ KV_CACHE_BITS: config.bits }, `${config.bits}-bit compression`);
+								}}
+								className={cn(
+									"flex items-center justify-between rounded-md border px-2.5 py-1.5 text-left transition-colors",
+									isActive
+										? "border-primary/40 bg-primary/5"
+										: isRecommended
+											? "border-amber-500/30 hover:bg-amber-500/5 cursor-pointer"
+											: "border-border hover:bg-accent cursor-pointer",
+								)}
+							>
+								<div className="flex items-center gap-1.5">
+									{isActive ? (
+										<svg className="size-3 text-primary shrink-0" viewBox="0 0 16 16" fill="none">
+											<path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+										</svg>
+									) : (
+										<span className="size-3 shrink-0" />
+									)}
+									<span className="text-[10px] font-medium">{config.bits}-bit</span>
+									<span className="text-[9px] text-muted-foreground">
+										{config.compressionRatio}x compression
+									</span>
+									{isRecommended && (
+										<Badge variant="outline" className={cn(
+											"text-[7px] px-1 py-0",
+											isActive ? "text-primary border-primary/40" : "text-amber-500 border-amber-500/40",
+										)}>
+											Recommended
+										</Badge>
+									)}
+								</div>
+								<Badge
+									variant="secondary"
+									className={cn(
+										"text-[8px] px-1 py-0",
+										config.quality === "Near-lossless" && "text-green-500",
+										config.quality === "Minor degradation" && "text-yellow-500",
+										config.quality === "Noticeable loss" && "text-red-500",
+									)}
+								>
+									{config.quality}
+								</Badge>
+							</button>
+						);
+					})}
+				</div>
+			</div>
+
+			{/* Memory budget selector */}
+			<div className="flex flex-col gap-1.5">
+				<Label className="text-xs">Memory Budget</Label>
+				<div className="flex flex-col gap-1">
+					{MEMORY_BUDGETS.filter((b) => b.value !== "auto").map((b) => {
+						const isActive = activeBudget === b.value;
+						const isRecommended = b.value === recommendedBudget;
+						return (
+							<button
+								key={b.value}
+								type="button"
+
+								onClick={() => {
+									if (isActive) return;
+									handleConfigUpdate({ AI_MEMORY_BUDGET: b.value }, `${b.label} budget`);
+								}}
+								className={cn(
+									"flex items-center justify-between rounded-md border px-2.5 py-1.5 text-left transition-colors",
+									isActive
+										? "border-primary/40 bg-primary/5"
+										: isRecommended
+											? "border-amber-500/30 hover:bg-amber-500/5 cursor-pointer"
+											: "border-border hover:bg-accent cursor-pointer",
+								)}
+							>
+								<div className="flex items-center gap-1.5">
+									{isActive ? (
+										<svg className="size-3 text-primary shrink-0" viewBox="0 0 16 16" fill="none">
+											<path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+										</svg>
+									) : (
+										<span className="size-3 shrink-0" />
+									)}
+									<span className="text-[10px] font-medium">{b.label}</span>
+									{isRecommended && (
+										<Badge variant="outline" className={cn(
+											"text-[7px] px-1 py-0",
+											isActive ? "text-primary border-primary/40" : "text-amber-500 border-amber-500/40",
+										)}>
+											Best match
+										</Badge>
+									)}
+								</div>
+								<span className="text-[9px] text-muted-foreground">{b.description}</span>
+							</button>
+						);
+					})}
+				</div>
+			</div>
+		</div>
+	);
+}
+
 // ----- API Keys Section -----
 
 const API_KEY_FIELDS = [
@@ -200,36 +522,6 @@ const API_KEY_FIELDS = [
 		envValue: process.env.FREESOUND_API_KEY || "",
 		info: "Required to preview and download sounds from Freesound. Without this key, the Sounds panel won't return results.",
 		required: true,
-	},
-	{
-		key: "NEXT_PUBLIC_AI_BACKEND_URL",
-		label: "AI Backend URL",
-		placeholder: "http://localhost:8420",
-		description: "AI service endpoint",
-		envVar: "NEXT_PUBLIC_AI_BACKEND_URL",
-		envValue: process.env.NEXT_PUBLIC_AI_BACKEND_URL || "",
-		info: "The URL where the AI backend is running. Change this if you're running the backend on a different port or remote server. Default: http://localhost:8420",
-		required: false,
-	},
-	{
-		key: "openai",
-		label: "OpenAI API Key",
-		placeholder: "sk-...",
-		description: "Cloud AI models",
-		envVar: "OPENAI_API_KEY",
-		envValue: "",
-		info: "Unlocks access to GPT-4 and other OpenAI models for higher quality AI commands, script editing, and content generation. Without this, the editor uses local Ollama models.",
-		required: false,
-	},
-	{
-		key: "elevenlabs",
-		label: "ElevenLabs API Key",
-		placeholder: "xi-...",
-		description: "Premium voice generation",
-		envVar: "ELEVENLABS_API_KEY",
-		envValue: "",
-		info: "Enables high-quality, natural-sounding voice generation with 100+ voices and voice cloning. Without this, the editor uses the local Coqui TTS service.",
-		required: false,
 	},
 	{
 		key: "sarvam",
