@@ -30,6 +30,7 @@ import { cn } from "@/utils/ui";
 import { aiClient } from "@/lib/ai-client";
 import type { TurboQuantStatus } from "@/types/ai";
 import { toast } from "sonner";
+import { FactCheckView } from "./factcheck";
 
 const ORIGINAL_PRESET_VALUE = "original";
 
@@ -78,7 +79,9 @@ export function SettingsView() {
 						<APIKeysSection />
 					</SectionContent>
 				</Section>
-			</div>
+				{/* Fact Check renders its own PanelView header */}
+				<FactCheckView />
+				</div>
 		</PanelView>
 	);
 }
@@ -541,6 +544,26 @@ const API_KEY_FIELDS = [
 		envVar: "OPENCUTAI_SMALLEST_API_KEY",
 		envValue: process.env.NEXT_PUBLIC_SMALLEST_API_KEY || process.env.OPENCUTAI_SMALLEST_API_KEY || "",
 		info: "Enables ultra-low-latency text-to-speech with 80+ natural voices across 15 languages, and speech-to-text supporting 39 languages with speaker diarization and emotion detection. Get your key at app.smallest.ai.",
+		required: false,
+	},
+	{
+		key: "pexels",
+		label: "Pexels API Key",
+		placeholder: "Your Pexels API key",
+		description: "Free stock photos for B-roll suggestions",
+		envVar: "PEXELS_API_KEY",
+		envValue: process.env.PEXELS_API_KEY || "",
+		info: "Enables stock photo search in B-roll suggestions. Pexels offers free high-quality photos with 200 requests/hour. Get your key at pexels.com/api — instant signup, no payment required.",
+		required: false,
+	},
+	{
+		key: "seedance",
+		label: "Seedance API Key (PiAPI)",
+		placeholder: "Your PiAPI key for Seedance 2.0",
+		description: "Text-to-video generation via Seedance 2.0 (ByteDance)",
+		envVar: "OPENCUTAI_SEEDANCE_API_KEY",
+		envValue: process.env.NEXT_PUBLIC_SEEDANCE_API_KEY || process.env.OPENCUTAI_SEEDANCE_API_KEY || "",
+		info: "Enables AI video generation from text prompts using Seedance 2.0 by ByteDance. Access via PiAPI — get your key at piapi.ai. Supports text-to-video in 16:9, 9:16, 1:1, and more. You can also use local generation without this key.",
 		required: false,
 	},
 ];

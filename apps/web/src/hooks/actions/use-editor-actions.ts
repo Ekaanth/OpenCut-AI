@@ -14,6 +14,7 @@ import {
 	TranscriptSnapshotCommand,
 } from "@/lib/commands/transcript";
 import { toast } from "sonner";
+import { useVersionStore } from "@/stores/version-store";
 
 export function useEditorActions() {
 	const editor = useEditor();
@@ -535,6 +536,60 @@ export function useEditorActions() {
 		"redo",
 		() => {
 			editor.command.redo();
+		},
+		undefined,
+	);
+
+	// ─── Version control shortcuts ────────────────────────────────────────
+
+	const openCommitDialog = useVersionStore((s) => s.openCommitDialog);
+
+	useActionHandler(
+		"version-commit",
+		() => {
+			openCommitDialog();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"version-history-toggle",
+		() => {
+			// Dispatch a custom event the header listens for to toggle the drawer
+			window.dispatchEvent(new CustomEvent("opencut:toggle-vc-drawer"));
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"version-diff-working",
+		() => {
+			// Open drawer to the diff tab
+			window.dispatchEvent(new CustomEvent("opencut:toggle-vc-drawer", { detail: { tab: "diff" } }));
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"version-branch-switcher",
+		() => {
+			// Open drawer (branch switcher is in the header bar, but drawer gives full access)
+			window.dispatchEvent(new CustomEvent("opencut:toggle-vc-drawer"));
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"open-command-palette",
+		() => {
+			window.dispatchEvent(
+				new KeyboardEvent("keydown", {
+					key: "p",
+					ctrlKey: true,
+					shiftKey: true,
+					bubbles: true,
+				}),
+			);
 		},
 		undefined,
 	);

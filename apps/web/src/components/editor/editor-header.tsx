@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "../ui/button";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -19,7 +19,7 @@ import { ThemeToggle } from "../theme-toggle";
 import { SOCIAL_LINKS } from "@/constants/site-constants";
 import { toast } from "sonner";
 import { useEditor } from "@/hooks/use-editor";
-import { CommandIcon, Logout05Icon } from "@hugeicons/core-free-icons";
+import { CommandIcon, Logout05Icon, Search01Icon, SparklesIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShortcutsDialog } from "./dialogs/shortcuts-dialog";
 import { OpenCutAILogo } from "@/components/footer";
@@ -30,10 +30,29 @@ import { useAIStore } from "@/stores/ai-store";
 import { aiClient } from "@/lib/ai-client";
 import { MemoryStatusBar, type MemoryStatusInfo } from "@/components/editor/ai/memory-status-bar";
 import { SaveStatus } from "@/components/editor/save-status";
+import { VersionControlBar } from "@/components/editor/version-control-bar";
+import { VersionControlDrawer } from "@/components/editor/version-control-drawer";
+import {
+	Dialog,
+	DialogBody,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { useAssetsPanelStore } from "@/stores/assets-panel-store";
 
 export function EditorHeader() {
 	const { isConnected, backendStatus, error, errorType, refresh } = useAIStatus();
 	const toggleSetupGuide = useAIStore((s) => s.toggleSetupGuide);
+	const [vcDrawerOpen, setVcDrawerOpen] = useState(false);
+
+	// Listen for keyboard shortcut events to toggle VC drawer
+	useEffect(() => {
+		const handler = () => setVcDrawerOpen((prev) => !prev);
+		window.addEventListener("opencut:toggle-vc-drawer", handler);
+		return () => window.removeEventListener("opencut:toggle-vc-drawer", handler);
+	}, []);
 
 	const memoryStatus: MemoryStatusInfo = useMemo(
 		() => ({
@@ -66,6 +85,9 @@ export function EditorHeader() {
 				<EditableProjectName />
 				<SaveStatus className="ml-2" />
 			</div>
+			<div className="flex items-center gap-2">
+				<VersionControlBar onOpenDrawer={() => setVcDrawerOpen(true)} />
+			</div>
 			<nav className="flex items-center gap-2">
 				{isConnected && <MemoryStatusBar status={memoryStatus} />}
 				<AIStatusIndicator
@@ -76,13 +98,14 @@ export function EditorHeader() {
 				<ExportButton />
 				<ThemeToggle />
 			</nav>
+			<VersionControlDrawer open={vcDrawerOpen} onOpenChange={setVcDrawerOpen} />
 		</header>
 	);
 }
 
 function ProjectDropdown() {
 	const [openDialog, setOpenDialog] = useState<
-		"delete" | "rename" | "shortcuts" | null
+		"delete" | "rename" | "shortcuts" | "features" | null
 	>(null);
 	const [isExiting, setIsExiting] = useState(false);
 	const router = useRouter();
@@ -168,6 +191,37 @@ function ProjectDropdown() {
 						Shortcuts
 					</DropdownMenuItem>
 
+					<DropdownMenuItem
+						onClick={() => {
+							// Dispatch Cmd+Shift+P to open command palette
+							window.dispatchEvent(
+								new KeyboardEvent("keydown", {
+									key: "p",
+									ctrlKey: true,
+									shiftKey: true,
+									bubbles: true,
+								}),
+							);
+						}}
+						icon={<HugeiconsIcon icon={Search01Icon} />}
+					>
+						<span className="flex items-center justify-between w-full">
+							Search Features
+							<kbd className="text-[10px] text-muted-foreground/50 ml-2">
+								Ctrl+Shift+P
+							</kbd>
+						</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuSeparator />
+
+					<DropdownMenuItem
+						onClick={() => setOpenDialog("features")}
+						icon={<HugeiconsIcon icon={SparklesIcon} />}
+					>
+						Features
+					</DropdownMenuItem>
+
 					<DropdownMenuSeparator />
 
 					</DropdownMenuContent>
@@ -188,7 +242,88 @@ function ProjectDropdown() {
 				isOpen={openDialog === "shortcuts"}
 				onOpenChange={(isOpen) => setOpenDialog(isOpen ? "shortcuts" : null)}
 			/>
+			<FeaturesDialog
+				isOpen={openDialog === "features"}
+				onOpenChange={(isOpen) => setOpenDialog(isOpen ? "features" : null)}
+			/>
 		</>
+	);
+}
+
+function FeaturesDialog({
+	isOpen,
+	onOpenChange,
+}: {
+	isOpen: boolean;
+	onOpenChange: (open: boolean) => void;
+}) {
+	const { setActiveTab } = useAssetsPanelStore();
+
+	const features = [
+		{ name: "AI Studio", desc: "AI-powered editing: remove silences, filler words, auto-caption", tab: "ai" as const, shortcut: "Ctrl+K" },
+		{ name: "Version History", desc: "Git-like commits, branches, merging, and diff for video — always in the header bar", shortcut: "Ctrl+Shift+S" },
+		{ name: "Media", desc: "Import and manage video, audio, and image files", tab: "media" as const },
+		{ name: "Text", desc: "Add and style text overlays on your video", tab: "text" as const },
+		{ name: "Captions & Transcript", desc: "Auto-generate subtitles from speech", tab: "captions" as const },
+		{ name: "Audio", desc: "Sound effects, AI voiceover, and podcast clip extraction", tab: "audio" as const },
+		{ name: "Elements", desc: "Stickers, emojis, and overlay transitions", tab: "elements" as const },
+		{ name: "Visuals", desc: "Effects, color filters, and manual adjustments", tab: "visuals" as const },
+		{ name: "Brand Kit", desc: "Brand colors, fonts, logos, and quick overlays", tab: "brandkit" as const },
+		{ name: "Fact Check", desc: "AI-powered claim verification (in Settings)", tab: "settings" as const },
+		{ name: "Command Palette", desc: "Search any feature, action, or shortcut instantly", shortcut: "Ctrl+Shift+P" },
+	];
+
+	return (
+		<Dialog open={isOpen} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-md">
+				<DialogHeader>
+					<DialogTitle>Features</DialogTitle>
+				</DialogHeader>
+				<DialogBody className="gap-0 p-0">
+					<div className="max-h-[60vh] overflow-y-auto divide-y divide-border/50">
+						{features.map((f) => (
+							<button
+								key={f.name}
+								type="button"
+								className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+								onClick={() => {
+									if (f.tab) {
+										setActiveTab(f.tab);
+									} else if (f.shortcut) {
+										window.dispatchEvent(
+											new KeyboardEvent("keydown", {
+												key: "p",
+												ctrlKey: true,
+												shiftKey: true,
+												bubbles: true,
+											}),
+										);
+									}
+									onOpenChange(false);
+								}}
+							>
+								<div className="flex items-center justify-between">
+									<span className="text-sm font-medium">{f.name}</span>
+									{f.shortcut && (
+										<kbd className="text-[10px] text-muted-foreground/50 px-1.5 py-0.5 rounded border border-border/50 bg-muted/30">
+											{f.shortcut}
+										</kbd>
+									)}
+								</div>
+								<div className="text-xs text-muted-foreground/60 mt-0.5">
+									{f.desc}
+								</div>
+							</button>
+						))}
+					</div>
+				</DialogBody>
+				<DialogFooter>
+					<Button variant="outline" onClick={() => onOpenChange(false)}>
+						Close
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

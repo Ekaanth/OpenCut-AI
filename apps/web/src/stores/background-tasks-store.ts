@@ -5,7 +5,7 @@ export type BackgroundTaskStatus = "running" | "completed" | "error";
 
 export interface BackgroundTask {
 	id: string;
-	type: "transcription" | "voiceover" | "translation" | "tts" | "clip-finder" | "keyword-extraction" | "question-cards" | "popover-subs" | "speaker-diarization" | "template-generation";
+	type: "transcription" | "voiceover" | "translation" | "tts" | "clip-finder" | "keyword-extraction" | "question-cards" | "popover-subs" | "speaker-diarization" | "template-generation" | "broll-suggestions" | "broll-batch";
 	label: string;
 	status: BackgroundTaskStatus;
 	progress: string;
@@ -44,24 +44,28 @@ export const useBackgroundTasksStore = create<BackgroundTasksState>(
 		},
 
 		updateTask: (id, updates) => {
+			// Guard: don't re-notify if task is already in a terminal state
+			const existing = get().tasks.find((t) => t.id === id);
+			if (!existing) return;
+			const wasTerminal = existing.status === "completed" || existing.status === "error";
+
 			set((state) => ({
 				tasks: state.tasks.map((t) =>
 					t.id === id ? { ...t, ...updates } : t,
 				),
 			}));
 
-			// Show toast on error
+			// Only toast on the first transition to a terminal state
+			if (wasTerminal) return;
+
 			if (updates.status === "error" && updates.error) {
-				const task = get().tasks.find((t) => t.id === id);
-				toast.error(`${task?.label ?? "Task"} failed`, {
+				toast.error(`${existing.label} failed`, {
 					description: updates.error,
 				});
 			}
 
-			// Show toast on completion
 			if (updates.status === "completed") {
-				const task = get().tasks.find((t) => t.id === id);
-				toast.success(`${task?.label ?? "Task"} completed`);
+				toast.success(`${existing.label} completed`);
 			}
 		},
 

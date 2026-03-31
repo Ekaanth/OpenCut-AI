@@ -303,8 +303,8 @@ export function QuickActionsBar({ className }: { className?: string }) {
 
 	// --- Find Clips (opens panel) ---
 	const handleFindClips = useCallback(() => {
-		useAssetsPanelStore.getState().setActiveTab("podcast");
-		toast.info("Switched to Podcast Clips panel — click 'Find best clips' to start.");
+		useAssetsPanelStore.getState().setActiveTab("audio");
+		toast.info("Switched to Audio panel — use the Podcast tab to find best clips.");
 		setFindClipsStatus("done");
 	}, []);
 

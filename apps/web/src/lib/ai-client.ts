@@ -2,6 +2,7 @@ import type {
 	AIBackendStatus,
 	AIErrorType,
 	AISuggestion,
+	BRollSuggestionsResult,
 	CommandResult,
 	DenoiseResult,
 	EmotionDetectionResult,
@@ -29,6 +30,9 @@ import type {
 	StructureAnalysis,
 	TTSRequest,
 	TTSResult,
+	VideoGenRequest,
+	VideoGenResult,
+	PromptGenResult,
 } from "@/types/ai";
 
 interface MemoryStatus {
@@ -170,6 +174,22 @@ class AIClient {
 		const key = this.getSmallestApiKey();
 		if (!key) return {};
 		return { "X-Smallest-Api-Key": key };
+	}
+
+	/** Get the Seedance API key from localStorage or env. */
+	private getSeedanceApiKey(): string {
+		return (
+			getStoredApiKey("seedance") ||
+			process.env.NEXT_PUBLIC_SEEDANCE_API_KEY ||
+			""
+		);
+	}
+
+	/** Build extra headers that include the Seedance API key for passthrough. */
+	private seedanceHeaders(): Record<string, string> {
+		const key = this.getSeedanceApiKey();
+		if (!key) return {};
+		return { "X-Seedance-Api-Key": key };
 	}
 
 	private async request<T>(
@@ -1172,6 +1192,16 @@ class AIClient {
 		});
 	}
 
+	/** Suggest B-roll visuals for transcript segments. */
+	async suggestBRoll(
+		segments: { id: number; text: string; start: number; end: number; words: { word: string; start: number; end: number; confidence: number }[] }[],
+	): Promise<BRollSuggestionsResult> {
+		return this.requestWithKeepalive<BRollSuggestionsResult>("/api/analyze/broll-suggestions", {
+			method: "POST",
+			body: JSON.stringify({ segments }),
+		});
+	}
+
 	async denoiseAudio(
 		file: File,
 		strength: number,
@@ -1217,6 +1247,7 @@ class AIClient {
 		topic: string,
 		duration: number = 15,
 		style: string = "engaging",
+		language: string = "en",
 	): Promise<{ job_id: string; status: string; result?: ReelTemplate }> {
 		const url = `${this.baseUrl}/api/template/generate`;
 		const controller = new AbortController();
@@ -1227,7 +1258,7 @@ class AIClient {
 			response = await fetch(url, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ topic, duration, style }),
+				body: JSON.stringify({ topic, duration, style, language }),
 				signal: controller.signal,
 			});
 			clearTimeout(timeoutId);
@@ -1474,6 +1505,37 @@ class AIClient {
 	async turboquantDeleteModel(modelId: string): Promise<{ status: string }> {
 		return this.request(`/api/turboquant/models/${encodeURIComponent(modelId)}`, {
 			method: "DELETE",
+		});
+	}
+
+	// ── Video Generation ─────────────────────────────────────────────
+
+	/** Generate a video prompt from a template description using the LLM. */
+	async generateVideoPrompt(
+		title: string,
+		description: string,
+		style?: string,
+	): Promise<PromptGenResult> {
+		return this.requestWithKeepalive<PromptGenResult>("/api/video/generate-prompt", {
+			method: "POST",
+			headers: { ...this.seedanceHeaders() },
+			body: JSON.stringify({ title, description, style }),
+		});
+	}
+
+	/** Start video generation using the given prompt and provider. */
+	async generateVideo(request: VideoGenRequest): Promise<VideoGenResult> {
+		return this.requestWithKeepalive<VideoGenResult>("/api/video/generate", {
+			method: "POST",
+			headers: { ...this.seedanceHeaders() },
+			body: JSON.stringify(request),
+		});
+	}
+
+	/** Poll a video generation job for status. */
+	async getVideoJob(jobId: string): Promise<VideoGenResult> {
+		return this.request<VideoGenResult>(`/api/video/jobs/${jobId}`, {
+			headers: { ...this.seedanceHeaders() },
 		});
 	}
 }

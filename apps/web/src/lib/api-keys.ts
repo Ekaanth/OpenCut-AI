@@ -44,3 +44,11 @@ export function getFreesoundHeaders(): Record<string, string> {
 	}
 	return {};
 }
+
+export function getSeedanceHeaders(): Record<string, string> {
+	const apiKey = getApiKey("seedance");
+	if (apiKey) {
+		return { "x-seedance-api-key": apiKey };
+	}
+	return {};
+}

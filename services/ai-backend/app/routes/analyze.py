@@ -269,3 +269,99 @@ async def smart_suggestions(
                 os.remove(upload_path)
 
     return streamed_llm_response(_work, error_detail="Suggestion generation failed.")
+
+
+# ---------------------------------------------------------------------------
+# B-Roll suggestions (from transcript segments, no file upload)
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel as _BaseModel
+
+
+class _BRollSegment(_BaseModel):
+    id: int
+    text: str
+    start: float
+    end: float
+    words: list[dict] = []
+
+
+class _BRollRequest(_BaseModel):
+    segments: list[_BRollSegment]
+
+
+@router.post("/broll-suggestions")
+async def broll_suggestions(request: _BRollRequest):
+    """Suggest B-roll visuals for each transcript segment.
+
+    Takes already-transcribed segments and returns per-segment visual
+    suggestions with image prompts and stock footage search keywords.
+    Uses keepalive streaming so the frontend doesn't timeout.
+    """
+    if not request.segments:
+        return {"suggestions": [], "totalSegments": 0}
+
+    available = await llm_backend.check_available()
+    if not available:
+        raise HTTPException(status_code=503, detail="LLM backend not available.")
+
+    async def _work():
+        # Build a compact transcript for the LLM
+        transcript_lines = []
+        for seg in request.segments:
+            transcript_lines.append(
+                f"[{seg.id}] {seg.start:.1f}s-{seg.end:.1f}s: {seg.text}"
+            )
+        transcript_text = "\n".join(transcript_lines)
+
+        system = (
+            "You are a video editor who suggests B-roll visuals. "
+            "Respond with valid JSON only."
+        )
+
+        prompt = f"""Analyze this transcript and suggest B-roll visuals for segments that would benefit from visual support.
+
+Transcript:
+{transcript_text}
+
+For each segment that needs B-roll, return a suggestion. Not every segment needs one — skip talking-head segments that work fine without B-roll. Focus on segments that mention places, objects, concepts, data, or actions.
+
+Return JSON:
+{{"suggestions":[{{"segmentIndex":0,"startTime":0.0,"endTime":3.0,"segmentText":"...","visualDescription":"what to show on screen","imagePrompt":"detailed prompt for AI image generation","stockKeywords":["keyword1","keyword2"],"mood":"energetic","priority":"high"}}]}}
+
+Rules:
+- segmentIndex matches the [id] from the transcript
+- imagePrompt should be a vivid visual description suitable for Stable Diffusion or similar
+- stockKeywords are 2-4 search terms for stock footage libraries
+- mood is the visual energy (calm, energetic, dramatic, playful, professional)
+- priority: "high" for critical visuals, "medium" for nice-to-have, "low" for optional
+- Return 3-8 suggestions, focusing on the most impactful moments"""
+
+        data = await llm_backend.generate_json(prompt=prompt, system=system)
+
+        suggestions = data.get("suggestions", [])
+        # Validate and clean up
+        cleaned = []
+        seg_ids = {s.id for s in request.segments}
+        for s in suggestions:
+            idx = s.get("segmentIndex", -1)
+            if idx not in seg_ids:
+                continue
+            cleaned.append({
+                "segmentIndex": idx,
+                "startTime": float(s.get("startTime", 0)),
+                "endTime": float(s.get("endTime", 0)),
+                "segmentText": s.get("segmentText", ""),
+                "visualDescription": s.get("visualDescription", ""),
+                "imagePrompt": s.get("imagePrompt", ""),
+                "stockKeywords": s.get("stockKeywords", []),
+                "mood": s.get("mood", "neutral"),
+                "priority": s.get("priority", "medium"),
+            })
+
+        return {
+            "suggestions": cleaned,
+            "totalSegments": len(request.segments),
+        }
+
+    return streamed_llm_response(_work, error_detail="B-roll suggestion failed.")

@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import shutil
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -236,6 +237,7 @@ class ModelManager:
     """Manages downloading, loading, and switching between models."""
 
     def __init__(self):
+        self._lock = threading.Lock()
         self.active_model: LoadedModel | None = None
         self.downloaded_models: dict[str, dict] = {}
         self.download_progress: dict[str, dict] = {}
@@ -332,24 +334,25 @@ class ModelManager:
 
     def load_model(self, model_id: str) -> LoadedModel:
         """Load a model into memory. Unloads the current model first."""
-        if self.active_model and self.active_model.model_id == model_id:
-            logger.info("Model '%s' is already loaded", model_id)
-            return self.active_model
+        with self._lock:
+            if self.active_model and self.active_model.model_id == model_id:
+                logger.info("Model '%s' is already loaded", model_id)
+                return self.active_model
 
-        if self.loading_model:
-            raise RuntimeError(
-                f"Already loading '{self.loading_model}'. Wait for it to finish."
-            )
+            if self.loading_model:
+                raise RuntimeError(
+                    f"Already loading '{self.loading_model}'. Wait for it to finish."
+                )
 
-        self.loading_model = model_id
-        try:
-            # Unload current model
-            if self.active_model:
-                self._unload_current()
+            self.loading_model = model_id
+            try:
+                # Unload current model
+                if self.active_model:
+                    self._unload_current()
 
-            return self._load(model_id)
-        finally:
-            self.loading_model = None
+                return self._load(model_id)
+            finally:
+                self.loading_model = None
 
     def _load(self, model_id: str) -> LoadedModel:
         """Internal: load a model."""
@@ -435,20 +438,21 @@ class ModelManager:
 
     def delete_model(self, model_id: str) -> bool:
         """Delete a downloaded model from disk."""
-        if self.active_model and self.active_model.model_id == model_id:
-            self.unload()
+        with self._lock:
+            if self.active_model and self.active_model.model_id == model_id:
+                self._unload_current()
 
-        info = self.downloaded_models.get(model_id)
-        if not info:
-            return False
+            info = self.downloaded_models.get(model_id)
+            if not info:
+                return False
 
-        path = Path(info["path"])
-        if path.exists():
-            shutil.rmtree(path, ignore_errors=True)
-            logger.info("Deleted model files at %s", path)
+            path = Path(info["path"])
+            if path.exists():
+                shutil.rmtree(path, ignore_errors=True)
+                logger.info("Deleted model files at %s", path)
 
-        self.downloaded_models.pop(model_id, None)
-        return True
+            self.downloaded_models.pop(model_id, None)
+            return True
 
     def get_catalog(self) -> list[dict]:
         """Return the model catalog with download/load status."""

@@ -23,6 +23,7 @@ import { useAIStore } from "@/stores/ai-store";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { toast } from "sonner";
 import { TemplatePanel } from "@/components/editor/ai/template-panel";
+import { BRollSuggestionsPanel } from "@/components/editor/ai/broll-suggestions-panel";
 
 // ----- Thinking Messages -----
 
@@ -78,7 +79,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll";
 
 // ----- Workflow Steps -----
 
@@ -532,6 +533,16 @@ export function AIStudioView() {
 							</span>
 						)}
 					</Button>
+					{hasTranscript && (
+						<Button
+							variant={mode === "broll" ? "secondary" : "ghost"}
+							size="sm"
+							className="h-6 text-[10px] px-2"
+							onClick={() => setMode("broll")}
+						>
+							B-Roll
+						</Button>
+					)}
 					<Button
 						variant={mode === "workflow" ? "secondary" : "ghost"}
 						size="sm"
@@ -791,6 +802,11 @@ export function AIStudioView() {
 			{/* ── Templates Mode ── */}
 			{mode === "templates" && (
 				<TemplatePanel className="flex-1 min-h-0" />
+			)}
+
+			{/* ── B-Roll Mode ── */}
+			{mode === "broll" && (
+				<BRollSuggestionsPanel className="flex-1 min-h-0" />
 			)}
 
 			{/* ── Ideas Mode ── */}

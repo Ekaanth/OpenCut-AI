@@ -7,7 +7,8 @@ export type TActionCategory =
 	| "selection"
 	| "history"
 	| "timeline"
-	| "controls";
+	| "controls"
+	| "version";
 
 export interface TActionDefinition {
 	description: string;
@@ -158,6 +159,35 @@ export const ACTIONS = {
 		description: "Redo",
 		category: "history",
 		defaultShortcuts: ["ctrl+shift+z", "ctrl+y"],
+	},
+	"version-commit": {
+		description: "Open commit dialog",
+		category: "version",
+		defaultShortcuts: ["ctrl+shift+s"],
+	},
+	"version-history-toggle": {
+		description: "Toggle version history panel",
+		category: "version",
+		defaultShortcuts: ["ctrl+shift+h"],
+	},
+	"version-diff-working": {
+		description: "Show diff of uncommitted changes",
+		category: "version",
+		defaultShortcuts: ["ctrl+shift+d"],
+	},
+	"version-branch-switcher": {
+		description: "Open branch switcher",
+		category: "version",
+		defaultShortcuts: ["ctrl+shift+b"],
+	},
+	"version-branch-create": {
+		description: "Quick create branch",
+		category: "version",
+	},
+	"open-command-palette": {
+		description: "Open command palette",
+		category: "controls",
+		defaultShortcuts: ["ctrl+shift+p"],
 	},
 } as const satisfies Record<string, TActionDefinition>;
 

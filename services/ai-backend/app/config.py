@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     SMALLEST_API_KEY: str = ""
     SMALLEST_API_BASE_URL: str = "https://api.smallest.ai/waves/v1"
 
+    # Seedance (ByteDance text-to-video generation via PiAPI)
+    SEEDANCE_API_KEY: str = ""
+    SEEDANCE_API_BASE_URL: str = "https://api.piapi.ai"
+
     # Whisper (kept for local fallback / model manager)
     WHISPER_MODEL_SIZE: str = "base"
     WHISPER_DEVICE: str = "auto"

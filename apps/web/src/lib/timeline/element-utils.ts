@@ -183,6 +183,7 @@ export function buildTextElement({
 		letterSpacing: t.letterSpacing ?? DEFAULT_TEXT_ELEMENT.letterSpacing,
 		lineHeight: t.lineHeight ?? DEFAULT_TEXT_ELEMENT.lineHeight,
 		transform: t.transform ?? DEFAULT_TEXT_ELEMENT.transform,
+		hidden: t.hidden,
 		opacity: t.opacity ?? DEFAULT_TEXT_ELEMENT.opacity,
 		blendMode: t.blendMode ?? DEFAULT_BLEND_MODE,
 	};

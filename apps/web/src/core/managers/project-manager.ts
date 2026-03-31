@@ -9,6 +9,7 @@ import type {
 } from "@/types/project";
 import type { ExportOptions, ExportResult, ExportState } from "@/types/export";
 import { storageService } from "@/services/storage/service";
+import { VersionStorage } from "@/services/storage/version-storage";
 import { toast } from "sonner";
 import { generateUUID } from "@/utils/id";
 import { UpdateProjectSettingsCommand } from "@/lib/commands/project";
@@ -263,6 +264,8 @@ export class ProjectManager {
 					Promise.all([
 						storageService.deleteProjectMedia({ projectId: id }),
 						storageService.deleteProject({ id }),
+						// Clean up version control database for this project
+						new VersionStorage(id).deleteDatabase().catch(() => {}),
 					]),
 				),
 			);

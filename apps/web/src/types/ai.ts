@@ -123,6 +123,24 @@ export interface StructureAnalysis {
 	suggestedDescription?: string;
 }
 
+// B-Roll suggestions
+export interface BRollSuggestion {
+	segmentIndex: number;
+	startTime: number;
+	endTime: number;
+	segmentText: string;
+	visualDescription: string;
+	imagePrompt: string;
+	stockKeywords: string[];
+	mood: string;
+	priority: "high" | "medium" | "low";
+}
+
+export interface BRollSuggestionsResult {
+	suggestions: BRollSuggestion[];
+	totalSegments: number;
+}
+
 // Suggestion types
 export interface AISuggestion {
 	id: string;
@@ -324,6 +342,30 @@ export interface ReelTemplate {
 	title: string;
 	segments: ReelTemplateSegment[];
 	background_audio: AudioSuggestion;
+}
+
+// Video generation types
+export interface VideoGenRequest {
+	prompt: string;
+	duration: number;
+	width: number;
+	height: number;
+	provider: "seedance" | "local";
+}
+
+export interface VideoGenResult {
+	videoUrl: string;
+	prompt: string;
+	duration: number;
+	provider: string;
+	status: "completed" | "processing" | "failed";
+	jobId?: string;
+	error?: string;
+}
+
+export interface PromptGenResult {
+	prompt: string;
+	enhancedDescription: string;
 }
 
 // TurboQuant optimization types

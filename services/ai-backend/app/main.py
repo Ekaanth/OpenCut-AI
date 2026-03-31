@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, template, transcribe, transcribe_ws, tts, turboquant
+from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, template, transcribe, transcribe_ws, tts, turboquant, video
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +45,11 @@ async def lifespan(app: FastAPI):
         settings.KV_CACHE_BITS,
         settings.AI_MEMORY_BUDGET,
         settings.AI_MODEL_TIER,
+    )
+    logger.info(
+        "Seedance: %s (key %s)",
+        settings.SEEDANCE_API_BASE_URL,
+        "configured" if settings.SEEDANCE_API_KEY else "NOT configured",
     )
     yield
     logger.info("Shutdown complete.")
@@ -86,6 +91,7 @@ app.include_router(sarvam.router)
 app.include_router(smallest.router)
 app.include_router(template.router)
 app.include_router(turboquant.router)
+app.include_router(video.router)
 
 
 @app.get("/health")

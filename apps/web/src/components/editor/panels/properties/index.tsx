@@ -7,11 +7,15 @@ import { TextProperties } from "./text-properties";
 import { EffectProperties } from "./effect-properties";
 import { ClipEffectsProperties } from "./clip-effects-properties";
 import { EmptyView } from "./empty-view";
+import {
+	TemplateGuideProperties,
+	isTemplateGuideElement,
+} from "./template-guide-properties";
 import { useEditor } from "@/hooks/use-editor";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
 import { usePropertiesStore } from "@/stores/properties-store";
 import { isVisualElement } from "@/lib/timeline";
-import type { TimelineElement, TimelineTrack } from "@/types/timeline";
+import type { TextElement, TimelineElement, TimelineTrack } from "@/types/timeline";
 
 function ElementProperties({
 	track,
@@ -20,6 +24,15 @@ function ElementProperties({
 	track: TimelineTrack;
 	element: TimelineElement;
 }) {
+	// Template guide elements get a custom production view instead of text properties
+	if (isTemplateGuideElement(element)) {
+		return (
+			<TemplateGuideProperties
+				element={element as TextElement}
+				trackId={track.id}
+			/>
+		);
+	}
 	if (element.type === "text") {
 		return <TextProperties element={element} trackId={track.id} />;
 	}

@@ -26,6 +26,7 @@ import { useTranscribePrompt } from "@/hooks/use-transcribe-prompt";
 import { useEffect, useRef } from "react";
 import type { TextElement } from "@/types/timeline";
 import { BackgroundTasksWidget } from "@/components/editor/background-tasks";
+import { CommandPalette } from "@/components/editor/command-palette";
 
 export default function Editor() {
 	const params = useParams();
@@ -43,6 +44,7 @@ export default function Editor() {
 					<Onboarding />
 					<MigrationDialog />
 					<BackgroundTasksWidget />
+					<CommandPalette />
 				</div>
 			</EditorProvider>
 		</MobileGate>

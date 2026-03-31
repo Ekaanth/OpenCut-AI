@@ -158,12 +158,15 @@ class LLMBackend:
         self,
         messages: list[dict[str, str]],
         model: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         payload: dict[str, Any] = {
             "model": model or self.default_model,
             "messages": messages,
             "stream": False,
         }
+        if temperature is not None:
+            payload["options"] = {"temperature": temperature}
         async with self._ollama_client() as client:
             resp = await client.post("/api/chat", json=payload)
             resp.raise_for_status()
@@ -204,6 +207,7 @@ class LLMBackend:
         self,
         messages: list[dict[str, str]],
         model: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=10.0)) as client:
             resp = await client.post(
@@ -212,7 +216,7 @@ class LLMBackend:
                     "model": model,
                     "messages": messages,
                     "max_tokens": 2048,
-                    "temperature": 0.7,
+                    "temperature": temperature if temperature is not None else 0.7,
                 },
             )
             resp.raise_for_status()
@@ -341,17 +345,18 @@ class LLMBackend:
         self,
         messages: list[dict[str, str]],
         model: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         """Multi-turn chat — routes to TurboQuant or Ollama."""
         if await self._should_use_turboquant():
             try:
                 logger.debug("Routing chat to TurboQuant")
-                return await self._tq_chat(messages, model)
+                return await self._tq_chat(messages, model, temperature)
             except Exception:
                 logger.warning("TurboQuant chat failed, falling back to Ollama")
                 self._tq_available = False
 
-        return await self._ollama_chat(messages, model)
+        return await self._ollama_chat(messages, model, temperature)
 
     async def check_available(self) -> bool:
         """Check if any LLM backend is available."""

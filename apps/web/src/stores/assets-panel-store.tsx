@@ -2,20 +2,14 @@ import type { ElementType } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-	ArrowRightDoubleIcon,
 	ClosedCaptionIcon,
 	Folder03Icon,
-	Happy01Icon,
 	HeadphonesIcon,
 	MagicWand05Icon,
 	TextIcon,
 	Settings01Icon,
-	SlidersHorizontalIcon,
-	ColorsIcon,
 	SparklesIcon,
-	CheckmarkBadge01Icon,
-	AiMicIcon,
-	Mic01Icon,
+	Happy01Icon,
 	CrownIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
@@ -23,18 +17,12 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 export const TAB_KEYS = [
 	"media",
 	"ai",
-	"captions",
-	"podcast",
 	"text",
-	"sounds",
-	"voiceover",
-	"stickers",
-	"effects",
-	"transitions",
-	"filters",
-	"adjustment",
+	"captions",
+	"audio",
+	"elements",
+	"visuals",
 	"brandkit",
-	"factcheck",
 	"settings",
 ] as const;
 
@@ -47,61 +35,37 @@ const createHugeiconsIcon =
 	);
 
 export const tabs = {
-	ai: {
-		icon: createHugeiconsIcon({ icon: SparklesIcon }),
-		label: "AI Studio",
-	},
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
 		label: "Media",
 	},
-	sounds: {
-		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
-		label: "Sounds",
-	},
-	voiceover: {
-		icon: createHugeiconsIcon({ icon: AiMicIcon }),
-		label: "Voiceover",
+	ai: {
+		icon: createHugeiconsIcon({ icon: SparklesIcon }),
+		label: "AI Studio",
 	},
 	text: {
 		icon: createHugeiconsIcon({ icon: TextIcon }),
 		label: "Text",
 	},
-	stickers: {
-		icon: createHugeiconsIcon({ icon: Happy01Icon }),
-		label: "Stickers",
-	},
-	effects: {
-		icon: createHugeiconsIcon({ icon: MagicWand05Icon }),
-		label: "Effects",
-	},
-	transitions: {
-		icon: createHugeiconsIcon({ icon: ArrowRightDoubleIcon }),
-		label: "Overlays",
-	},
 	captions: {
 		icon: createHugeiconsIcon({ icon: ClosedCaptionIcon }),
-		label: "Transcript",
+		label: "Captions",
 	},
-	podcast: {
-		icon: createHugeiconsIcon({ icon: Mic01Icon }),
-		label: "Podcast Clips",
+	audio: {
+		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
+		label: "Audio",
+	},
+	elements: {
+		icon: createHugeiconsIcon({ icon: Happy01Icon }),
+		label: "Elements",
+	},
+	visuals: {
+		icon: createHugeiconsIcon({ icon: MagicWand05Icon }),
+		label: "Visuals",
 	},
 	brandkit: {
 		icon: createHugeiconsIcon({ icon: CrownIcon }),
 		label: "Brand Kit",
-	},
-	factcheck: {
-		icon: createHugeiconsIcon({ icon: CheckmarkBadge01Icon }),
-		label: "Fact Check",
-	},
-	filters: {
-		icon: createHugeiconsIcon({ icon: ColorsIcon }),
-		label: "Filters",
-	},
-	adjustment: {
-		icon: createHugeiconsIcon({ icon: SlidersHorizontalIcon }),
-		label: "Adjustment",
 	},
 	settings: {
 		icon: createHugeiconsIcon({ icon: Settings01Icon }),
