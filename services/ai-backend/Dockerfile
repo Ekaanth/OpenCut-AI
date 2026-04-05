@@ -16,8 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Install yt-dlp binary (latest stable)
+RUN pip install --no-cache-dir yt-dlp
+
 # Create directories for generated files and uploads
-RUN mkdir -p generated uploads
+RUN mkdir -p generated uploads uploads/youtube
 
 EXPOSE 8420
 

@@ -8,7 +8,8 @@ export type TActionCategory =
 	| "history"
 	| "timeline"
 	| "controls"
-	| "version";
+	| "version"
+	| "ai";
 
 export interface TActionDefinition {
 	description: string;
@@ -188,6 +189,11 @@ export const ACTIONS = {
 		description: "Open command palette",
 		category: "controls",
 		defaultShortcuts: ["ctrl+shift+p"],
+	},
+	"check-engagement-score": {
+		description: "Check engagement score",
+		category: "ai",
+		defaultShortcuts: ["ctrl+shift+e"],
 	},
 } as const satisfies Record<string, TActionDefinition>;
 

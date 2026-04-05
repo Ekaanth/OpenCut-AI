@@ -1538,6 +1538,151 @@ class AIClient {
 			headers: { ...this.seedanceHeaders() },
 		});
 	}
+
+	// ── YouTube to Reels ─────────────────────────────────────────────
+
+	/** Ingest a YouTube video: validate, fetch metadata, start audio download. */
+	async youtubeIngest(
+		url: string,
+		ownershipConfirmed: boolean,
+		language?: string,
+	): Promise<{ job_id: string; video_meta: YouTubeVideoMeta; estimated_processing_minutes: number }> {
+		return this.request("/api/youtube/ingest", {
+			method: "POST",
+			body: JSON.stringify({ url, ownership_confirmed: ownershipConfirmed, language }),
+		});
+	}
+
+	/** Poll YouTube job status. */
+	async youtubeJobStatus(jobId: string): Promise<YouTubeJobStatus> {
+		return this.request(`/api/youtube/status/${jobId}`);
+	}
+
+	/** Cancel a YouTube job. */
+	async youtubeCancel(jobId: string): Promise<{ status: string }> {
+		return this.request(`/api/youtube/cancel/${jobId}`, { method: "POST" });
+	}
+
+	/** Run clip detection on a downloaded YouTube video. */
+	async youtubeAnalyze(
+		jobId: string,
+		config: { minDuration?: number; maxDuration?: number; maxClips?: number },
+	): Promise<{ job_id: string; message: string }> {
+		return this.request("/api/youtube/analyze", {
+			method: "POST",
+			body: JSON.stringify({
+				job_id: jobId,
+				min_clip_duration: config.minDuration ?? 15,
+				max_clip_duration: config.maxDuration ?? 90,
+				max_clips: config.maxClips ?? 10,
+			}),
+		});
+	}
+
+	/** Generate selected clips as reels. */
+	async youtubeGenerateClips(
+		jobId: string,
+		clips: { clip_index: number; start: number; end: number; title: string }[],
+		config: { outputFormat?: string; captionStyle?: string; autoReframe?: boolean; addHook?: boolean; resolution?: string },
+	): Promise<{ job_id: string; message: string }> {
+		return this.request("/api/youtube/clips", {
+			method: "POST",
+			body: JSON.stringify({
+				job_id: jobId,
+				selected_clips: clips,
+				output_format: config.outputFormat ?? "9:16",
+				caption_style: config.captionStyle ?? "modern",
+				auto_reframe: config.autoReframe ?? true,
+				add_hook: config.addHook ?? false,
+				resolution: config.resolution ?? "1080",
+			}),
+		});
+	}
+
+	// ── Engagement Scoring ───────────────────────────────────────────
+
+	/** Score a single clip's engagement potential. */
+	async engagementScore(
+		clip: { audio_path?: string; transcript_text?: string; start: number; end: number; title?: string; video_path?: string },
+	): Promise<EngagementScoreResult> {
+		return this.requestWithKeepalive("/api/engagement/score", {
+			method: "POST",
+			body: JSON.stringify(clip),
+		});
+	}
+
+	/** Score a video file's engagement potential. */
+	async engagementScoreVideo(file: File, transcriptText?: string): Promise<EngagementScoreResult> {
+		const formData = new FormData();
+		formData.append("file", file);
+		if (transcriptText) formData.append("transcript_text", transcriptText);
+		return this.requestFormData("/api/engagement/score-video", formData, LLM_TIMEOUT_MS);
+	}
+
+	/** Score multiple clips in batch. */
+	async engagementScoreBatch(
+		clips: { audio_path?: string; transcript_text?: string; start: number; end: number; title?: string }[],
+	): Promise<{ scores: EngagementScoreResult[] }> {
+		return this.requestWithKeepalive("/api/engagement/score-batch", {
+			method: "POST",
+			body: JSON.stringify({ clips }),
+		});
+	}
+}
+
+// ── YouTube / Engagement types ──────────────────────────────────────
+
+export interface YouTubeVideoMeta {
+	video_id: string;
+	title: string;
+	channel_name: string;
+	channel_id: string;
+	duration_seconds: number;
+	thumbnail_url: string;
+	upload_date: string;
+	view_count: number | null;
+	is_live: boolean;
+	is_private: boolean;
+	warning: string | null;
+}
+
+export interface YouTubeJobStatus {
+	job_id: string;
+	status: string;
+	progress: number;
+	message: string;
+	result: Record<string, unknown> | null;
+	error: string | null;
+}
+
+export interface EngagementSubScore {
+	composite: number;
+	[key: string]: unknown;
+}
+
+export interface EngagementScoreResult {
+	hook: EngagementSubScore;
+	curiosity: EngagementSubScore;
+	energy: EngagementSubScore;
+	audio_sync: EngagementSubScore;
+	face_presence: EngagementSubScore;
+	emotional_arc: EngagementSubScore;
+	virality: EngagementSubScore;
+	suggestions: { signal: string; current_score: number; suggestion: string; action_type: string; expected_impact: string }[];
+	composite: number;
+	grade: string;
+	grade_label: string;
+}
+
+export interface ScoredClipData {
+	index: number;
+	title: string;
+	start: number;
+	end: number;
+	duration?: number;
+	transcript_preview: string;
+	tags: string[];
+	engagement: EngagementScoreResult | null;
 }
 
 export const aiClient = new AIClient();

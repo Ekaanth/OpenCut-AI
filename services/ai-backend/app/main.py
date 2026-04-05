@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import analyze, audio, command, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, template, transcribe, transcribe_ws, tts, turboquant, video
+from app.routes import analyze, audio, command, engagement, export, factcheck, generate, llm, podcast, sarvam, setup, smallest, template, transcribe, transcribe_ws, tts, turboquant, video, youtube
 
 # Configure logging
 logging.basicConfig(
@@ -92,6 +92,8 @@ app.include_router(smallest.router)
 app.include_router(template.router)
 app.include_router(turboquant.router)
 app.include_router(video.router)
+app.include_router(youtube.router)
+app.include_router(engagement.router)
 
 
 @app.get("/health")

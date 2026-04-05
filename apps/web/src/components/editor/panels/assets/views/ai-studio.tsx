@@ -24,6 +24,7 @@ import { useTranscriptStore } from "@/stores/transcript-store";
 import { toast } from "sonner";
 import { TemplatePanel } from "@/components/editor/ai/template-panel";
 import { BRollSuggestionsPanel } from "@/components/editor/ai/broll-suggestions-panel";
+import { YouTubeReelsPanel } from "@/components/editor/youtube/youtube-reels-panel";
 
 // ----- Thinking Messages -----
 
@@ -79,7 +80,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels";
 
 // ----- Workflow Steps -----
 
@@ -551,6 +552,14 @@ export function AIStudioView() {
 					>
 						Workflows
 					</Button>
+					<Button
+						variant={mode === "youtube-reels" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2"
+						onClick={() => setMode("youtube-reels")}
+					>
+						YT Reels
+					</Button>
 				</div>
 			</div>
 
@@ -808,6 +817,14 @@ export function AIStudioView() {
 			{mode === "broll" && (
 				<BRollSuggestionsPanel className="flex-1 min-h-0" />
 			)}
+
+			{/* ── YouTube Reels Mode ── */}
+			{mode === "youtube-reels" && (
+				<div className="flex-1 min-h-0 overflow-y-auto px-2 py-3">
+					<YouTubeReelsPanel />
+				</div>
+			)}
+
 
 			{/* ── Ideas Mode ── */}
 			{mode === "ideas" && (

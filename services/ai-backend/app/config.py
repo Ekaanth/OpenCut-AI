@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     # AI Memory Budget & Model Tiers
     AI_MEMORY_BUDGET: str = "auto"  # "auto", "4GB", "8GB", "16GB", "32GB"
     AI_MODEL_TIER: str = "auto"  # "lite", "standard", "pro", "auto"
-    AI_LLM_BACKEND: str = "auto"  # "ollama", "turboquant", "auto" (TQ when available, else Ollama)
-    KV_CACHE_BITS: int = 4  # 2, 3, or 4 — TurboQuant KV cache quantization bits
+    AI_LLM_BACKEND: str = "auto"  # "ollama", "turboquant", "auto" (TQ with KV-cache optimization when available, else Ollama)
+    KV_CACHE_BITS: int = 2  # 2, 3, or 4 — TurboQuant KV cache quantization bits (2 = most memory efficient, default)
 
     # Microservice URLs
     WHISPER_SERVICE_URL: str = "http://localhost:8421"
@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     SEEDANCE_API_KEY: str = ""
     SEEDANCE_API_BASE_URL: str = "https://api.piapi.ai"
 
+    # Google OAuth (for YouTube channel ownership verification)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/api/auth/youtube/callback"
+
     # Whisper (kept for local fallback / model manager)
     WHISPER_MODEL_SIZE: str = "base"
     WHISPER_DEVICE: str = "auto"
@@ -64,6 +69,24 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = str(
         Path(__file__).resolve().parent.parent / "uploads"
     )
+
+    # Redis (for job queue)
+    REDIS_URL: str = "redis://localhost:6379"
+
+    # YouTube to Reels
+    YOUTUBE_MAX_DURATION_SECONDS: int = 14400  # 4 hours
+    YOUTUBE_MAX_CONCURRENT_JOBS: int = 3
+    YOUTUBE_MAX_DAILY_JOBS: int = 20
+    YOUTUBE_JOB_TTL_HOURS: int = 24
+
+    # Engagement scoring weights (must sum to 1.0)
+    ENGAGEMENT_HOOK_WEIGHT: float = 0.25
+    ENGAGEMENT_CURIOSITY_WEIGHT: float = 0.20
+    ENGAGEMENT_VIRALITY_WEIGHT: float = 0.15
+    ENGAGEMENT_ENERGY_WEIGHT: float = 0.15
+    ENGAGEMENT_EMOTION_WEIGHT: float = 0.10
+    ENGAGEMENT_AUDIO_SYNC_WEIGHT: float = 0.10
+    ENGAGEMENT_FACE_WEIGHT: float = 0.05
 
     # Limits
     MAX_UPLOAD_SIZE: int = 500 * 1024 * 1024  # 500 MB
@@ -88,6 +111,23 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Validate engagement weights sum to 1.0
+_engagement_sum = (
+    settings.ENGAGEMENT_HOOK_WEIGHT
+    + settings.ENGAGEMENT_CURIOSITY_WEIGHT
+    + settings.ENGAGEMENT_VIRALITY_WEIGHT
+    + settings.ENGAGEMENT_ENERGY_WEIGHT
+    + settings.ENGAGEMENT_EMOTION_WEIGHT
+    + settings.ENGAGEMENT_AUDIO_SYNC_WEIGHT
+    + settings.ENGAGEMENT_FACE_WEIGHT
+)
+if abs(_engagement_sum - 1.0) > 0.01:
+    raise ValueError(
+        f"Engagement weights must sum to 1.0, got {_engagement_sum:.3f}. "
+        "Check OPENCUTAI_ENGAGEMENT_*_WEIGHT environment variables."
+    )
+
 # Ensure directories exist
 os.makedirs(settings.GENERATED_DIR, exist_ok=True)
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+os.makedirs(os.path.join(settings.UPLOAD_DIR, "youtube"), exist_ok=True)

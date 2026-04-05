@@ -28,8 +28,11 @@ services/ai-backend/__pycache__/
 services/ai-backend/**/__pycache__/
 services/ai-backend/*.pyc
 services/ai-backend/generated/
+services/ai-backend/uploads/
 services/ai-backend/*.egg-info/
 
 # AI models and generated content
 ai-models/
 ai-generated/
+
+*.md

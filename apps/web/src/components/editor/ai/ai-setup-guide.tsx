@@ -620,7 +620,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 						<ServiceCard
 							title="Voice (TTS)"
 							status={isTTSRunning
-								? tts.model_loaded
+								? (tts.model_loaded || activeTTSModel)
 									? "loaded"
 									: tts.model_installed === false
 										? "not_installed"
@@ -630,11 +630,11 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 							detail={
 								!isTTSRunning
 									? SERVICE_URLS.tts
-									: tts.model_loaded
+									: (tts.model_loaded || activeTTSModel)
 										? `${activeTTSModel || tts.model_name || "xtts_v2"} loaded`
 										: tts.model_installed === false
 											? "Not installed"
-											: "Model not loaded"
+											: "Choose a model to load"
 							}
 						>
 							{!isTTSRunning && (
@@ -649,7 +649,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 							{isTTSRunning && (
 								<div className="mt-2 flex flex-col gap-2">
 									{/* Active model */}
-									{tts.model_loaded && activeTTSModel && (
+									{(tts.model_loaded || activeTTSModel) && activeTTSModel && (
 										<div className="flex flex-col gap-1">
 											<span className="text-[11px] text-muted-foreground font-medium">Active model</span>
 											<div className="flex items-center justify-between rounded px-2 py-1.5 text-[11px] bg-primary/10 border border-primary/30">
@@ -687,7 +687,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 									{/* Model list */}
 									<div className="flex flex-col gap-1">
 										<span className="text-[11px] text-muted-foreground font-medium">
-											{tts.model_loaded ? "Switch to a different model" : "Choose a model to load"}
+											{(tts.model_loaded || activeTTSModel) ? "Switch to a different model" : "Choose a model to load"}
 										</span>
 										{SUGGESTED_TTS_MODELS.map((model) => {
 											const isActive = model.name === activeTTSModel;
@@ -781,15 +781,15 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 						<ServiceCard
 							title="Whisper (Transcription)"
 							status={isWhisperRunning
-								? (whisper.model_loaded ? "loaded" : "available")
+								? (whisper.model_loaded || activeWhisperModel ? "loaded" : "available")
 								: "stopped"
 							}
 							detail={
 								!isWhisperRunning
 									? SERVICE_URLS.whisper
-									: whisper.model_loaded
+									: (whisper.model_loaded || activeWhisperModel)
 										? `"${activeWhisperModel || whisper.model_size || "base"}" loaded`
-										: "Model not loaded"
+										: "Choose a model to load"
 							}
 						>
 							{!isWhisperRunning && (
@@ -804,7 +804,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 							{isWhisperRunning && (
 								<div className="mt-2 flex flex-col gap-2">
 									{/* Active model */}
-									{whisper.model_loaded && activeWhisperModel && (
+									{(whisper.model_loaded || activeWhisperModel) && activeWhisperModel && (
 										<div className="flex flex-col gap-1">
 											<span className="text-[11px] text-muted-foreground font-medium">Active model</span>
 											<div className="flex items-center justify-between rounded px-2 py-1.5 text-[11px] bg-primary/10 border border-primary/30">
@@ -842,7 +842,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 									{/* Model list */}
 									<div className="flex flex-col gap-1">
 										<span className="text-[11px] text-muted-foreground font-medium">
-											{whisper.model_loaded ? "Switch to a different model" : "Choose a model to load"}
+											{(whisper.model_loaded || activeWhisperModel) ? "Switch to a different model" : "Choose a model to load"}
 										</span>
 										{SUGGESTED_WHISPER_MODELS.map((model) => {
 											const isActive = model.name === activeWhisperModel;
@@ -920,7 +920,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 						<ServiceCard
 							title="Image Generation"
 							status={isImageRunning
-								? diffusion.model_loaded
+								? (diffusion.model_loaded || activeImageModel)
 									? "loaded"
 									: diffusion.model_installed === false
 										? "not_installed"
@@ -930,11 +930,11 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 							detail={
 								!isImageRunning
 									? SERVICE_URLS.image
-									: diffusion.model_loaded
+									: (diffusion.model_loaded || activeImageModel)
 										? `${activeImageModel || diffusion.model_name || "stable-diffusion-2-1"} loaded`
 										: diffusion.model_installed === false
 											? "Not installed"
-											: "Model not loaded"
+											: "Choose a model to load"
 							}
 						>
 							{!isImageRunning && (
@@ -949,7 +949,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 							{isImageRunning && (
 								<div className="mt-2 flex flex-col gap-2">
 									{/* Active model */}
-									{diffusion.model_loaded && activeImageModel && (
+									{(diffusion.model_loaded || activeImageModel) && activeImageModel && (
 										<div className="flex flex-col gap-1">
 											<span className="text-[11px] text-muted-foreground font-medium">Active model</span>
 											<div className="flex items-center justify-between rounded px-2 py-1.5 text-[11px] bg-primary/10 border border-primary/30">
@@ -987,7 +987,7 @@ export function AISetupGuide({ isOpen, onOpenChange }: AISetupGuideProps) {
 									{/* Model list */}
 									<div className="flex flex-col gap-1">
 										<span className="text-[11px] text-muted-foreground font-medium">
-											{diffusion.model_loaded ? "Switch to a different model" : "Choose a model to load"}
+											{(diffusion.model_loaded || activeImageModel) ? "Switch to a different model" : "Choose a model to load"}
 										</span>
 										{SUGGESTED_IMAGE_MODELS.map((model) => {
 											const isActive = model.name === activeImageModel;
