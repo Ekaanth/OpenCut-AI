@@ -1,0 +1,172 @@
+{
+  "blameprompt_version": "1.0.1",
+  "receipts": [
+    {
+      "id": "ee8a0783-9038-4370-91aa-0997afe61a4d",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "8d7835e8-9564-4cc7-acd0-c43d88fa09cc",
+      "prompt_summary": "update the read me files based on the recent cahnges and new features addition",
+      "response_summary": "Updated the root `README.md` with:\n\n1. **Virality Score** and **YouTube to Reels** added as top AI features\n2. **Sarvam AI** and **Smallest AI** mentioned under voice/TTS\n3. **TurboQuant inference** added as a new feature\n4. **Project structure** expanded with backend routes and services detail\n5. **AI Backend section** updated with optional dependencies table (Redis, yt-dlp, Google OAuth) and new environment variables for YouTube and engagement scoring\n6. **Resource usage table** updated with TurboQuant, YouTube-to-Reels, engagement scoring, and updated TTS providers",
+      "prompt_hash": "sha256:6004f3f3aa0637826563172e858cf9149978b5c7cc4878f19dc62750945991a8",
+      "message_count": 49,
+      "cost_usd": 0.15175899999999998,
+      "input_tokens": 5,
+      "output_tokens": 6,
+      "cache_read_tokens": 185418,
+      "cache_creation_tokens": 9420,
+      "timestamp": "2026-04-05T14:14:18.677Z",
+      "session_start": "2026-04-05T14:04:13.082Z",
+      "session_end": "2026-04-05T14:15:30.374Z",
+      "session_duration_secs": 677,
+      "ai_response_time_secs": 5.54045,
+      "prompt_submitted_at": "2026-04-05T14:14:18.899411Z",
+      "prompt_duration_secs": 71,
+      "accepted_lines": 154,
+      "overridden_lines": 54,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "README.md",
+      "line_range": [
+        20,
+        184
+      ],
+      "files_changed": [
+        {
+          "path": "README.md",
+          "line_range": [
+            20,
+            184
+          ],
+          "blob_hash": "964d3d15ed64cd43105b4c92e6d30818f4350264",
+          "additions": 38,
+          "deletions": 5
+        }
+      ],
+      "prompt_number": 3,
+      "total_additions": 38,
+      "total_deletions": 5,
+      "tools_used": [
+        "Bash",
+        "Edit",
+        "Glob",
+        "Read"
+      ],
+      "concurrent_tool_calls": 2,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "update the read me files based on the recent cahnges and new features addition"
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Glob(pattern: \"**/README.md\")",
+          "tool_name": "Glob"
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Glob(pattern: \"README.md\"), Glob(pattern: \"*/README.md\")",
+          "tool_name": "Glob"
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Glob(pattern: \"*/*/README.md\")",
+          "tool_name": "Glob"
+        },
+        {
+          "turn": 4,
+          "role": "assistant",
+          "content": "No project-level README.md files exist (only node_modules). Let me check if there's a root README or any docs."
+        },
+        {
+          "turn": 5,
+          "role": "tool",
+          "content": "Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/OpenCut-AI/*.md [REDACTED_HOME]/Document...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 6,
+          "role": "tool",
+          "content": "Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/OpenCut-AI/*.md 2>/dev/null; ls [REDACTED_HOME]\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 7,
+          "role": "assistant",
+          "content": "Good, there's a root `README.md`. Let me read it along with the key feature docs."
+        },
+        {
+          "turn": 8,
+          "role": "tool",
+          "content": "Read(file: \"README.md\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 9,
+          "role": "assistant",
+          "content": "Now I have the full picture. I need to update the README with the new features: Virality Score, YouTube-to-Reels, Engagement Scoring, Sarvam AI, Smallest AI, TurboQuant, and related additions."
+        },
+        {
+          "turn": 10,
+          "role": "tool",
+          "content": "Edit(file: \"README.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 11,
+          "role": "tool",
+          "content": "Edit(file: \"README.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 12,
+          "role": "tool",
+          "content": "Edit(file: \"README.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 13,
+          "role": "assistant",
+          "content": "Now update the resource usage table to include the new services."
+        },
+        {
+          "turn": 14,
+          "role": "tool",
+          "content": "Edit(file: \"README.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 15,
+          "role": "assistant",
+          "content": "Updated the root `README.md` with:\n\n1. **Virality Score** and **YouTube to Reels** added as top AI features\n2. **Sarvam AI** and **Smallest AI** mentioned under voice/TTS\n3. **TurboQuant inference** added as a new feature\n4. **Project structure** expanded with backend routes and services detail\n5. **AI Backend section** updated with optional dependencies table (Redis, yt-dlp, Google OAuth) and new environment variables for YouTube and engagement scoring\n6. **Resource usage table** updated with TurboQuant, YouTube-to-Reels, engagement scoring, and updated TTS providers"
+        }
+      ],
+      "prompt_quality": {
+        "score": 49,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    }
+  ]
+}
