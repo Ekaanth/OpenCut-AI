@@ -9,7 +9,6 @@ Computes a composite hook score (0-100) from multiple signals:
 """
 
 import asyncio
-import asyncio
 import logging
 import math
 import struct

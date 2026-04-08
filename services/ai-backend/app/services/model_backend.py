@@ -339,7 +339,6 @@ class LLMBackend:
                     logger.warning("JSON parse failed (attempt %d), retrying: %s", attempt + 1, e)
                     continue
                 raise
-        raise last_error or ValueError("LLM did not return valid JSON")
 
     async def chat(
         self,

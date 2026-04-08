@@ -176,8 +176,13 @@ async def set_model(request: SetModelRequest) -> dict:
 
 
 @router.post("/pull-model")
-async def pull_model(request: PullModelRequest) -> dict:
-    """Pull/download a model from the Ollama registry."""
+async def pull_model(request: PullModelRequest) -> StreamingResponse:
+    """Pull/download a model from the Ollama registry.
+
+    Returns a streaming response with newline-delimited JSON for progress.
+    Each line: {"status": "...", "completed": N, "total": N, "progress": 0-100}
+    Final line on success: {"status": "success", "model": "..."}
+    """
     available = await ollama_service.check_available()
     if not available:
         raise HTTPException(
@@ -185,9 +190,39 @@ async def pull_model(request: PullModelRequest) -> dict:
             detail="Ollama server is not available. Please start Ollama first.",
         )
 
-    try:
-        result = await ollama_service.pull_model(request.model)
-        return {"status": "success", "model": request.model, "details": result}
-    except Exception as e:
-        logger.exception("Failed to pull model '%s'", request.model)
-        raise HTTPException(status_code=500, detail=str(e))
+    async def _stream():
+        try:
+            async for update in ollama_service.pull_model_stream(request.model):
+                # Compute a progress percentage when Ollama provides totals
+                total = update.get("total", 0)
+                completed = update.get("completed", 0)
+                progress = round((completed / total) * 100, 1) if total > 0 else 0
+
+                yield json.dumps({
+                    "status": update.get("status", "downloading"),
+                    "digest": update.get("digest", ""),
+                    "total": total,
+                    "completed": completed,
+                    "progress": progress,
+                }) + "\n"
+
+            yield json.dumps({
+                "status": "success",
+                "model": request.model,
+                "progress": 100,
+            }) + "\n"
+        except Exception as e:
+            logger.exception("Failed to pull model '%s'", request.model)
+            yield json.dumps({
+                "status": "error",
+                "message": str(e),
+            }) + "\n"
+
+    return StreamingResponse(
+        _stream(),
+        media_type="application/x-ndjson",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

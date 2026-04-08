@@ -1003,11 +1003,53 @@ class AIClient {
 		return this.request("/api/llm/status");
 	}
 
-	async pullModel(modelName: string): Promise<void> {
-		await this.request<void>("/api/llm/pull-model", {
+	async pullModel(
+		modelName: string,
+		onProgress?: (progress: number, status: string) => void,
+	): Promise<void> {
+		const url = `${this.baseUrl}/api/llm/pull-model`;
+		const response = await fetch(url, {
 			method: "POST",
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ model: modelName }),
 		});
+
+		if (!response.ok) {
+			const errorBody = await response.text().catch(() => "Unknown error");
+			throw new Error(`AI Backend error (${response.status}): ${errorBody}`);
+		}
+
+		if (!response.body) return;
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+
+			const chunk = decoder.decode(value, { stream: true });
+			const lines = chunk.split("\n").filter(Boolean);
+
+			for (const line of lines) {
+				try {
+					const data = JSON.parse(line) as {
+						status?: string;
+						progress?: number;
+						message?: string;
+					};
+					if (data.status === "error") {
+						throw new Error(data.message ?? "Pull failed");
+					}
+					if (onProgress && data.progress !== undefined) {
+						onProgress(data.progress, data.status ?? "downloading");
+					}
+				} catch (e) {
+					if (e instanceof Error && e.message !== "Pull failed") continue;
+					throw e;
+				}
+			}
+		}
 	}
 
 	async setLLMModel(modelName: string): Promise<{
@@ -1075,11 +1117,12 @@ class AIClient {
 		return this.request<ServicesStatus>("/api/services/status", {}, HEALTH_TIMEOUT_MS);
 	}
 
-	async pullOllamaModel(modelName: string): Promise<{ status: string; model: string }> {
-		return this.request<{ status: string; model: string }>("/api/llm/pull-model", {
-			method: "POST",
-			body: JSON.stringify({ model: modelName }),
-		});
+	async pullOllamaModel(
+		modelName: string,
+		onProgress?: (progress: number, status: string) => void,
+	): Promise<{ status: string; model: string }> {
+		await this.pullModel(modelName, onProgress);
+		return { status: "success", model: modelName };
 	}
 
 	async prepareWhisper(modelSize?: string): Promise<{ status: string; message: string }> {

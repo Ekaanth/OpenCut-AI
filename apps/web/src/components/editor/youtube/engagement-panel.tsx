@@ -52,6 +52,8 @@ export function EngagementPanel({ className }: { className?: string }) {
 			const msg = e instanceof Error ? e.message : "Scoring failed";
 			setError(msg);
 			toast.error("Failed to check engagement score");
+		} finally {
+			setAnalyzing(false);
 		}
 	}, [segments, setScore, setAnalyzing, setError]);
 

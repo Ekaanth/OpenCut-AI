@@ -89,7 +89,11 @@ const SUGGESTED_MODELS = [
 	{ name: "qwen2.5:3b", description: "Strong multilingual, TurboQuant validated", size: "~2 GB", device: "cpu" as const, turboquant: true },
 	{ name: "qwen2.5:7b", description: "Excellent quality, multilingual", size: "~4.7 GB", device: "gpu" as const, turboquant: true },
 	{ name: "phi3.5:3.8b", description: "Microsoft Phi — 128K context, compact", size: "~2.2 GB", device: "cpu" as const, turboquant: true },
-	{ name: "gemma2:2b", description: "Google Gemma — efficient and fast", size: "~1.6 GB", device: "cpu" as const, turboquant: true },
+	{ name: "gemma2:2b", description: "Google Gemma 2 — efficient and fast", size: "~1.6 GB", device: "cpu" as const, turboquant: true },
+	{ name: "gemma4:e2b", description: "Google Gemma 4 — 5B any-to-any multimodal", size: "~7.2 GB", device: "cpu" as const, turboquant: true },
+	{ name: "gemma4:e4b", description: "Google Gemma 4 — 8B any-to-any multimodal", size: "~9.6 GB", device: "gpu" as const, turboquant: true },
+	{ name: "gemma4:26b", description: "Google Gemma 4 MoE — 26B params, 4B active", size: "~18 GB", device: "gpu" as const, turboquant: true },
+	{ name: "gemma4:31b", description: "Google Gemma 4 Dense — top quality 31B", size: "~20 GB", device: "gpu" as const, turboquant: true },
 ];
 
 const SUGGESTED_TTS_MODELS = [

@@ -49,15 +49,81 @@ class OllamaService:
             return []
 
     async def pull_model(self, model: str) -> dict[str, Any]:
-        """Pull / download a model. Returns the final status."""
+        """Pull / download a model using streaming to avoid timeouts.
+
+        Streams progress from Ollama and returns the final status line.
+        """
+        final_status: dict[str, Any] = {}
         async with self._client() as client:
-            resp = await client.post(
+            async with client.stream(
+                "POST",
                 "/api/pull",
-                json={"name": model, "stream": False},
-                timeout=httpx.Timeout(600.0, connect=10.0),
+                json={"name": model, "stream": True},
+                timeout=httpx.Timeout(1800.0, connect=10.0),
+            ) as resp:
+                if resp.status_code != 200:
+                    body = await resp.aread()
+                    error_msg = self._extract_ollama_error(resp.status_code, body)
+                    raise RuntimeError(error_msg)
+                async for line in resp.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if "error" in data:
+                            raise RuntimeError(data["error"].strip())
+                        final_status = data
+                    except json.JSONDecodeError:
+                        continue
+        return final_status
+
+    async def pull_model_stream(self, model: str):
+        """Pull / download a model, yielding progress dicts as they arrive.
+
+        Each yielded dict contains: status, digest (optional),
+        total (optional), completed (optional).
+        Raises RuntimeError with a user-friendly message on failure.
+        """
+        async with self._client() as client:
+            async with client.stream(
+                "POST",
+                "/api/pull",
+                json={"name": model, "stream": True},
+                timeout=httpx.Timeout(1800.0, connect=10.0),
+            ) as resp:
+                if resp.status_code != 200:
+                    body = await resp.aread()
+                    error_msg = self._extract_ollama_error(resp.status_code, body)
+                    raise RuntimeError(error_msg)
+                async for line in resp.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if "error" in data:
+                            raise RuntimeError(data["error"].strip())
+                        yield data
+                    except json.JSONDecodeError:
+                        continue
+
+    @staticmethod
+    def _extract_ollama_error(status_code: int, body: bytes) -> str:
+        """Parse Ollama error responses into user-friendly messages."""
+        try:
+            data = json.loads(body)
+            raw = data.get("error", "").strip()
+        except (json.JSONDecodeError, AttributeError):
+            raw = body.decode(errors="replace").strip()
+
+        if status_code == 412 or "newer version" in raw.lower():
+            return (
+                "This model requires a newer version of Ollama. "
+                "Please update Ollama: https://ollama.com/download"
             )
-            resp.raise_for_status()
-            return resp.json()
+
+        if raw:
+            return f"Ollama error ({status_code}): {raw}"
+        return f"Ollama returned HTTP {status_code}"
 
     async def generate(
         self,
