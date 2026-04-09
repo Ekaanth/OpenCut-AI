@@ -425,19 +425,41 @@ class ModelRegistry:
         context_length: int,
         num_layers: int = 32,
         kv_bits: int = 4,
+        ratio_override: float | None = None,
     ) -> dict[str, Any]:
-        """Estimate KV cache memory savings from TurboQuant compression."""
+        """Estimate KV cache memory savings from TurboQuant compression.
+
+        If `ratio_override` is provided (e.g. a measured compression ratio
+        from the turboquant-service `/health` endpoint), we use it verbatim
+        and skip the static KV_CACHE_COMPRESSION lookup table — this is how
+        the UI gets to show the **real** savings from the active backend,
+        not just the theoretical best-case from the bit count.
+        """
         baseline_mb = model_kv_mb_per_1k * (context_length / 1000) * (num_layers / 32)
-        compression = KV_CACHE_COMPRESSION.get(kv_bits, KV_CACHE_COMPRESSION[4])
-        compressed_mb = baseline_mb / compression["ratio"]
+        if ratio_override is not None and ratio_override > 0:
+            ratio = float(ratio_override)
+            # Quality metadata is best-effort — fall back to the closest static entry.
+            closest = min(
+                KV_CACHE_COMPRESSION.items(),
+                key=lambda kv: abs(kv[1]["ratio"] - ratio),
+            )[1]
+            quality = closest["quality"]
+            cosine = closest["cosine_sim"]
+        else:
+            compression = KV_CACHE_COMPRESSION.get(kv_bits, KV_CACHE_COMPRESSION[4])
+            ratio = compression["ratio"]
+            quality = compression["quality"]
+            cosine = compression["cosine_sim"]
+
+        compressed_mb = baseline_mb / ratio
 
         return {
             "baseline_kv_cache_mb": round(baseline_mb, 1),
             "compressed_kv_cache_mb": round(compressed_mb, 1),
             "savings_mb": round(baseline_mb - compressed_mb, 1),
-            "compression_ratio": compression["ratio"],
-            "quality": compression["quality"],
-            "cosine_similarity": compression["cosine_sim"],
+            "compression_ratio": ratio,
+            "quality": quality,
+            "cosine_similarity": cosine,
             "kv_bits": kv_bits,
         }
 
@@ -490,8 +512,15 @@ class ModelRegistry:
         whisper_size: str = "auto",
         tts_enabled: bool = True,
         kv_bits: int = 4,
+        ratio_override: float | None = None,
     ) -> dict[str, Any]:
-        """Estimate total memory for running the full AI stack."""
+        """Estimate total memory for running the full AI stack.
+
+        `kv_bits` is the user's *requested* bit width. `ratio_override`, if
+        provided, is the real measured compression ratio from the inference
+        service — we prefer it when available so the UI shows what the user
+        is actually getting from their current compute mode (CPU vs GPU).
+        """
         # Find the Ollama model spec
         ollama_mem = 2500  # Default
         ollama_kv = 4.5
@@ -509,7 +538,9 @@ class ModelRegistry:
         tts_mem = TTS_MEMORY["xtts_v2_int8"] if tts_enabled else 0
 
         # KV cache at 8K context
-        kv_savings = self.estimate_kv_cache_savings(ollama_kv, 8192, kv_bits=kv_bits)
+        kv_savings = self.estimate_kv_cache_savings(
+            ollama_kv, 8192, kv_bits=kv_bits, ratio_override=ratio_override,
+        )
 
         total_without_kv = ollama_mem + whisper_mem + tts_mem
         total_with_kv = total_without_kv + kv_savings["compressed_kv_cache_mb"]
@@ -525,6 +556,8 @@ class ModelRegistry:
             "total_without_turboquant_mb": round(total_baseline_kv),
             "savings_mb": round(total_baseline_kv - total_with_kv),
             "kv_bits": kv_bits,
+            "kv_compression_ratio": kv_savings["compression_ratio"],
+            "source": "measured" if ratio_override is not None else "estimated",
         }
 
 

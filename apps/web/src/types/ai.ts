@@ -369,13 +369,22 @@ export interface PromptGenResult {
 }
 
 // TurboQuant optimization types
+export type ComputeMode = "auto" | "cpu" | "cuda";
+
 export interface TurboQuantStatus {
 	kv_cache_bits: number;
+	/** What the user requested in Settings (same as kv_cache_bits, kept for clarity). */
+	kv_cache_bits_requested?: number;
+	/** What the active backend will actually use — GPU clamps to 2 or 3, CPU always 3. */
+	kv_cache_bits_effective?: number;
 	kv_compression_ratio: number;
+	/** Compression ratio the backend is actually producing — measured live when available. */
+	kv_compression_ratio_effective?: number;
 	kv_quality: string;
 	kv_cosine_similarity: number;
 	memory_budget: string;
 	model_tier: string;
+	compute_mode: ComputeMode;
 	recommended_tier: string;
 	recommended_model: {
 		name: string;
@@ -396,6 +405,9 @@ export interface TurboQuantStatus {
 		available: boolean;
 		reason?: string;
 		model?: string;
+		compute_mode?: string;
+		turboquant_engine_available?: boolean;
+		compression_ratio_last?: number | null;
 	};
 }
 
@@ -409,6 +421,10 @@ export interface StackMemoryEstimate {
 	total_without_turboquant_mb: number;
 	savings_mb: number;
 	kv_bits: number;
+	/** The compression ratio used to compute the savings above. */
+	kv_compression_ratio?: number;
+	/** "measured" when the ratio came from a live inference, "estimated" from the static table. */
+	source?: "measured" | "estimated";
 }
 
 export interface KVCacheConfig {

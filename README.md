@@ -27,7 +27,7 @@ This project is a fork of [OpenCut](https://github.com/OpenCut-app/OpenCut), the
 - **Smart subtitles** — One-click subtitle generation with karaoke, pill, and classic styles.
 - **Natural language commands** — Control the editor in plain English: "remove the intro", "speed up the middle".
 - **Audio denoising** — Clean up background noise from audio tracks.
-- **TurboQuant inference** — Optimized LLM inference with 2-bit KV cache quantization for lower memory usage on local hardware.
+- **TurboQuant inference** — Optimized LLM inference powered by the [`turboquant-gpu`](https://github.com/DevTechJr/turboquant-gpu) library. KV cache compression down to 2-bit on GPU (via cuTile fused kernels) and 3-bit on CPU, with a user-selectable **Compute Mode** toggle (Auto / CPU / GPU) in Settings → AI Optimization.
 
 ## Editor Features (from OpenCut + our additions)
 
@@ -60,8 +60,16 @@ packages/             — Shared packages (env, UI)
 
 ### Prerequisites
 
+**All setups:**
+
 - [Bun](https://bun.sh/docs/installation)
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) v2.3+
+
+**GPU setup (optional, NVIDIA only):**
+
+- NVIDIA driver installed on the host (`nvidia-smi` must work on the host first)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) so Docker can expose the GPU to containers
+- Recommended: CUDA 13+ driver for the `cuTile` kernel path used by TurboQuant (older drivers still work — they just fall back to the PyTorch KV-compression path)
 
 > Docker is optional but recommended for running the database, Redis, and AI backend. Frontend-only development works without it.
 
@@ -80,11 +88,32 @@ packages/             — Shared packages (env, UI)
    cp apps/web/.env.example apps/web/.env.local
    ```
 
-3. Start the database, Redis, and AI backend:
+3. Start the database, Redis, and AI backend. **Pick one of the two startup modes below.**
+
+   **Option A — CPU (default, works on any machine):**
 
    ```bash
    docker compose up -d
    ```
+
+   **Option B — NVIDIA GPU (turboquant-service runs on CUDA with cuTile kernels):**
+
+   ```bash
+   # Verify the host can see the GPU first
+   nvidia-smi
+
+   # Build + start everything with the GPU override file layered on top
+   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+   # Confirm the turboquant-service container actually sees the GPU
+   docker compose exec turboquant-service nvidia-smi
+
+   # Confirm the service reports GPU mode
+   curl http://localhost:8430/health | jq '{compute_mode, backend, turboquant_engine_available}'
+   # Expected: {"compute_mode": "cuda", "backend": "gpu", "turboquant_engine_available": true}
+   ```
+
+   If `nvidia-smi` fails on the host, install the NVIDIA driver first. If it works on the host but fails inside the container, install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) and restart the Docker daemon (`sudo systemctl restart docker`).
 
 4. Install dependencies and start the dev server:
 
@@ -94,6 +123,8 @@ packages/             — Shared packages (env, UI)
    ```
 
 The editor will be available at [http://localhost:3000](http://localhost:3000).
+
+> **Switching between CPU and GPU later?** You can toggle at runtime from the editor's **Settings → AI Optimization → Compute Mode** panel — no need to tear down Docker. If you started with Option A (CPU) and later want GPU, stop the stack (`docker compose down`) and restart with Option B.
 
 ### AI Backend
 
@@ -117,6 +148,104 @@ Configure AI models in the **Settings > AI Models** panel inside the editor.
 | Redis                    | Job queue for YouTube-to-Reels pipeline | Optional (falls back to in-memory) |
 | yt-dlp                   | YouTube video downloading               | Required for YouTube-to-Reels      |
 | Google OAuth credentials | YouTube channel ownership verification  | Optional                           |
+
+### TurboQuant: Compute Mode (CPU / GPU)
+
+The TurboQuant inference service supports both CPU and NVIDIA GPU execution, with **two completely separate backend implementations** tuned for each device.
+
+| Backend            | Compression path                                          | Decode path                                                    | "Turbo boost" strategy                                        |
+| ------------------ | --------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------- |
+| `GPUTurboBackend`  | `turboquant-gpu` cuTile fused kernels, **2-bit** or 3-bit | Full `engine.generate()` through the compressed KV cache       | TF32 matmul, cuDNN benchmark, `auto_tune()` warm-up           |
+| `CPUTurboBackend`  | PyTorch fallback, **3-bit** only (2-bit decode is lossy)  | Plain HF `model.generate` (greedy fallback too slow on CPU)   | Physical-core thread pinning, MKLDNN, single warm-up probe   |
+
+The backends live in [`services/turboquant-service/compute_backends.py`](services/turboquant-service/compute_backends.py) behind a common `BaseTurboBackend` interface, so application code never branches on device type. The factory `create_turbo_backend(device=...)` picks the right one automatically — and if a GPU backend fails to initialize (e.g. `cuda-tile` not installed, CUDA driver too old), it falls back to the CPU backend with a warning rather than crashing.
+
+#### Choosing Compute Mode in the UI
+
+Open the editor → **Settings → AI Optimization → Compute Mode** and pick one of:
+
+- **Auto** — detect the fastest device (CUDA → MPS → CPU). Default for every existing user.
+- **CPU** — force CPU inference. Works on any host; `CPUTurboBackend` kicks in.
+- **GPU (CUDA)** — force NVIDIA GPU. Button is greyed out (with a tooltip) when no GPU is detected.
+
+The selector shows a live "Running on: `<device>`" status line and a badge with the **actual** KV compression ratio from the most recent inference request. Selecting a new mode writes `OPENCUTAI_AI_COMPUTE_MODE` to `.env`, reloads the in-memory backend config, and reloads the model on the new device.
+
+#### Running with a GPU (Docker) — reference
+
+See **Getting Started → Install and Run Locally → Option B** above for the quickstart. This section is the deeper reference.
+
+**What the GPU override file does**
+
+[`docker-compose.gpu.yml`](docker-compose.gpu.yml) is a standard Compose override layered on top of the base file. It changes three things for the `turboquant-service`:
+
+1. **Reserves a GPU device** via `deploy.resources.reservations.devices` with `driver: nvidia`, `count: 1`, `capabilities: [gpu]`. This is the modern Compose v2.3+ syntax; older `runtime: nvidia` setups need to be updated.
+2. **Passes `TURBOQUANT_EXTRAS=gpu`** as a build arg, which makes the turboquant-service Dockerfile run `pip install "turboquant-gpu[gpu]" --extra-index-url https://pypi.nvidia.com`. This pulls in the cuTile kernel extras from NVIDIA's PyPI mirror.
+3. **Pins `DEVICE=cuda`** (instead of `auto`) so the container always comes up in GPU mode. Remove that override line if you want the UI Compute Mode toggle to drive the device.
+
+**First-time startup**
+
+```bash
+# 1. Make sure the host + Docker can see the GPU
+nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+
+# 2. Bring up the stack with the GPU override
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+# 3. Verify the turboquant-service picked up the GPU
+docker compose exec turboquant-service nvidia-smi
+docker compose logs turboquant-service | grep -E "Compute mode|TurboQuantEngine|GPUTurboBackend"
+
+# 4. Verify via the HTTP health endpoint
+curl -s http://localhost:8430/health | jq
+#   "compute_mode": "cuda",
+#   "backend": "gpu",
+#   "backend_effective_bits": 2,
+#   "turboquant_engine_available": true,
+#   "gpu_available": true
+```
+
+**Managing the stack**
+
+```bash
+# Tail logs for just the turboquant-service
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml logs -f turboquant-service
+
+# Restart just the turboquant-service (e.g. after changing env vars)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --force-recreate turboquant-service
+
+# Stop everything
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
+```
+
+> Tip: export `COMPOSE_FILE=docker-compose.yml:docker-compose.gpu.yml` in your shell so you don't have to repeat `-f` on every command.
+
+**Troubleshooting**
+
+| Symptom                                                                              | Cause                                                                   | Fix                                                                                                                                                        |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `could not select device driver "nvidia"`                                            | NVIDIA Container Toolkit not installed                                  | Install the toolkit and restart Docker: `sudo systemctl restart docker`                                                                                    |
+| `nvidia-smi` works on host but not in container                                      | Docker daemon hasn't picked up the toolkit                              | Restart the daemon, or add `"default-runtime": "nvidia"` to `/etc/docker/daemon.json`                                                                      |
+| Build fails on `pip install turboquant-gpu[gpu]`                                     | Host's CUDA driver is older than 13.0, so `cuda-tile` isn't available   | Either upgrade the driver, or drop the `TURBOQUANT_EXTRAS: gpu` build arg (the engine still works via the PyTorch fallback — you just lose cuTile kernels) |
+| `/health` shows `"compute_mode": "cpu"` even with the override file                  | Container couldn't see the GPU at startup                               | Check `docker compose exec turboquant-service nvidia-smi`; if that fails, the toolkit/driver isn't wired up                                                |
+| Generation works but `compression_ratio` is always `null`                            | `temperature > 0` requests use the sampling fallback path               | Set `temperature=0` in the request to route through `engine.generate()` and get real compression metrics                                                   |
+| `RuntimeError: GPUTurboBackend requires CUDA` in turboquant-service logs at startup  | Someone pinned `DEVICE=cuda` on a host without CUDA                     | Unset `DEVICE` or set it to `auto` — the CPU backend will take over                                                                                        |
+
+**Graceful degradation**
+
+The factory in `compute_backends.py` is defensive: if `GPUTurboBackend.__init__` raises (e.g. `turboquant-gpu` not installed, CUDA driver missing, `cuda-tile` extras incompatible), it logs a warning and falls back to `CPUTurboBackend`. The service comes up either way — you'll just see `"backend": "cpu"` in `/health` and the CPU turbo-boost path (thread pinning + MKLDNN + 3-bit metrics probe) kicks in instead.
+
+### Security Notes (turboquant-service)
+
+The turboquant-service is designed to run on a private Docker network behind the ai-backend proxy — it does not expose its own auth layer. A few hardening knobs are still worth knowing:
+
+| Environment variable | Default | Effect                                                                                                                                                                |
+| -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TRUST_REMOTE_CODE`  | `false` | When `true`, HuggingFace model repos can execute arbitrary Python on load (`AutoTokenizer` / `AutoModelForCausalLM` with `trust_remote_code=True`). Only opt in for models you fully trust. |
+| `CORS_ORIGINS`       | `*`     | Comma-separated list of allowed origins. Wildcard mode intentionally runs with `allow_credentials=False` (forbidden-by-spec combo otherwise); set an explicit list to enable credentialed CORS. |
+| `DEVICE`             | `auto`  | Pinned by docker-compose to `${OPENCUTAI_AI_COMPUTE_MODE:-auto}` so the UI toggle drives it. `auto`/`cpu`/`cuda`/`mps` all accepted.                                  |
+
+The service also validates all `model_id` inputs against the strict HuggingFace `org/name` pattern (rejects path traversal and control characters) and caps every request body field (`content`, `prompt`, `messages`) at a reasonable length to prevent memory-exhaustion DOS. The ai-backend's `POST /api/config/update` endpoint rejects any value containing newlines, carriage returns, or NUL bytes before writing to `.env`, so the compute-mode toggle can't be abused to smuggle arbitrary env vars.
 
 ### Self-Hosting
 

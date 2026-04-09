@@ -1,0 +1,33 @@
+# GPU override for the turboquant-service.
+#
+# Layer this file on top of docker-compose.yml to run turboquant-service with
+# an NVIDIA GPU attached and the cuTile kernel extras installed. CPU users
+# should continue to run `docker compose up` without this file.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# Requirements:
+#   - NVIDIA container toolkit installed on the host
+#   - Docker Compose v2.3+
+#   - CUDA 13+ driver for cuTile kernels (PyTorch fallback still works on older CUDA)
+services:
+  turboquant-service:
+    build:
+      context: ./services/turboquant-service
+      dockerfile: Dockerfile
+      args:
+        TURBOQUANT_EXTRAS: gpu
+    environment:
+      # Force GPU mode regardless of what the user picked in the UI. Remove this
+      # line if you want the frontend compute-mode toggle to still drive the
+      # device (it will resolve "auto" → cuda inside the container since CUDA
+      # is exposed here).
+      - DEVICE=${OPENCUTAI_AI_COMPUTE_MODE:-cuda}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

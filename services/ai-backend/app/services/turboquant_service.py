@@ -63,6 +63,11 @@ class TurboQuantService:
                         "kv_cache_bits": data.get("kv_cache_bits"),
                         "max_context_length": data.get("max_context_length"),
                         "gpu_available": data.get("gpu_available", False),
+                        "compute_mode": data.get("compute_mode"),
+                        "turboquant_engine_available": data.get(
+                            "turboquant_engine_available", False
+                        ),
+                        "compression_ratio_last": data.get("compression_ratio_last"),
                         "memory_usage": data.get("memory_usage"),
                     }
                 return {"available": False, "reason": f"HTTP {resp.status_code}"}
@@ -76,32 +81,111 @@ class TurboQuantService:
         except Exception as e:
             return {"available": False, "reason": str(e)}
 
-    def get_optimization_status(self) -> dict[str, Any]:
-        """Return current optimization configuration and its impact."""
-        kv_bits = self.kv_cache_bits
-        compression = KV_CACHE_COMPRESSION.get(kv_bits, KV_CACHE_COMPRESSION[4])
+    def _resolve_effective_bits(
+        self, requested_bits: int, compute_mode: str, gpu_available: bool,
+        backend_kind: str | None = None,
+    ) -> int:
+        """Compute the KV bit width the active backend will actually use.
+
+        This is the single source of truth for the "what the user asked for"
+        vs "what the backend gives them" distinction. The two backends clamp
+        differently:
+
+            GPUTurboBackend:  2 ≤ effective_bits ≤ 3  (2-bit requires cuTile)
+            CPUTurboBackend:  effective_bits = 3      (2-bit CPU decode is lossy)
+
+        `backend_kind` is the authoritative answer when we have it (from the
+        turboquant-service /health response). Otherwise we predict based on
+        the user's compute_mode selection and hardware availability.
+        """
+        if backend_kind == "gpu":
+            return 2 if requested_bits <= 2 else 3
+        if backend_kind == "cpu":
+            return 3
+
+        # No live backend yet — predict from the selected compute mode.
+        if compute_mode == "cuda" and gpu_available:
+            return 2 if requested_bits <= 2 else 3
+        if compute_mode == "auto" and gpu_available:
+            return 2 if requested_bits <= 2 else 3
+        # cpu, mps, or auto-without-GPU
+        return 3
+
+    def get_optimization_status(
+        self,
+        service_status: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Return current optimization configuration and its impact.
+
+        If `service_status` is provided (from `get_service_status()`), we
+        prefer the **measured** compression ratio from the active backend
+        for the savings calculation, so the numbers shown in the UI reflect
+        reality rather than a static table lookup. Falling back to the static
+        ratio when no live measurement is available.
+        """
+        requested_bits = self.kv_cache_bits
 
         hw = model_registry.detect_hardware()
+
+        # Resolve what the active backend will actually give us.
+        backend_kind = (
+            service_status.get("backend") if service_status else None
+        )
+        effective_bits = self._resolve_effective_bits(
+            requested_bits=requested_bits,
+            compute_mode=settings.AI_COMPUTE_MODE,
+            gpu_available=bool(hw.get("gpu_available")),
+            backend_kind=backend_kind,
+        )
+
+        # Prefer the live measured ratio from the most recent inference request.
+        measured_ratio: float | None = None
+        if service_status:
+            raw = service_status.get("compression_ratio_last")
+            if isinstance(raw, (int, float)) and raw > 0:
+                measured_ratio = float(raw)
+
+        requested_compression = KV_CACHE_COMPRESSION.get(
+            requested_bits, KV_CACHE_COMPRESSION[4]
+        )
+        effective_compression = KV_CACHE_COMPRESSION.get(
+            effective_bits, KV_CACHE_COMPRESSION[3]
+        )
+
         recommended_tier = model_registry.recommend_tier(settings.AI_MEMORY_BUDGET)
         recommended_model = model_registry.recommend_model(
             budget=settings.AI_MEMORY_BUDGET,
             tier=settings.AI_MODEL_TIER,
         )
 
+        # Savings use the EFFECTIVE bits (not requested) so the display matches
+        # what the backend actually produces. When we have a live measurement,
+        # override the ratio entirely — no more guessing from a static table.
         stack_estimate = model_registry.estimate_full_stack_memory(
             ollama_model=recommended_model.ollama_tag,
             whisper_size=recommended_tier,
             tts_enabled=True,
-            kv_bits=kv_bits,
+            kv_bits=effective_bits,
+            ratio_override=measured_ratio,
         )
 
         return {
-            "kv_cache_bits": kv_bits,
-            "kv_compression_ratio": compression["ratio"],
-            "kv_quality": compression["quality"],
-            "kv_cosine_similarity": compression["cosine_sim"],
+            # `kv_cache_bits` is kept for backwards compatibility with the UI —
+            # it's what the user picked. The effective value is a new field.
+            "kv_cache_bits": requested_bits,
+            "kv_cache_bits_requested": requested_bits,
+            "kv_cache_bits_effective": effective_bits,
+            "kv_compression_ratio": requested_compression["ratio"],
+            "kv_compression_ratio_effective": (
+                measured_ratio
+                if measured_ratio is not None
+                else effective_compression["ratio"]
+            ),
+            "kv_quality": effective_compression["quality"],
+            "kv_cosine_similarity": effective_compression["cosine_sim"],
             "memory_budget": settings.AI_MEMORY_BUDGET,
             "model_tier": settings.AI_MODEL_TIER,
+            "compute_mode": settings.AI_COMPUTE_MODE,
             "recommended_tier": recommended_tier,
             "recommended_model": {
                 "name": recommended_model.name,

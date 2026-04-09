@@ -206,7 +206,10 @@ services:
       - MODEL_NAME=${TURBOQUANT_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
       - KV_CACHE_BITS=${KV_CACHE_BITS:-4}
       - MAX_CONTEXT_LENGTH=8192
-      - DEVICE=auto
+      # Compute mode is driven by the user-facing toggle in Settings → AI Optimization.
+      # The ai-backend writes OPENCUTAI_AI_COMPUTE_MODE to .env; this line pulls it
+      # through so `auto | cpu | cuda` reaches the turboquant-service at container start.
+      - DEVICE=${OPENCUTAI_AI_COMPUTE_MODE:-auto}
     volumes:
       - turboquant_models:/app/models
     deploy:

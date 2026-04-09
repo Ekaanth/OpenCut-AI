@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     AI_MODEL_TIER: str = "auto"  # "lite", "standard", "pro", "auto"
     AI_LLM_BACKEND: str = "auto"  # "ollama", "turboquant", "auto" (TQ with KV-cache optimization when available, else Ollama)
     KV_CACHE_BITS: int = 2  # 2, 3, or 4 — TurboQuant KV cache quantization bits (2 = most memory efficient, default)
+    # Compute mode for the TurboQuant inference service.
+    # "auto" = detect CUDA → MPS → CPU; "cuda" = force GPU; "cpu" = force CPU.
+    # Propagated to turboquant-service as its DEVICE env var.
+    AI_COMPUTE_MODE: str = "auto"
 
     # Microservice URLs
     WHISPER_SERVICE_URL: str = "http://localhost:8421"

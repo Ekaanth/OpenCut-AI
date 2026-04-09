@@ -247,6 +247,7 @@ _ALLOWED_CONFIG_KEYS = {
     "AI_MEMORY_BUDGET",
     "AI_MODEL_TIER",
     "AI_LLM_BACKEND",
+    "AI_COMPUTE_MODE",
     "OLLAMA_DEFAULT_MODEL",
 }
 
@@ -255,6 +256,35 @@ class ConfigUpdateRequest(BaseModel):
     updates: dict[str, str | int] = Field(
         ..., description="Key-value pairs to update. Keys are setting names without the OPENCUTAI_ prefix."
     )
+
+
+# Characters that must never appear in a .env value. Newlines would allow
+# smuggling a second env var; NUL is just a pointless landmine.
+_ENV_FORBIDDEN_CHARS = ("\n", "\r", "\x00")
+# Cap any single value to keep the .env file sane.
+_ENV_MAX_VALUE_LEN = 512
+
+
+def _sanitize_env_value(key: str, value: str) -> str:
+    """Reject values that could inject extra lines into .env.
+
+    Without this, a caller could POST `{"AI_COMPUTE_MODE": "auto\\nEVIL=1"}`
+    and silently add `EVIL=1` to the environment on next restart. The endpoint
+    already gates on `_ALLOWED_CONFIG_KEYS`, but that validates the key, not
+    the value.
+    """
+    if len(value) > _ENV_MAX_VALUE_LEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{key}: value exceeds {_ENV_MAX_VALUE_LEN} characters",
+        )
+    for ch in _ENV_FORBIDDEN_CHARS:
+        if ch in value:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{key}: value contains forbidden control character",
+            )
+    return value
 
 
 def _update_env_file(updates: dict[str, str]) -> None:
@@ -300,8 +330,10 @@ async def update_config(request: ConfigUpdateRequest) -> dict:
             detail=f"Invalid config keys: {', '.join(invalid)}. Allowed: {', '.join(sorted(_ALLOWED_CONFIG_KEYS))}",
         )
 
-    # Convert all values to strings for .env
-    str_updates = {k: str(v) for k, v in request.updates.items()}
+    # Convert all values to strings and sanitize against .env injection
+    str_updates = {
+        k: _sanitize_env_value(k, str(v)) for k, v in request.updates.items()
+    }
 
     try:
         _update_env_file(str_updates)

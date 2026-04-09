@@ -45,10 +45,16 @@ async def turboquant_status() -> dict:
     """Get the current TurboQuant optimization status.
 
     Returns hardware info, recommended model tier, current configuration,
-    and memory estimates for the full AI stack.
+    and memory estimates for the full AI stack. Savings numbers reflect
+    the **effective** backend bit width (GPU: 2-3, CPU: 3) and, when
+    available, the real compression ratio measured from the last inference
+    request — not just a static table lookup.
     """
-    status = turboquant_service.get_optimization_status()
+    # Fetch live service status FIRST so the savings estimate below can use
+    # the real measured compression ratio + the actual backend kind instead
+    # of guessing from the config.
     service_status = await turboquant_service.get_service_status()
+    status = turboquant_service.get_optimization_status(service_status=service_status)
     status["inference_service"] = service_status
     return status
 

@@ -19,6 +19,7 @@ import gc
 import json
 import logging
 import os
+import re
 import shutil
 import threading
 import time
@@ -31,6 +32,16 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+
+from compute_backends import (
+    BaseTurboBackend,
+    create_turbo_backend,
+)
+
+try:
+    from turboquant_gpu import TurboQuantEngine  # type: ignore
+except ImportError:  # pragma: no cover - package may be missing in dev
+    TurboQuantEngine = None  # type: ignore[assignment]
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +58,25 @@ KV_CACHE_BITS = int(os.getenv("KV_CACHE_BITS", "4"))
 MAX_CONTEXT_LENGTH = int(os.getenv("MAX_CONTEXT_LENGTH", "8192"))
 DEVICE = os.getenv("DEVICE", "auto")
 MODEL_DIR = Path(os.getenv("MODEL_DIR", "/app/models"))
+
+# Security knobs
+# trust_remote_code lets HF model repos execute arbitrary Python on load.
+# Default OFF — only opt in if you fully trust every model in the catalog.
+TRUST_REMOTE_CODE = os.getenv("TRUST_REMOTE_CODE", "false").lower() in {"1", "true", "yes"}
+# CORS origins. Comma-separated. Default "*" keeps local dev unchanged; we
+# NEVER set allow_credentials=True alongside "*" (forbidden by spec).
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "*").strip()
+CORS_ORIGINS = (
+    ["*"] if _cors_origins_raw == "*"
+    else [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+)
+# Input caps
+MAX_MODEL_ID_LEN = 256
+MAX_MESSAGE_CHARS = 32_000
+MAX_PROMPT_CHARS = 64_000
+MAX_MESSAGES_PER_REQUEST = 128
+# HuggingFace model IDs follow "org/name" with limited punctuation. Reject anything else.
+MODEL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]*\/[A-Za-z0-9][A-Za-z0-9._\-]*$")
 
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -267,6 +297,7 @@ class LoadedModel:
         device: str,
         quantization: str,
         loaded_at: float,
+        backend: BaseTurboBackend | None = None,
     ):
         self.model_id = model_id
         self.model = model
@@ -274,6 +305,7 @@ class LoadedModel:
         self.device = device
         self.quantization = quantization
         self.loaded_at = loaded_at
+        self.backend = backend
         self.request_count = 0
         self.total_tokens = 0
 
@@ -287,18 +319,17 @@ class ModelManager:
         self.downloaded_models: dict[str, dict] = {}
         self.download_progress: dict[str, dict] = {}
         self.loading_model: str | None = None  # model_id currently being loaded
-        self.turboquant_available = False
-        self._check_turboquant()
+        self.turboquant_available = TurboQuantEngine is not None
+        self.compression_ratio_last: float | None = None
+        if self.turboquant_available:
+            logger.info(
+                "turboquant-gpu detected — KV cache compression engine available"
+            )
+        else:
+            logger.info(
+                "turboquant-gpu not installed — inference will use plain HF generate"
+            )
         self._scan_downloaded()
-
-    def _check_turboquant(self):
-        try:
-            from turboquant import TurboQuantCompressorV2  # noqa: F401
-            self.turboquant_available = True
-            logger.info("TurboQuant library detected — KV cache compression available")
-        except ImportError:
-            self.turboquant_available = False
-            logger.info("TurboQuant library not installed — standard inference only")
 
     def _scan_downloaded(self):
         """Scan MODEL_DIR for already-downloaded models."""
@@ -408,12 +439,12 @@ class ModelManager:
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_id,
-            trust_remote_code=True,
+            trust_remote_code=TRUST_REMOTE_CODE,
             cache_dir=str(MODEL_DIR),
         )
 
         load_kwargs: dict[str, Any] = {
-            "trust_remote_code": True,
+            "trust_remote_code": TRUST_REMOTE_CODE,
             "cache_dir": str(MODEL_DIR),
         }
 
@@ -447,6 +478,16 @@ class ModelManager:
 
         model = AutoModelForCausalLM.from_pretrained(model_id, **load_kwargs)
 
+        # Build the device-specific TurboQuant compute backend.
+        # The backend object encapsulates ALL the CPU-vs-GPU differences —
+        # compression strategy, generate path, warm-up, stats, everything.
+        backend = create_turbo_backend(
+            device=device,
+            model=model,
+            tokenizer=tokenizer,
+            kv_cache_bits=KV_CACHE_BITS,
+        )
+
         loaded = LoadedModel(
             model_id=model_id,
             model=model,
@@ -454,6 +495,7 @@ class ModelManager:
             device=device,
             quantization=quantization,
             loaded_at=time.time(),
+            backend=backend,
         )
         self.active_model = loaded
         logger.info("Model '%s' loaded (%s on %s)", model_id, quantization, device)
@@ -466,6 +508,12 @@ class ModelManager:
         model_id = self.active_model.model_id
         logger.info("Unloading model '%s'...", model_id)
 
+        if self.active_model.backend is not None:
+            try:
+                self.active_model.backend.release()
+            except Exception:
+                logger.debug("backend.release() raised", exc_info=True)
+        self.active_model.backend = None
         del self.active_model.model
         del self.active_model.tokenizer
         self.active_model = None
@@ -553,10 +601,38 @@ class ModelManager:
         return result
 
 
+def _validate_model_id(model_id: str) -> None:
+    """Enforce the HF `org/name` shape. Blocks path traversal and garbage input."""
+    if not model_id or len(model_id) > MAX_MODEL_ID_LEN:
+        raise HTTPException(status_code=400, detail="model_id length out of range")
+    if ".." in model_id or "\x00" in model_id:
+        raise HTTPException(status_code=400, detail="model_id contains illegal characters")
+    if not MODEL_ID_RE.match(model_id):
+        raise HTTPException(
+            status_code=400,
+            detail="model_id must match HuggingFace pattern 'org/name'",
+        )
+
+
 def _detect_device() -> str:
-    """Detect the best available device."""
-    if DEVICE != "auto":
-        return DEVICE
+    """Detect the best available device.
+
+    Honors the DEVICE env var (auto/cpu/cuda/mps). When set to "cuda" on a host
+    without CUDA, we log a warning and fall back to the best available device
+    instead of crashing — this matters for the user-facing compute-mode toggle:
+    selecting GPU on a CPU-only machine should degrade gracefully.
+    """
+    if DEVICE == "cuda":
+        if torch.cuda.is_available():
+            return "cuda"
+        logger.warning("DEVICE=cuda requested but CUDA not available — falling back")
+    elif DEVICE == "cpu":
+        return "cpu"
+    elif DEVICE == "mps":
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+        logger.warning("DEVICE=mps requested but MPS not available — falling back")
+    # auto path (also the fallback for unavailable explicit choices)
     if torch.cuda.is_available():
         return "cuda"
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -612,6 +688,17 @@ manager = ModelManager()
 async def lifespan(app: FastAPI):
     """Load the default model on startup."""
     logger.info("TurboQuant Multi-Model Service starting...")
+    logger.info(
+        "Compute mode: DEVICE=%s (resolved=%s), CUDA available=%s",
+        DEVICE,
+        _detect_device(),
+        torch.cuda.is_available(),
+    )
+    if TRUST_REMOTE_CODE:
+        logger.warning(
+            "TRUST_REMOTE_CODE is ENABLED. Model repos can execute arbitrary "
+            "Python on load. Only use this with models you fully trust."
+        )
     # Auto-load default model if it's already downloaded
     if DEFAULT_MODEL in manager.downloaded_models:
         try:
@@ -636,10 +723,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: allow_credentials + wildcard origins is forbidden by the CORS spec and
+# is a known CSRF footgun. Only enable credentials when an explicit origin list
+# is supplied via the CORS_ORIGINS env var.
+_cors_allow_credentials = CORS_ORIGINS != ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=_cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -650,13 +741,13 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    role: str = Field(..., max_length=32)
+    content: str = Field(..., max_length=MAX_MESSAGE_CHARS)
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str | None = None
-    messages: list[ChatMessage]
+    model: str | None = Field(default=None, max_length=MAX_MODEL_ID_LEN)
+    messages: list[ChatMessage] = Field(..., max_length=MAX_MESSAGES_PER_REQUEST)
     max_tokens: int = Field(default=512, ge=1, le=4096)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     top_p: float = Field(default=0.9, ge=0.0, le=1.0)
@@ -664,19 +755,29 @@ class ChatCompletionRequest(BaseModel):
 
 
 class CompletionRequest(BaseModel):
-    model: str | None = None
-    prompt: str
+    model: str | None = Field(default=None, max_length=MAX_MODEL_ID_LEN)
+    prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
     max_tokens: int = Field(default=512, ge=1, le=4096)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     stream: bool = False
 
 
 class DownloadRequest(BaseModel):
-    model_id: str = Field(..., description="HuggingFace model ID (e.g. 'Qwen/Qwen2.5-3B-Instruct')")
+    model_id: str = Field(
+        ...,
+        description="HuggingFace model ID (e.g. 'Qwen/Qwen2.5-3B-Instruct')",
+        max_length=MAX_MODEL_ID_LEN,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._\-]*\/[A-Za-z0-9][A-Za-z0-9._\-]*$",
+    )
 
 
 class LoadRequest(BaseModel):
-    model_id: str = Field(..., description="Model ID to load into memory")
+    model_id: str = Field(
+        ...,
+        description="Model ID to load into memory",
+        max_length=MAX_MODEL_ID_LEN,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._\-]*\/[A-Za-z0-9][A-Za-z0-9._\-]*$",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -687,6 +788,7 @@ class LoadRequest(BaseModel):
 async def health() -> dict:
     """Health check with active model and memory info."""
     active = manager.active_model
+    compute_mode = _detect_device()
     return {
         "status": "ok",
         "active_model": active.model_id if active else None,
@@ -699,8 +801,21 @@ async def health() -> dict:
         "kv_cache_bits": KV_CACHE_BITS,
         "max_context_length": MAX_CONTEXT_LENGTH,
         "turboquant_available": manager.turboquant_available,
+        "turboquant_engine_available": (
+            active is not None
+            and active.backend is not None
+            and active.backend.engine is not None
+        ),
+        "backend": active.backend.kind if active and active.backend else None,
+        "backend_effective_bits": (
+            active.backend.effective_bits
+            if active and active.backend and hasattr(active.backend, "effective_bits")
+            else None
+        ),
+        "compression_ratio_last": manager.compression_ratio_last,
         "gpu_available": torch.cuda.is_available(),
-        "device": _detect_device(),
+        "device": compute_mode,
+        "compute_mode": compute_mode,
         "memory_usage": _memory_info(),
     }
 
@@ -749,6 +864,7 @@ async def download_model(request: DownloadRequest) -> StreamingResponse:
     Each line is a JSON object: {"status": "...", "progress": 0-100, "message": "..."}
     """
     model_id = request.model_id
+    _validate_model_id(model_id)
 
     if model_id in manager.downloaded_models:
         async def already_done():
@@ -779,6 +895,7 @@ async def load_model(request: LoadRequest) -> dict:
     event loop stays responsive (health checks, status polls, etc.).
     """
     model_id = request.model_id
+    _validate_model_id(model_id)
 
     # Already loaded?
     if manager.active_model and manager.active_model.model_id == model_id:
@@ -834,7 +951,13 @@ async def unload_model() -> dict:
 
 @app.delete("/v1/models/{model_id:path}")
 async def delete_model(model_id: str) -> dict:
-    """Delete a downloaded model from disk."""
+    """Delete a downloaded model from disk.
+
+    `model_id` is validated against a strict HuggingFace pattern before it
+    touches the filesystem, so `..` / null-byte traversal is blocked even
+    though the route uses `:path`.
+    """
+    _validate_model_id(model_id)
     if manager.delete_model(model_id):
         return {"status": "deleted", "model_id": model_id}
     raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found locally")
@@ -873,32 +996,29 @@ async def chat_completions(request: ChatCompletionRequest) -> dict:
         raise HTTPException(status_code=400, detail="Streaming not yet supported")
 
     loaded = _get_active_or_load(request.model)
+    if loaded.backend is None:
+        raise HTTPException(status_code=503, detail="No compute backend attached")
 
     try:
         messages = [{"role": m.role, "content": m.content} for m in request.messages]
-        text = loaded.tokenizer.apply_chat_template(
+        prompt_text = loaded.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True,
         )
-        inputs = loaded.tokenizer(text, return_tensors="pt")
-        input_ids = inputs["input_ids"].to(loaded.model.device)
 
-        start = time.time()
-        with torch.no_grad():
-            outputs = loaded.model.generate(
-                input_ids,
-                max_new_tokens=request.max_tokens,
-                temperature=request.temperature if request.temperature > 0 else None,
-                top_p=request.top_p,
-                do_sample=request.temperature > 0,
-                pad_token_id=loaded.tokenizer.eos_token_id,
-            )
-        elapsed = time.time() - start
+        # Delegate to the device-specific backend (CPUTurboBackend or GPUTurboBackend).
+        # The backends encapsulate the entire CPU-vs-GPU strategy split.
+        result = loaded.backend.generate(
+            prompt_text=prompt_text,
+            max_new_tokens=request.max_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p,
+        )
 
-        new_tokens = outputs[0][input_ids.shape[1]:]
-        response_text = loaded.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        if result["compression_ratio"] is not None:
+            manager.compression_ratio_last = result["compression_ratio"]
 
         loaded.request_count += 1
-        loaded.total_tokens += input_ids.shape[1] + len(new_tokens)
+        loaded.total_tokens += result["prompt_tokens"] + result["completion_tokens"]
 
         return {
             "id": f"chatcmpl-tq-{int(time.time())}",
@@ -907,18 +1027,20 @@ async def chat_completions(request: ChatCompletionRequest) -> dict:
             "model": loaded.model_id,
             "choices": [{
                 "index": 0,
-                "message": {"role": "assistant", "content": response_text},
+                "message": {"role": "assistant", "content": result["response_text"]},
                 "finish_reason": "stop",
             }],
             "usage": {
-                "prompt_tokens": input_ids.shape[1],
-                "completion_tokens": len(new_tokens),
-                "total_tokens": input_ids.shape[1] + len(new_tokens),
+                "prompt_tokens": result["prompt_tokens"],
+                "completion_tokens": result["completion_tokens"],
+                "total_tokens": result["prompt_tokens"] + result["completion_tokens"],
             },
             "turboquant": {
                 "kv_cache_bits": KV_CACHE_BITS,
-                "turboquant_active": manager.turboquant_available,
-                "inference_time_s": round(elapsed, 3),
+                "backend": loaded.backend.kind,
+                "turboquant_engine_used": result["engine_used"],
+                "compression_ratio": result["compression_ratio"],
+                "inference_time_s": result["inference_time_s"],
                 "quantization": loaded.quantization,
             },
         }
@@ -933,27 +1055,22 @@ async def chat_completions(request: ChatCompletionRequest) -> dict:
 async def completions(request: CompletionRequest) -> dict:
     """OpenAI-compatible text completions."""
     loaded = _get_active_or_load(request.model)
+    if loaded.backend is None:
+        raise HTTPException(status_code=503, detail="No compute backend attached")
 
     try:
-        inputs = loaded.tokenizer(request.prompt, return_tensors="pt")
-        input_ids = inputs["input_ids"].to(loaded.model.device)
+        result = loaded.backend.generate(
+            prompt_text=request.prompt,
+            max_new_tokens=request.max_tokens,
+            temperature=request.temperature,
+            top_p=1.0,
+        )
 
-        start = time.time()
-        with torch.no_grad():
-            outputs = loaded.model.generate(
-                input_ids,
-                max_new_tokens=request.max_tokens,
-                temperature=request.temperature if request.temperature > 0 else None,
-                do_sample=request.temperature > 0,
-                pad_token_id=loaded.tokenizer.eos_token_id,
-            )
-        elapsed = time.time() - start
-
-        new_tokens = outputs[0][input_ids.shape[1]:]
-        response_text = loaded.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        if result["compression_ratio"] is not None:
+            manager.compression_ratio_last = result["compression_ratio"]
 
         loaded.request_count += 1
-        loaded.total_tokens += input_ids.shape[1] + len(new_tokens)
+        loaded.total_tokens += result["prompt_tokens"] + result["completion_tokens"]
 
         return {
             "id": f"cmpl-tq-{int(time.time())}",
@@ -962,18 +1079,20 @@ async def completions(request: CompletionRequest) -> dict:
             "model": loaded.model_id,
             "choices": [{
                 "index": 0,
-                "text": response_text,
+                "text": result["response_text"],
                 "finish_reason": "stop",
             }],
             "usage": {
-                "prompt_tokens": input_ids.shape[1],
-                "completion_tokens": len(new_tokens),
-                "total_tokens": input_ids.shape[1] + len(new_tokens),
+                "prompt_tokens": result["prompt_tokens"],
+                "completion_tokens": result["completion_tokens"],
+                "total_tokens": result["prompt_tokens"] + result["completion_tokens"],
             },
             "turboquant": {
                 "kv_cache_bits": KV_CACHE_BITS,
-                "turboquant_active": manager.turboquant_available,
-                "inference_time_s": round(elapsed, 3),
+                "backend": loaded.backend.kind,
+                "turboquant_engine_used": result["engine_used"],
+                "compression_ratio": result["compression_ratio"],
+                "inference_time_s": result["inference_time_s"],
                 "quantization": loaded.quantization,
             },
         }

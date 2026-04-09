@@ -208,6 +208,12 @@ function mergeWithSavedConfig(data: TurboQuantStatus): TurboQuantStatus {
 	if ("AI_MODEL_TIER" in saved) merged.model_tier = String(saved.AI_MODEL_TIER);
 	if ("KV_CACHE_BITS" in saved) merged.kv_cache_bits = Number(saved.KV_CACHE_BITS);
 	if ("AI_MEMORY_BUDGET" in saved) merged.memory_budget = String(saved.AI_MEMORY_BUDGET);
+	if ("AI_COMPUTE_MODE" in saved) {
+		const raw = String(saved.AI_COMPUTE_MODE);
+		if (raw === "auto" || raw === "cpu" || raw === "cuda") {
+			merged.compute_mode = raw;
+		}
+	}
 	return merged;
 }
 
@@ -247,6 +253,12 @@ function AIOptimizationSection() {
 			if ("AI_MODEL_TIER" in updates) next.model_tier = String(updates.AI_MODEL_TIER);
 			if ("KV_CACHE_BITS" in updates) next.kv_cache_bits = Number(updates.KV_CACHE_BITS);
 			if ("AI_MEMORY_BUDGET" in updates) next.memory_budget = String(updates.AI_MEMORY_BUDGET);
+			if ("AI_COMPUTE_MODE" in updates) {
+				const raw = String(updates.AI_COMPUTE_MODE);
+				if (raw === "auto" || raw === "cpu" || raw === "cuda") {
+					next.compute_mode = raw;
+				}
+			}
 			return next;
 		});
 		toast.success(`${label} applied`);
@@ -313,18 +325,43 @@ function AIOptimizationSection() {
 				</div>
 			</div>
 
-			{/* Memory savings */}
+			{/* Memory savings — reflects the EFFECTIVE backend bits (GPU: 2-3, CPU: 3)
+			    and uses the live measured compression ratio when available. */}
 			{savingsPercent > 0 && (
-				<div className="flex items-center justify-between rounded-md border border-green-500/20 bg-green-500/5 px-2.5 py-1.5">
-					<span className="text-[10px]">
-						<span className="font-mono font-medium">{(stack.total_with_turboquant_mb / 1024).toFixed(1)} GB</span>
-						<span className="text-muted-foreground line-through ml-1.5 font-mono text-[9px]">
-							{(stack.total_without_turboquant_mb / 1024).toFixed(1)} GB
+				<div className="flex flex-col gap-1 rounded-md border border-green-500/20 bg-green-500/5 px-2.5 py-1.5">
+					<div className="flex items-center justify-between">
+						<span className="text-[10px]">
+							<span className="font-mono font-medium">{(stack.total_with_turboquant_mb / 1024).toFixed(1)} GB</span>
+							<span className="text-muted-foreground line-through ml-1.5 font-mono text-[9px]">
+								{(stack.total_without_turboquant_mb / 1024).toFixed(1)} GB
+							</span>
 						</span>
-					</span>
-					<Badge variant="outline" className="text-[8px] px-1.5 py-0 text-green-500 border-green-500/30">
-						{savingsPercent}% saved
-					</Badge>
+						<Badge variant="outline" className="text-[8px] px-1.5 py-0 text-green-500 border-green-500/30">
+							{savingsPercent}% saved
+						</Badge>
+					</div>
+					<div className="flex items-center justify-between text-[9px] text-muted-foreground">
+						<span>
+							{stack.kv_compression_ratio && `${stack.kv_compression_ratio.toFixed(1)}x KV compression`}
+							{status.kv_cache_bits_effective && (
+								<span className="ml-1">
+									({status.kv_cache_bits_effective}-bit on {status.inference_service.compute_mode === "cuda" ? "GPU" : "CPU"})
+								</span>
+							)}
+						</span>
+						{stack.source === "measured" ? (
+							<span className="text-green-500/80">live</span>
+						) : (
+							<span>estimated</span>
+						)}
+					</div>
+					{status.kv_cache_bits_effective !== undefined &&
+						status.kv_cache_bits_requested !== undefined &&
+						status.kv_cache_bits_effective !== status.kv_cache_bits_requested && (
+							<div className="text-[9px] text-amber-500">
+								You selected {status.kv_cache_bits_requested}-bit, but {status.inference_service.compute_mode === "cuda" ? "GPU" : "CPU"} backend clamps to {status.kv_cache_bits_effective}-bit.
+							</div>
+						)}
 				</div>
 			)}
 
@@ -498,6 +535,119 @@ function AIOptimizationSection() {
 						);
 					})}
 				</div>
+			</div>
+
+			{/* Compute Mode selector (CPU / GPU / Auto) */}
+			<ComputeModeSelector
+				status={status}
+				onSelect={(mode, label) =>
+					handleConfigUpdate({ AI_COMPUTE_MODE: mode }, label)
+				}
+			/>
+		</div>
+	);
+}
+
+// ----- Compute Mode Selector -----
+
+const COMPUTE_MODES: Array<{
+	value: "auto" | "cpu" | "cuda";
+	label: string;
+	description: string;
+}> = [
+	{
+		value: "auto",
+		label: "Auto",
+		description: "Detect the best device (CUDA → MPS → CPU).",
+	},
+	{
+		value: "cpu",
+		label: "CPU",
+		description: "Force CPU inference. Works everywhere, slower.",
+	},
+	{
+		value: "cuda",
+		label: "GPU (CUDA)",
+		description: "Force NVIDIA GPU. Requires a CUDA-capable host.",
+	},
+];
+
+function ComputeModeSelector({
+	status,
+	onSelect,
+}: {
+	status: TurboQuantStatus;
+	onSelect: (mode: "auto" | "cpu" | "cuda", label: string) => void;
+}) {
+	const active = status.compute_mode ?? "auto";
+	const gpuAvailable = status.hardware.gpu_available;
+	const runningOn = status.inference_service.compute_mode ?? "unknown";
+	const engineAvailable = status.inference_service.turboquant_engine_available;
+	const ratio = status.inference_service.compression_ratio_last;
+
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Label className="text-xs">Compute Mode</Label>
+			<p className="text-[9px] text-muted-foreground">
+				Choose where TurboQuant runs. Auto picks the fastest device on your machine.
+			</p>
+			<div className="flex flex-col gap-1">
+				{COMPUTE_MODES.map((mode) => {
+					const isActive = active === mode.value;
+					const disabled = mode.value === "cuda" && !gpuAvailable;
+					return (
+						<button
+							key={mode.value}
+							type="button"
+							disabled={disabled}
+							onClick={() => {
+								if (isActive || disabled) return;
+								onSelect(mode.value, `${mode.label} compute`);
+							}}
+							title={
+								disabled
+									? "No GPU detected on this host"
+									: mode.description
+							}
+							className={cn(
+								"flex items-center justify-between rounded-md border px-2.5 py-1.5 text-left transition-colors",
+								isActive
+									? "border-primary/40 bg-primary/5"
+									: disabled
+										? "border-border opacity-50 cursor-not-allowed"
+										: "border-border hover:bg-accent cursor-pointer",
+							)}
+						>
+							<div className="flex items-center gap-1.5">
+								{isActive ? (
+									<svg className="size-3 text-primary shrink-0" viewBox="0 0 16 16" fill="none">
+										<path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+									</svg>
+								) : (
+									<span className="size-3 shrink-0" />
+								)}
+								<span className="text-[10px] font-medium">{mode.label}</span>
+								{mode.value === "cuda" && gpuAvailable && status.hardware.gpu_name && (
+									<span className="text-[9px] text-muted-foreground">
+										{status.hardware.gpu_name}
+									</span>
+								)}
+							</div>
+							<span className="text-[9px] text-muted-foreground">{mode.description}</span>
+						</button>
+					);
+				})}
+			</div>
+			<div className="flex items-center justify-between px-0.5 pt-0.5">
+				<span className="text-[9px] text-muted-foreground">
+					Running on: <span className="font-mono">{runningOn}</span>
+					{engineAvailable === false && " (engine unavailable)"}
+				</span>
+				{typeof ratio === "number" && ratio > 0 && (
+					<Badge variant="outline" className="text-[8px] px-1 py-0 text-green-500 border-green-500/30">
+						{ratio.toFixed(1)}x KV compression
+					</Badge>
+				)}
 			</div>
 		</div>
 	);
