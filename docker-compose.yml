@@ -21,7 +21,11 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Host port 6380 to avoid clashing with any other local Redis (Homebrew,
+      # other docker-compose stacks). Container still listens on 6379 and
+      # services inside the Docker network reach it via `redis:6379`, so only
+      # host-side tools (e.g. `redis-cli -p 6380`) need to know about this.
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
