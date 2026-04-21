@@ -1,0 +1,836 @@
+{
+  "blameprompt_version": "1.0.1",
+  "receipts": [
+    {
+      "id": "c6d8bf96-6e5c-4ee3-96ef-21d0e25ce8d7",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "13119466-3ab5-48ec-8bea-8880759685b0",
+      "prompt_summary": "Now this is too much. It should contain just the title and the description of it, and add the link to the GitHub that was used to create the GPU TurboQuant as well. Go ahead and redo this and add a Tw",
+      "response_summary": "Rewrote it. The file now contains three compact versions in one document.\n\n**Product Hunt** — just the title (`OpenCut-AI now runs TurboQuant on your GPU — 7.3× KV cache compression`) and a two-paragraph description. Mentions the Compute Mode toggle, the cuTile kernels, the live measured ratio, and the \"still 100% local\" value prop. Both GitHub links (OpenCut-AI + turboquant-gpu) at the bottom.\n\n**Twitter / X** — two options so you can pick:\n- **Single tweet** version that fits in one box with both GitHub links.\n- **3-tweet thread** version if you want to unpack the \"was fake, now real\" story and credit the turboquant-gpu author.\n\n**LinkedIn** — longer form with the professional tone that platform rewards. Opens with the memory problem (hooks non-technical readers), then the four concrete improvements as arrow bullets, then credits the turboquant-gpu author by name, then both GitHub links, then hashtags.\n\nAll three versions link to:\n- **OpenCut-AI:** https://github.com/Ekaanth/OpenCut-AI\n- **turboquant-gpu (the library that powers the GPU path):** https://github.com/DevTechJr/turboquant-gpu\n\nFile is saved at `[REDACTED_HOME][REDACTED_HIGH_ENTROPY].md` — ready to copy whichever block you need into the respective platform.",
+      "prompt_hash": "sha256:64e02da40c715fbfb8c7b0128179b5cc5566f352ddc78c55ab71ee2429935077",
+      "message_count": 695,
+      "cost_usd": 0.0,
+      "timestamp": "2026-04-10T12:31:37.724Z",
+      "session_start": "2026-04-09T12:27:28.351Z",
+      "session_end": "2026-04-10T12:32:08.198Z",
+      "session_duration_secs": 86679,
+      "ai_response_time_secs": 9.034076124567466,
+      "prompt_submitted_at": "2026-04-10T12:31:38.169733Z",
+      "prompt_duration_secs": 42,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "GPU_TURBOQUANT_PRODUCTHUNT.md",
+      "line_range": [
+        1,
+        92
+      ],
+      "files_changed": [
+        {
+          "path": "GPU_TURBOQUANT_PRODUCTHUNT.md",
+          "line_range": [
+            1,
+            92
+          ],
+          "blob_hash": "7f642f960186d4c321f4f0b393aa8b5dc0408e7c",
+          "additions": 92
+        }
+      ],
+      "prompt_number": 12,
+      "total_additions": 92,
+      "tools_used": [
+        "Write"
+      ],
+      "user_decisions": [
+        {
+          "tool_use_id": "toolu_01DBxuBohV3evcQhR1XTR9QC",
+          "question": "Who installs the `cuda-tile` GPU kernel extras?",
+          "header": "cuTile extras",
+          "options": [
+            {
+              "label": "Build arg (Recommended)"
+            },
+            {
+              "label": "Always install"
+            },
+            {
+              "label": "Never install (rely on PyTorch fallback only)"
+            }
+          ]
+        },
+        {
+          "tool_use_id": "toolu_01GHyUGWvEyTPnZACdMYbP8N",
+          "question": "What does \"update proper memory as well\" mean in this task?",
+          "header": "Memory scope",
+          "options": [
+            {
+              "label": "Persistent memory system (Recommended)"
+            },
+            {
+              "label": "Docker memory limits"
+            },
+            {
+              "label": "Memory savings UI (already done)"
+            }
+          ]
+        },
+        {
+          "tool_use_id": "toolu_01RpnrVKcMqfG8JkrYAuzjx1",
+          "question": "How should I resolve the port 6379 conflict?",
+          "header": "Redis conflict",
+          "options": [
+            {
+              "label": "Remap OpenCut-AI to 6380 (Recommended)"
+            },
+            {
+              "label": "Stop the neurascan Redis container"
+            },
+            {
+              "label": "Stop both neurascan AND Homebrew Redis"
+            }
+          ]
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "Now this is too much. It should contain just the title and the description of it, and add the link to the GitHub that was used to create the GPU TurboQuant as well. Go ahead and redo this and add a Twitter and a LinkedIn version as well for this."
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Write(file: \"GPU_TURBOQUANT_PRODUCTHUNT.md\")",
+          "tool_name": "Write",
+          "files_touched": [
+            "GPU_TURBOQUANT_PRODUCTHUNT.md"
+          ]
+        },
+        {
+          "turn": 2,
+          "role": "assistant",
+          "content": "Rewrote it. The file now contains three compact versions in one document.\n\n**Product Hunt** — just the title (`OpenCut-AI now runs TurboQuant on your GPU — 7.3× KV cache compression`) and a two-paragraph description. Mentions the Compute Mode toggle, the cuTile kernels, the live measured ratio, and the \"still 100% local\" value prop. Both GitHub links (OpenCut-AI + turboquant-gpu) at the bottom.\n\n**Twitter / X** — two options so you can pick:\n- **Single tweet** version that fits in one box with both GitHub links.\n- **3-tweet thread** version if you want to unpack the \"was fake, now real\" story and credit the turboquant-gpu author.\n\n**LinkedIn** — longer form with the professional tone that platform rewards. Opens with the memory problem (hooks non-technical readers), then the four concrete improvements as arrow bullets, then credits the turboquant-gpu author by name, then both GitHub links, then hashtags.\n\nAll three versions link to:\n- **OpenCut-AI:** https://github.com/Ekaanth/OpenCut-AI\n- **turboquant-gpu (the library that powers the GPU path):** https://github.com/DevTechJr/turboquant-gpu\n\nFile is saved at `[REDACTED_HOME][REDACTED_HIGH_ENTROPY].md` — ready to copy whichever block you need into the respective platform."
+        }
+      ],
+      "prompt_quality": {
+        "score": 51,
+        "rating": "Fair",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "code_generation"
+      }
+    },
+    {
+      "id": "312d9cee-f838-468b-908a-ca0de9fa33ce",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "session_id": "13119466-3ab5-48ec-8bea-8880759685b0",
+      "prompt_summary": "what is the best time to post ?",
+      "response_summary": "Depends on the platform. Short answer for a dev/builder audience like OpenCut-AI's:\n\n**Product Hunt — the most time-sensitive**\nLaunch at **12:01 AM PST on a Tuesday or Wednesday**. Product Hunt resets at midnight Pacific, and you want the full 24 hours on the leaderboard. Tuesdays and Wednesdays get the heaviest traffic from the core PH community; Mondays are slower, Fridays decay fast, weekends are dead.\n- **In IST that's 1:31 PM IST on the same Tuesday/Wednesday.** Set an alarm — you want to be awake to respond to the first hour of comments, they matter the most.\n\n**Twitter / X**\nPost **9–10 AM EST Tuesday/Wednesday** (**6:30–7:30 PM IST**). Catches US East Coast morning scroll + European afternoon + Indian evening all in one window. If you do the 3-tweet thread version, stagger them 2–4 minutes apart, not all at once. Consider a repost 8 hours later (**~2:30 AM IST next day**, or schedule it) to hit US West Coast.\n\n**LinkedIn**\nPost **Tuesday around 9–10 AM EST** (**6:30–7:30 PM IST**). Same window as Twitter but LinkedIn's algorithm rewards the long-form tone — people read it on their morning commute. Avoid weekends on LinkedIn, engagement drops off a cliff.\n\n**If you're combining all three:** launch Product Hunt at 1:31 PM IST Tuesday, then post the Twitter single-tweet version at 6:30 PM IST Tuesday, then the LinkedIn post right after. That gives Product Hunt a 5-hour head start on upvotes before the social channels drive traffic to the PH page — which compounds the ranking.",
+      "prompt_hash": "sha256:7e9229233893f632b2aca7514f11bb6e7f0cc9e0bae395399dc19138bb26657d",
+      "message_count": 697,
+      "cost_usd": 0.0,
+      "timestamp": "2026-04-10T15:47:59.864Z",
+      "session_start": "2026-04-09T12:27:28.351Z",
+      "session_end": "2026-04-10T15:47:59.864Z",
+      "session_duration_secs": 98431,
+      "ai_response_time_secs": 9.04279999999999,
+      "prompt_submitted_at": "2026-04-10T15:48:00.238338Z",
+      "prompt_duration_secs": 41,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "c6d8bf96-6e5c-4ee3-96ef-21d0e25ce8d7",
+      "prompt_number": 13,
+      "user_decisions": [
+        {
+          "tool_use_id": "toolu_01DBxuBohV3evcQhR1XTR9QC",
+          "question": "Who installs the `cuda-tile` GPU kernel extras?",
+          "header": "cuTile extras",
+          "options": [
+            {
+              "label": "Build arg (Recommended)"
+            },
+            {
+              "label": "Always install"
+            },
+            {
+              "label": "Never install (rely on PyTorch fallback only)"
+            }
+          ]
+        },
+        {
+          "tool_use_id": "toolu_01GHyUGWvEyTPnZACdMYbP8N",
+          "question": "What does \"update proper memory as well\" mean in this task?",
+          "header": "Memory scope",
+          "options": [
+            {
+              "label": "Persistent memory system (Recommended)"
+            },
+            {
+              "label": "Docker memory limits"
+            },
+            {
+              "label": "Memory savings UI (already done)"
+            }
+          ]
+        },
+        {
+          "tool_use_id": "toolu_01RpnrVKcMqfG8JkrYAuzjx1",
+          "question": "How should I resolve the port 6379 conflict?",
+          "header": "Redis conflict",
+          "options": [
+            {
+              "label": "Remap OpenCut-AI to 6380 (Recommended)"
+            },
+            {
+              "label": "Stop the neurascan Redis container"
+            },
+            {
+              "label": "Stop both neurascan AND Homebrew Redis"
+            }
+          ]
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "what is the best time to post ?"
+        },
+        {
+          "turn": 1,
+          "role": "assistant",
+          "content": "Depends on the platform. Short answer for a dev/builder audience like OpenCut-AI's:\n\n**Product Hunt — the most time-sensitive**\nLaunch at **12:01 AM PST on a Tuesday or Wednesday**. Product Hunt resets at midnight Pacific, and you want the full 24 hours on the leaderboard. Tuesdays and Wednesdays get the heaviest traffic from the core PH community; Mondays are slower, Fridays decay fast, weekends are dead.\n- **In IST that's 1:31 PM IST on the same Tuesday/Wednesday.** Set an alarm — you want to be awake to respond to the first hour of comments, they matter the most.\n\n**Twitter / X**\nPost **9–10 AM EST Tuesday/Wednesday** (**6:30–7:30 PM IST**). Catches US East Coast morning scroll + European afternoon + Indian evening all in one window. If you do the 3-tweet thread version, stagger them 2–4 minutes apart, not all at once. Consider a repost 8 hours later (**~2:30 AM IST next day**, or schedule it) to hit US West Coast.\n\n**LinkedIn**\nPost **Tuesday around 9–10 AM EST** (**6:30–7:30 PM IST**). Same window as Twitter but LinkedIn's algorithm rewards the long-form tone — people read it on their morning commute. Avoid weekends on LinkedIn, engagement drops off a cliff.\n\n**If you're combining all three:** launch Product Hunt at 1:31 PM IST Tuesday, then post the Twitter single-tweet version at 6:30 PM IST Tuesday, then the LinkedIn post right after. That gives Product Hunt a 5-hour head start on upvotes before the social channels drive traffic to the PH page — which compounds the ranking."
+        }
+      ],
+      "prompt_quality": {
+        "score": 44,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "question"
+      }
+    },
+    {
+      "id": "1b7dc3c0-df3b-4f8d-a106-4996d3aa501d",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "session_id": "5572c97e-7c4a-4a4b-abdc-028b1fb26379",
+      "prompt_summary": "What are some interesting and useful features that would help in making this repo better: use or compare with the existing market and see what other features we can add, even if we have to redo some o",
+      "prompt_hash": "sha256:6e9fe522652a9cab03ddcc4bf223af45081aee9b3c98d1068d8ed1fdbf13d374",
+      "message_count": 22,
+      "cost_usd": 0.25188945,
+      "input_tokens": 36,
+      "output_tokens": 9622,
+      "cache_read_tokens": 160684,
+      "cache_creation_tokens": 15799,
+      "timestamp": "2026-04-16T09:59:36.482412Z",
+      "session_start": "2026-04-16T09:28:30.467Z",
+      "session_end": "2026-04-16T09:59:35.833Z",
+      "session_duration_secs": 1865,
+      "ai_response_time_secs": 8.663,
+      "prompt_submitted_at": "2026-04-16T09:28:30.844102Z",
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "/Users/metaquity/.claude/plans/vivid-wondering-pretzel.md",
+      "line_range": [
+        1,
+        214
+      ],
+      "files_changed": [
+        {
+          "path": "/Users/metaquity/.claude/plans/vivid-wondering-pretzel.md",
+          "line_range": [
+            1,
+            214
+          ],
+          "blob_hash": "ca0c00b89bc67ee62370481497ae2a2fef1c1546",
+          "additions": 214
+        }
+      ],
+      "parent_receipt_id": "312d9cee-f838-468b-908a-ca0de9fa33ce",
+      "prompt_number": 1,
+      "total_additions": 214,
+      "tools_used": [
+        "Agent",
+        "AskUserQuestion",
+        "Edit",
+        "ToolSearch",
+        "Write"
+      ],
+      "subagent_activities": [
+        {
+          "agent_id": "ad2c806e4780df117",
+          "agent_type": "Explore",
+          "status": "completed",
+          "started_at": "2026-04-16T09:28:38.714117Z",
+          "completed_at": "2026-04-16T09:29:36.049010Z",
+          "tools_used": [
+            "Bash",
+            "Read"
+          ]
+        },
+        {
+          "agent_id": "a11062251ae0586bf",
+          "agent_type": "Explore",
+          "status": "completed",
+          "started_at": "2026-04-16T09:28:40.720024Z",
+          "completed_at": "2026-04-16T09:30:43.944069Z",
+          "tools_used": [
+            "Bash",
+            "Read"
+          ]
+        },
+        {
+          "agent_id": "a6f9c23afa1ef9a58",
+          "agent_type": "Explore",
+          "status": "completed",
+          "started_at": "2026-04-16T09:28:43.127374Z",
+          "completed_at": "2026-04-16T09:31:07.065898Z",
+          "tools_used": [
+            "Bash",
+            "Glob",
+            "Read"
+          ]
+        },
+        {
+          "agent_id": "a9ff9242c212c53d9",
+          "agent_type": "Plan",
+          "status": "completed",
+          "started_at": "2026-04-16T09:31:40.813112Z",
+          "completed_at": "2026-04-16T09:39:17.363930Z",
+          "tools_used": [
+            "Bash",
+            "Read"
+          ]
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "What are some interesting and useful features that would help in making this repo better: use or compare with the existing market and see what other features we can add, even if we have to redo some of the places."
+        },
+        {
+          "turn": 1,
+          "role": "tool",
+          "content": "Agent()",
+          "tool_name": "Agent"
+        },
+        {
+          "turn": 2,
+          "role": "assistant",
+          "content": "Now let me do a market research pass and build the feature plan."
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Agent()",
+          "tool_name": "Agent"
+        },
+        {
+          "turn": 4,
+          "role": "tool",
+          "content": "ToolSearch()",
+          "tool_name": "ToolSearch"
+        },
+        {
+          "turn": 5,
+          "role": "assistant",
+          "content": "Now let me write the comprehensive feature plan file."
+        },
+        {
+          "turn": 6,
+          "role": "tool",
+          "content": "Write(file: \"vivid-wondering-pretzel.md\")",
+          "tool_name": "Write",
+          "files_touched": [
+            "vivid-wondering-pretzel.md"
+          ]
+        },
+        {
+          "turn": 7,
+          "role": "tool",
+          "content": "ToolSearch()",
+          "tool_name": "ToolSearch"
+        },
+        {
+          "turn": 8,
+          "role": "assistant",
+          "content": "Based on deep exploration of the codebase and comparison with Descript, CapCut, Runway, Opus Clip, Topaz, VEED, and Adobe Premiere AI, here's what I found:\n\n**The most exciting finding**: Several high-impact features are already 70-90% built — the data flows and models run, but they're not wired to the UI yet. These are essentially free wins.\n\nHere's the full prioritized breakdown:\n\n---\n\n### Sprint 1 — \"Complete what's already built\" (Low complexity, immediate impact)\n\n| # | Feature | What's already done | What's missing |\n|---|---------|-------------------|----------------|\n| **1** | **Beat-Sync Auto-Cut** *(CapCut's #1 feature)* | `audio_intelligence.py` already computes beat timestamps | Wire to timeline cuts + beat tick UI |\n| **2** | **Audio Ducking** *(Adobe Premiere AI)* | `silence_service.py` already detects speech regions | `/api/audio/duck` endpoint + volume keyframes on tracks |\n| **3** | **Chapter Markers** *(Opus Clip)* | `topic_detector.py` already detects topic boundaries | Timeline ruler markers + YouTube description export |\n| **4** | **AI Hooks Injection** *(Opus Clip)* | `hook_generator.py` + `_generate_suggestions()` already flags weak hooks | Wire to TTS + one-click apply UI |\n\n---\n\n### Sprint 2 — \"Free Descript + CapCut\" (Medium complexity, headline features)\n\n| # | Feature | Competitor | Approach |\n|---|---------|-----------|---------|\n| **5** | **Overdub / Word Replacement** | Descript's $24/mo feature | Edit transcript word → XTTS v2 re-synthesizes in cloned voice → splices audio seamlessly |\n| **6** | **AI B-Roll Suggestions** | CapCut B-roll | LLM reads each transcript segment → suggests search query → Pexels API → one-click place on timeline (panel scaffold already exists) |\n| **7** | **Auto Color Match** | Adobe Premiere AI | `scikit-image.match_histograms()` — literally ~10 lines of code, no ML model needed |\n\n---\n\n### Sprint 3 — \"Free Topaz Video AI\" (Medium complexity, quality differentiators)\n\n| # | Feature | Competitor | Open-source"
+        },
+        {
+          "turn": 9,
+          "role": "tool",
+          "content": "AskUserQuestion(\"Which sprint would you like to start implementing first?\")",
+          "tool_name": "AskUserQuestion"
+        },
+        {
+          "turn": 10,
+          "role": "choice",
+          "content": "[choice] User has answered your questions: \"Which sprint would you like to start implementing first?\"=\"Sprint 1 — Quick wins\", \"Are there specific features from any sprint you want to prioritize or skip?\"=\"Overdub (word replacement),Multi-language dubbing,Video upscaling (Real-ESRGAN),Beat-sync auto-cut\". You can now continue with the user's answers in mind."
+        },
+        {
+          "turn": 11,
+          "role": "assistant",
+          "content": "Great choices. Let me update the plan to reflect your priorities."
+        },
+        {
+          "turn": 12,
+          "role": "tool",
+          "content": "Edit(file: \"vivid-wondering-pretzel.md\")",
+          "tool_name": "Edit",
+          "files_touched": [
+            "vivid-wondering-pretzel.md"
+          ]
+        }
+      ],
+      "prompt_quality": {
+        "score": 47,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "question"
+      }
+    },
+    {
+      "id": "be984360-4bfb-4093-bd65-02f98d40ddb7",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "session_id": "4d404f61-3cb8-4da9-b883-7b722d01c011",
+      "prompt_summary": "i want to make a producthunt post on all the recent changes that were done it should have tittle and details of the update.",
+      "response_summary": "Now I have a comprehensive picture of all the recent changes. Here's the ProductHunt post:\n\n---\n\n## ProductHunt Post\n\n**Title:** OpenCut AI — Open-source video editor with YouTube-to-Reels, Virality Score & GPU inference\n\n---\n\n**Tagline:** Self-host your AI video editor. No cloud, no subscriptions, your footage never leaves your machine.\n\n---\n\n**Details:**\n\nHey ProductHunt! We've been building hard on OpenCut AI — the only fully self-hosted, open-source video editor with AI built in. Here's everything new:\n\n---\n\n**YouTube → Reels Pipeline**\nPaste any YouTube URL, and OpenCut AI auto-detects the best clips, reframes to 9:16 with face tracking, adds captions, and exports ready-to-post reels. No manual scrubbing required.\n\n**Virality Score**\nBefore you publish, score your video across 7 engagement signals: hook strength, curiosity gap, energy, beat sync, face presence, emotion, and viral potential. Backed by a full engagement analysis engine running locally.\n\n**WebGL Transitions**\n7 built-in transitions — Cross Dissolve, Dip to Black, Slide Left/Right, Wipe Left/Right, and Zoom — rendered with dual-texture WebGL fragment shaders. Apply between any two adjacent clips with one click.\n\n**Speed Ramping**\nVariable speed curves with click-to-add keyframes. 5 presets: Linear, Ease In, Ease Out, Smooth, and Bounce. Per-clip playback rate animation baked into the timeline.\n\n**Audio Mixer**\nPer-track volume, stereo pan, solo/mute controls with real-time level meters. Canvas-based peak/RMS visualization directly in the editor.\n\n**Proxy Editing**\nAuto-generate 480p, 720p, or 1080p proxy copies of 4K+ footage for smooth preview. Export always uses originals.\n\n**AI Dubbing & Auto Chapters**\nNew panels for AI-powered dubbing and automatic chapter generation, joining the existing Smart Cut and transcript editing features.\n\n**GPU Support**\nFull NVIDIA GPU support via Docker with `docker-compose.gpu.yml`. TurboQuant inference now runs KV cache compression down to 2-bit on GPU, 3-bit on ",
+      "prompt_hash": "sha256:1a504e1950c0a10ed4ce3304dcc351d2636cd8b7f0be401942f667cde436ec74",
+      "message_count": 22,
+      "cost_usd": 0.06265875,
+      "input_tokens": 10,
+      "output_tokens": 284,
+      "cache_read_tokens": 0,
+      "cache_creation_tokens": 15565,
+      "timestamp": "2026-04-21T17:38:30.431Z",
+      "session_start": "2026-04-21T17:38:30.431Z",
+      "session_end": "2026-04-21T17:39:01.977Z",
+      "session_duration_secs": 31,
+      "ai_response_time_secs": 4.2162,
+      "prompt_submitted_at": "2026-04-21T17:38:30.553438Z",
+      "prompt_duration_secs": 56,
+      "accepted_lines": 1408,
+      "overridden_lines": 0,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "README.md",
+      "line_range": [
+        8,
+        372
+      ],
+      "files_changed": [
+        {
+          "path": "README.md",
+          "line_range": [
+            8,
+            372
+          ],
+          "blob_hash": "d1f2b19e951570a6dd0b237af9cd07b68ec6f8a2",
+          "additions": 56,
+          "deletions": 27
+        },
+        {
+          "path": "apps/web/src/components/editor/ai/broll-suggestions-panel.tsx",
+          "line_range": [
+            69,
+            968
+          ],
+          "blob_hash": "385acfc2929b4f325e83f1885ced8d2d91316a96",
+          "additions": 153
+        },
+        {
+          "path": "apps/web/src/components/editor/ai/quick-actions-bar.tsx",
+          "line_range": [
+            22,
+            492
+          ],
+          "blob_hash": "ca0afdc4a50b19beb3de61aacba3ad56016d1722",
+          "additions": 122,
+          "deletions": 46
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/assets/views/ai-studio.tsx",
+          "line_range": [
+            28,
+            856
+          ],
+          "blob_hash": "36887c7edf0ed0b5f7298491cb6946515a7a307f",
+          "additions": 37,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/assets/views/settings.tsx",
+          "line_range": [
+            34,
+            444
+          ],
+          "blob_hash": "ca81ea97d0966185d0f475b6a9fa4682853ae375",
+          "additions": 266
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/assets/views/visuals-combined.tsx",
+          "line_range": [
+            7,
+            17
+          ],
+          "blob_hash": "b9a9386d13e05c4cd9319f8681d3384a010add0c",
+          "additions": 6
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/preview/index.tsx",
+          "line_range": [
+            77,
+            81
+          ],
+          "blob_hash": "bb9dca76a894b217915a653e73fde06cf94769f8",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/properties/video-properties.tsx",
+          "line_range": [
+            17,
+            126
+          ],
+          "blob_hash": "5357da883d20747c1f4d3d165406b7d795f1971f",
+          "additions": 14,
+          "deletions": 3
+        },
+        {
+          "path": "apps/web/src/components/editor/panels/timeline/index.tsx",
+          "line_range": [
+            62,
+            557
+          ],
+          "blob_hash": "4c7b6f48083225406e52cc727555d920599927b3",
+          "additions": 14
+        },
+        {
+          "path": "apps/web/src/core/index.ts",
+          "line_range": [
+            13,
+            32
+          ],
+          "blob_hash": "c70cee94ad97d5124ab9cd0451b321e48009b8a8",
+          "additions": 2
+        },
+        {
+          "path": "apps/web/src/core/managers/audio-manager.ts",
+          "line_range": [
+            15,
+            519
+          ],
+          "blob_hash": "f3fd63e68512d81ae1cb22860c61e9668ec6dc74",
+          "additions": 150,
+          "deletions": 5
+        },
+        {
+          "path": "apps/web/src/core/managers/media-manager.ts",
+          "line_range": [
+            7,
+            382
+          ],
+          "blob_hash": "fffd71ba04ad7dddbd1f780567b038143b9100ee",
+          "additions": 204
+        },
+        {
+          "path": "apps/web/src/core/managers/timeline-manager.ts",
+          "line_range": [
+            617,
+            630
+          ],
+          "blob_hash": "2f3cf2a82dea1412bd28be4be238f41e95d2b4e3",
+          "additions": 14
+        },
+        {
+          "path": "apps/web/src/lib/actions/definitions.ts",
+          "line_range": [
+            198,
+            218
+          ],
+          "blob_hash": "fec0b3e4ff9519d3d4000a51f09bcbb8b847fd8d",
+          "additions": 17,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/lib/animation/index.ts",
+          "line_range": [
+            23,
+            23
+          ],
+          "blob_hash": "55914cf4af9fce22f322c2cf579407a2a8e490bb",
+          "additions": 1
+        },
+        {
+          "path": "apps/web/src/lib/animation/property-registry.ts",
+          "line_range": [
+            27,
+            253
+          ],
+          "blob_hash": "dac1d8c330449c4cb494fe9607e816879523a604",
+          "additions": 24,
+          "deletions": 2
+        },
+        {
+          "path": "apps/web/src/lib/animation/resolve.ts",
+          "line_range": [
+            1,
+            173
+          ],
+          "blob_hash": "bda8de9b9085ef3d044630fdf73a5532aa2a68c9",
+          "additions": 27,
+          "deletions": 2
+        },
+        {
+          "path": "apps/web/src/services/renderer/nodes/visual-node.ts",
+          "line_range": [
+            12,
+            201
+          ],
+          "blob_hash": "540e6048b6089c975b133a1cbeab3370f90e653c",
+          "additions": 48,
+          "deletions": 10
+        },
+        {
+          "path": "apps/web/src/services/renderer/scene-builder.ts",
+          "line_range": [
+            1,
+            329
+          ],
+          "blob_hash": "44fb9254c68572a58d35e7c1f53645095abc02d3",
+          "additions": 144,
+          "deletions": 17
+        },
+        {
+          "path": "apps/web/src/services/storage/service.ts",
+          "line_range": [
+            284,
+            384
+          ],
+          "blob_hash": "9ce87f45c57149d0e0e460b099542d4f7d131ee9",
+          "additions": 39
+        },
+        {
+          "path": "apps/web/src/services/storage/types.ts",
+          "line_range": [
+            17,
+            54
+          ],
+          "blob_hash": "eb5f9bfca72ff5da059b3504b194d3e875fc09f9",
+          "additions": 24
+        },
+        {
+          "path": "apps/web/src/stores/background-tasks-store.ts",
+          "line_range": [
+            8,
+            71
+          ],
+          "blob_hash": "9303a6eafcc93f2ddc732c8afa6440f4512ec27d",
+          "additions": 22,
+          "deletions": 6
+        },
+        {
+          "path": "apps/web/src/types/animation.ts",
+          "line_range": [
+            8,
+            8
+          ],
+          "blob_hash": "a96abdd275f7047aeb3f945aaae0fafbe382cbfa",
+          "additions": 1
+        },
+        {
+          "path": "apps/web/src/types/assets.ts",
+          "line_range": [
+            1,
+            10
+          ],
+          "blob_hash": "e79d629a7103c1f44ce99a2da1cee576bacc6de4",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "apps/web/src/types/project.ts",
+          "line_range": [
+            1,
+            34
+          ],
+          "blob_hash": "efa5c31b1350554007fb33d89f52e08195246ae0",
+          "additions": 3
+        },
+        {
+          "path": "apps/web/src/types/timeline.ts",
+          "line_range": [
+            5,
+            190
+          ],
+          "blob_hash": "96640bbe363c9051cca36f22db71b7a223f8346f",
+          "additions": 14
+        },
+        {
+          "path": "apps/web/tsconfig.tsbuildinfo",
+          "line_range": [
+            1,
+            1
+          ],
+          "blob_hash": "05d399295d5aa9df0d8c94b6ccb55f6e0162b0be",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "parent_receipt_id": "1b7dc3c0-df3b-4f8d-a106-4996d3aa501d",
+      "prompt_number": 1,
+      "total_additions": 1408,
+      "total_deletions": 123,
+      "tools_used": [
+        "Bash",
+        "Read"
+      ],
+      "concurrent_tool_calls": 2,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "i want to make a producthunt post on all the recent changes that were done it should have tittle and details of the update."
+        },
+        {
+          "turn": 1,
+          "role": "assistant",
+          "content": "Let me explore the recent changes in the codebase to understand what was built."
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Bash(command: \"git diff HEAD~5 --stat 2>/dev/null || git log --oneline -10\"), Bash(command: \"git diff --stat 2>/dev/null | head -60\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Read(file: \"README.md\"), Bash(command: \"git log --oneline -10\")",
+          "files_touched": [
+            "README.md"
+          ]
+        },
+        {
+          "turn": 4,
+          "role": "tool",
+          "content": "Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/OpenCut-AI/apps/web/src/components/editor...\"), Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/OpenCut-AI/apps/web/src/lib/transitions/ ...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 5,
+          "role": "tool",
+          "content": "Bash(command: \"ls [REDACTED_HOME]/Documents/Learning/OpenCut-AI/apps/web/src/lib/transitions/ ...\"), Read(file: \"transitions.tsx\")",
+          "files_touched": [
+            "transitions.tsx"
+          ]
+        },
+        {
+          "turn": 6,
+          "role": "tool",
+          "content": "Read(file: \"definitions.ts\"), Read(file: \"speed-curve-editor.tsx\")",
+          "tool_name": "Read",
+          "files_touched": [
+            "definitions.ts",
+            "speed-curve-editor.tsx"
+          ]
+        }
+      ],
+      "prompt_quality": {
+        "score": 47,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    },
+    {
+      "id": "003df914-e2a7-4666-87db-8da7d49c3444",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "session_id": "4d404f61-3cb8-4da9-b883-7b722d01c011",
+      "prompt_summary": "not this but the uncomiited ones",
+      "response_summary": "Now I have a thorough picture of all the uncommitted changes. Here's the ProductHunt post:\n\n---\n\n## ProductHunt Post\n\n**Title:** OpenCut AI — Transitions, Speed Ramp, Audio Mixer, Proxy Editing & Video B-Roll\n\n---\n\n**Tagline:** Five new professional editing features, all self-hosted. No cloud, no subscriptions.\n\n---\n\n**Details:**\n\nHey ProductHunt! We just shipped a big batch of features to OpenCut AI, our open-source self-hosted video editor. Here's what's new:\n\n---\n\n**WebGL Transitions**\n7 built-in transitions — Cross Dissolve, Dip to Black, Slide Left/Right, Wipe Left/Right, and Zoom — rendered with real WebGL dual-texture fragment shaders. Apply between any two adjacent clips on the timeline.\n\n**Speed Ramping with Keyframes**\nVariable playback speed curves per clip. Click to add keyframes, drag to shape the curve. Five presets: Linear, Ease In, Ease Out, Smooth, and Bounce. The renderer integrates the speed curve numerically so the source timestamp always stays frame-accurate even with sharp ramps.\n\n**Audio Mixer**\nA toggleable mixer panel lives at the bottom of the timeline. Per-track volume, stereo pan, and solo/mute — all wired into the Web Audio graph with live AnalyserNode peak and RMS metering. Master levels are measured too. Changes apply in real time during playback.\n\n**Proxy Editing**\nHigh-res footage (>1080p) can now generate lower-resolution proxy copies at 480p, 720p, or 1080p. Proxies are stored in OPFS alongside the project. The renderer automatically picks the proxy for preview and the original for export. You can generate, regenerate, or delete proxies per-asset from the Settings panel.\n\n**AI Video B-Roll (Seedance)**\nThe B-Roll suggestions panel now has a \"Generate Video B-Roll\" button. It calls the Seedance video generation API, polls for progress with a live percentage indicator, and shows the result in an inline video preview. You can insert it onto the timeline just like a stock image.\n\n**Smart Cut (one-click)**\nA new Smart Cut button in the ",
+      "prompt_hash": "sha256:6129913ecf991da2e33610fb946a6db5622012794d23134c4dba3dfcccf063c5",
+      "message_count": 41,
+      "cost_usd": 0.0637071,
+      "input_tokens": 10,
+      "output_tokens": 1085,
+      "cache_read_tokens": 12707,
+      "cache_creation_tokens": 11624,
+      "timestamp": "2026-04-21T17:39:38.928Z",
+      "session_start": "2026-04-21T17:38:30.431Z",
+      "session_end": "2026-04-21T17:40:08.724Z",
+      "session_duration_secs": 98,
+      "ai_response_time_secs": 6.431199999999999,
+      "prompt_submitted_at": "2026-04-21T17:39:39.131636Z",
+      "prompt_duration_secs": 49,
+      "user": "Ekaanth <akanth1994@gmail.com>",
+      "file_path": "",
+      "line_range": [
+        0,
+        0
+      ],
+      "parent_receipt_id": "be984360-4bfb-4093-bd65-02f98d40ddb7",
+      "prompt_number": 2,
+      "tools_used": [
+        "Bash"
+      ],
+      "concurrent_tool_calls": 2,
+      "conversation": [
+        {
+          "turn": 0,
+          "role": "user",
+          "content": "not this but the uncomiited ones"
+        },
+        {
+          "turn": 1,
+          "role": "assistant",
+          "content": "Let me look at the actual uncommitted diffs to understand what's new."
+        },
+        {
+          "turn": 2,
+          "role": "tool",
+          "content": "Bash(command: \"git diff --stat HEAD 2>/dev/null | head -40\"), Bash(command: \"git diff HEAD -- apps/web/src/components/editor/ai/broll-suggestions-panel.tsx a...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 3,
+          "role": "tool",
+          "content": "Bash(command: \"git diff HEAD -- apps/web/src/components/editor/ai/quick-actions-bar.tsx apps/we...\"), Bash(command: \"git diff HEAD -- apps/web/src/core/managers/audio-manager.ts apps/web/src/core/m...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 4,
+          "role": "tool",
+          "content": "Bash(command: \"git diff HEAD -- apps/web/src/core/managers/media-manager.ts apps/web/src/servic...\"), Bash(command: \"git diff HEAD -- apps/web/src/types/timeline.ts apps/web/src/stores/background-t...\")",
+          "tool_name": "Bash"
+        },
+        {
+          "turn": 5,
+          "role": "tool",
+          "content": "Bash(command: \"git diff HEAD -- apps/web/src/components/editor/panels/assets/views/settings.tsx...\"), Bash(command: \"git diff HEAD -- apps/web/src/lib/animation/property-registry.ts apps/web/src/li...\")",
+          "tool_name": "Bash"
+        }
+      ],
+      "prompt_quality": {
+        "score": 41,
+        "rating": "Poor",
+        "issues": [
+          "no_file_reference"
+        ],
+        "category": "other"
+      }
+    }
+  ]
+}
