@@ -66,6 +66,15 @@ interface CardImageState {
 	inserted?: boolean;
 }
 
+interface VideoGenState {
+	status: "idle" | "generating" | "polling" | "done" | "error";
+	videoUrl?: string;
+	progress?: number;
+}
+
+// Minimal video gen state per suggestion card (keyed by suggestion index)
+type VideoGenMap = Record<number, VideoGenState>;
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -98,6 +107,7 @@ export function BRollSuggestionsPanel({
 	// Pexels search state
 	const [pexelsResults, setPexelsResults] = useState<Record<number, PexelsPhoto[]>>({});
 	const [searchingStock, setSearchingStock] = useState<number | null>(null);
+	const [videoGenStates, setVideoGenStates] = useState<VideoGenMap>({});
 
 	const hasTranscript = segments.length > 0;
 	const highPrioritySuggestions = useMemo(
@@ -306,6 +316,89 @@ export function BRollSuggestionsPanel({
 
 	const handleApplyAll = handleBatchGenerate;
 
+	// ── Generate video B-roll via Seedance ──
+
+	const handleGenerateVideo = useCallback(
+		async (idx: number, suggestion: BRollSuggestion) => {
+			setVideoGenStates((prev) => ({
+				...prev,
+				[idx]: { status: "generating" },
+			}));
+
+			try {
+				const project = editor.project.getActiveOrNull();
+				const canvasSize = project?.settings.canvasSize ?? {
+					width: 1920,
+					height: 1080,
+				};
+				const duration = Math.max(
+					suggestion.endTime - suggestion.startTime,
+					2,
+				);
+
+				const result = await aiClient.generateVideo({
+					prompt: suggestion.imagePrompt,
+					duration,
+					width: canvasSize.width,
+					height: canvasSize.height,
+					provider: "seedance",
+				});
+
+				if (result.status === "processing" && result.jobId) {
+					setVideoGenStates((prev) => ({
+						...prev,
+						[idx]: { status: "polling", progress: 0 },
+					}));
+
+					let pollResult = result;
+					for (let i = 0; i < 60; i++) {
+						await new Promise((r) => setTimeout(r, 5000));
+						pollResult = await aiClient.getVideoJob(result.jobId!);
+						setVideoGenStates((prev) => ({
+							...prev,
+							[idx]: {
+								status: "polling",
+								progress: Math.min((i + 1) / 12, 0.95),
+							},
+						}));
+						if (pollResult.status !== "processing") break;
+					}
+
+					if (pollResult.status === "completed" && pollResult.videoUrl) {
+						setVideoGenStates((prev) => ({
+							...prev,
+							[idx]: {
+								status: "done",
+								videoUrl: pollResult.videoUrl,
+							},
+						}));
+						toast.success("Video B-roll generated");
+					} else {
+						throw new Error(
+							pollResult.error ?? "Video generation timed out",
+						);
+					}
+				} else if (result.status === "completed" && result.videoUrl) {
+					setVideoGenStates((prev) => ({
+						...prev,
+						[idx]: { status: "done", videoUrl: result.videoUrl },
+					}));
+					toast.success("Video B-roll generated");
+				} else {
+					throw new Error(result.error ?? "Video generation failed");
+				}
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : "Video gen failed";
+				setVideoGenStates((prev) => ({
+					...prev,
+					[idx]: { status: "error" },
+				}));
+				toast.error("Video B-roll failed", { description: msg });
+			}
+		},
+		[editor],
+	);
+
 	// ── Pexels stock image search ──
 
 	const handleSearchPexels = useCallback(
@@ -495,6 +588,10 @@ export function BRollSuggestionsPanel({
 								handleInsertStockPhoto(suggestion, photo)
 							}
 							onSeekTo={onSeekTo}
+							videoGenState={videoGenStates[idx] ?? { status: "idle" }}
+							onGenerateVideo={() =>
+								handleGenerateVideo(idx, suggestion)
+							}
 						/>
 					))}
 				</div>
@@ -532,6 +629,8 @@ interface BRollCardProps {
 	pexelsPhotos?: PexelsPhoto[];
 	onInsertStockPhoto: (photo: PexelsPhoto) => void;
 	onSeekTo?: (time: number) => void;
+	videoGenState?: VideoGenState;
+	onGenerateVideo?: () => void;
 }
 
 function BRollCard({
@@ -547,6 +646,8 @@ function BRollCard({
 	pexelsPhotos,
 	onInsertStockPhoto,
 	onSeekTo,
+	videoGenState,
+	onGenerateVideo,
 }: BRollCardProps) {
 	const handleSeek = useCallback(() => {
 		if (onSeekTo) {
@@ -596,6 +697,15 @@ function BRollCard({
 						icon={Tick01Icon}
 						className="size-3.5 text-green-500 shrink-0"
 					/>
+				)}
+				{videoGenState?.status === "generating" ||
+					(videoGenState?.status === "polling" && (
+						<Spinner className="size-3.5 shrink-0" />
+					))}
+				{videoGenState?.status === "done" && videoGenState.videoUrl && (
+					<div className="size-6 rounded overflow-hidden shrink-0 border bg-black flex items-center justify-center">
+						<HugeiconsIcon icon={ViewIcon} className="size-3 text-primary" />
+					</div>
 				)}
 				<Badge
 					variant="outline"
@@ -812,6 +922,49 @@ function BRollCard({
 							>
 								Generate preview only (don&apos;t insert)
 							</Button>
+						)}
+						{onGenerateVideo && videoGenState && (
+							<>
+								{videoGenState.status === "done" && videoGenState.videoUrl ? (
+									<div className="rounded-lg overflow-hidden border bg-black">
+										<video
+											src={videoGenState.videoUrl}
+											controls
+											className="w-full max-h-32 object-contain"
+										/>
+									</div>
+								) : (
+									<Button
+										size="sm"
+										variant="outline"
+										className="w-full h-7 text-[10px]"
+										disabled={
+											videoGenState.status === "generating" ||
+											videoGenState.status === "polling"
+										}
+										onClick={(e) => {
+											e.stopPropagation();
+											onGenerateVideo();
+										}}
+									>
+										{videoGenState.status === "generating" || videoGenState.status === "polling" ? (
+											<>
+												<Spinner className="size-3 mr-1" />
+												{videoGenState.status === "polling"
+													? `Rendering ${Math.round((videoGenState.progress ?? 0) * 100)}%...`
+													: "Starting..."}
+											</>
+										) : videoGenState.status === "error" ? (
+											"Retry Video B-Roll"
+										) : (
+											<>
+												<HugeiconsIcon icon={SparklesIcon} className="size-3 mr-1" />
+												Generate Video B-Roll
+											</>
+										)}
+									</Button>
+								)}
+							</>
 						)}
 					</div>
 				</div>

@@ -4,11 +4,18 @@ import { storageService } from "@/services/storage/service";
 import { generateUUID } from "@/utils/id";
 import { videoCache } from "@/services/video-cache/service";
 import { hasMediaId } from "@/lib/timeline/element-utils";
+import {
+	PROXY_THRESHOLD_WIDTH,
+	PROXY_THRESHOLD_HEIGHT,
+	type ProxyResolution,
+} from "@/services/storage/types";
+import { generateProxy } from "@/services/proxy";
 
 export class MediaManager {
 	private assets: MediaAsset[] = [];
 	private isLoading = false;
 	private listeners = new Set<() => void>();
+	private proxyGenerators = new Map<string, AbortController>();
 
 	constructor(private editor: EditorCore) {}
 
@@ -77,6 +84,15 @@ export class MediaManager {
 			if (asset.thumbnailUrl) {
 				URL.revokeObjectURL(asset.thumbnailUrl);
 			}
+			if (asset.proxyUrl) {
+				URL.revokeObjectURL(asset.proxyUrl);
+			}
+		}
+
+		const controller = this.proxyGenerators.get(id);
+		if (controller) {
+			controller.abort();
+			this.proxyGenerators.delete(id);
 		}
 
 		this.assets = this.assets.filter((asset) => asset.id !== id);
@@ -113,6 +129,14 @@ export class MediaManager {
 				projectId,
 			});
 			this.assets = mediaAssets;
+
+			const proxyPromises = mediaAssets
+				.filter((a) => a.proxy)
+				.map((a) =>
+					this.loadProxyForAsset({ assetId: a.id, projectId }),
+				);
+			await Promise.all(proxyPromises);
+
 			this.notify();
 		} catch (error) {
 			console.error("Failed to load media assets:", error);
@@ -130,7 +154,15 @@ export class MediaManager {
 			if (asset.thumbnailUrl) {
 				URL.revokeObjectURL(asset.thumbnailUrl);
 			}
+			if (asset.proxyUrl) {
+				URL.revokeObjectURL(asset.proxyUrl);
+			}
 		});
+
+		for (const [id, controller] of this.proxyGenerators) {
+			controller.abort();
+		}
+		this.proxyGenerators.clear();
 
 		const mediaIds = this.assets.map((asset) => asset.id);
 		this.assets = [];
@@ -150,12 +182,20 @@ export class MediaManager {
 	clearAllAssets(): void {
 		videoCache.clearAll();
 
+		for (const [, controller] of this.proxyGenerators) {
+			controller.abort();
+		}
+		this.proxyGenerators.clear();
+
 		this.assets.forEach((asset) => {
 			if (asset.url) {
 				URL.revokeObjectURL(asset.url);
 			}
 			if (asset.thumbnailUrl) {
 				URL.revokeObjectURL(asset.thumbnailUrl);
+			}
+			if (asset.proxyUrl) {
+				URL.revokeObjectURL(asset.proxyUrl);
 			}
 		});
 
@@ -174,6 +214,170 @@ export class MediaManager {
 
 	isLoadingMedia(): boolean {
 		return this.isLoading;
+	}
+
+	getAssetById(id: string): MediaAsset | undefined {
+		return this.assets.find((a) => a.id === id);
+	}
+
+	needsProxy(asset: MediaAsset): boolean {
+		if (asset.type !== "video") return false;
+		if (!asset.width || !asset.height) return false;
+		return (
+			asset.width > PROXY_THRESHOLD_WIDTH ||
+			asset.height > PROXY_THRESHOLD_HEIGHT
+		);
+	}
+
+	isProxyGenerating(assetId: string): boolean {
+		return this.proxyGenerators.has(assetId);
+	}
+
+	async generateProxyForAsset({
+		assetId,
+		projectId,
+		resolution,
+		onProgress,
+	}: {
+		assetId: string;
+		projectId: string;
+		resolution: ProxyResolution;
+		onProgress?: (progress: number) => void;
+	}): Promise<void> {
+		const asset = this.assets.find((a) => a.id === assetId);
+		if (!asset || asset.type !== "video") return;
+
+		const existing = this.proxyGenerators.get(assetId);
+		if (existing) {
+			existing.abort();
+			this.proxyGenerators.delete(assetId);
+		}
+
+		const controller = new AbortController();
+		this.proxyGenerators.set(assetId, controller);
+		this.notify();
+
+		try {
+			const result = await generateProxy({
+				file: asset.file,
+				resolution,
+				onProgress,
+				signal: controller.signal,
+			});
+
+			const proxyUrl = URL.createObjectURL(result.file);
+
+			await storageService.saveProxyFile({
+				projectId,
+				assetId,
+				proxyFile: result.file,
+			});
+
+			const updatedAsset: MediaAsset = {
+				...asset,
+				proxyFile: result.file,
+				proxyUrl,
+				proxy: {
+					resolution,
+					width: result.width,
+					height: result.height,
+					generatedAt: Date.now(),
+					fileSize: result.file.size,
+				},
+			};
+
+			this.assets = this.assets.map((a) =>
+				a.id === assetId ? updatedAsset : a,
+			);
+
+			await storageService.saveMediaAsset({
+				projectId,
+				mediaAsset: updatedAsset,
+			});
+
+			this.notify();
+		} catch (error) {
+			if ((error as Error).name !== "AbortError") {
+				console.error("Proxy generation failed:", error);
+			}
+		} finally {
+			this.proxyGenerators.delete(assetId);
+			this.notify();
+		}
+	}
+
+	async loadProxyForAsset({
+		assetId,
+		projectId,
+	}: {
+		assetId: string;
+		projectId: string;
+	}): Promise<void> {
+		const asset = this.assets.find((a) => a.id === assetId);
+		if (!asset || !asset.proxy) return;
+
+		try {
+			const proxyFile = await storageService.loadProxyFile({
+				projectId,
+				assetId,
+			});
+			if (!proxyFile) return;
+
+			const proxyUrl = URL.createObjectURL(proxyFile);
+
+			this.assets = this.assets.map((a) =>
+				a.id === assetId
+					? { ...a, proxyFile, proxyUrl }
+					: a,
+			);
+			this.notify();
+		} catch (error) {
+			console.error("Failed to load proxy:", error);
+		}
+	}
+
+	async deleteProxyForAsset({
+		assetId,
+		projectId,
+	}: {
+		assetId: string;
+		projectId: string;
+	}): Promise<void> {
+		const asset = this.assets.find((a) => a.id === assetId);
+		if (!asset) return;
+
+		const controller = this.proxyGenerators.get(assetId);
+		if (controller) {
+			controller.abort();
+			this.proxyGenerators.delete(assetId);
+		}
+
+		if (asset.proxyUrl) {
+			URL.revokeObjectURL(asset.proxyUrl);
+		}
+
+		this.assets = this.assets.map((a) =>
+			a.id === assetId
+				? {
+						...a,
+						proxyFile: undefined,
+						proxyUrl: undefined,
+						proxy: undefined,
+					}
+				: a,
+		);
+		this.notify();
+
+		await storageService.deleteProxyFile({ projectId, assetId });
+	}
+
+	cancelProxyGeneration(assetId: string): void {
+		const controller = this.proxyGenerators.get(assetId);
+		if (controller) {
+			controller.abort();
+			this.proxyGenerators.delete(assetId);
+			this.notify();
+		}
 	}
 
 	subscribe(listener: () => void): () => void {

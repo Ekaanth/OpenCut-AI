@@ -281,6 +281,8 @@ class StorageService {
 			thumbnailUrl: mediaAsset.thumbnailUrl,
 			ephemeral: mediaAsset.ephemeral,
 			label: mediaAsset.label,
+			proxy: mediaAsset.proxy,
+			needsProxy: mediaAsset.needsProxy,
 		};
 
 		await mediaMetadataAdapter.set(mediaAsset.id, metadata);
@@ -340,7 +342,44 @@ class StorageService {
 			duration: metadata.duration,
 			thumbnailUrl: metadata.thumbnailUrl,
 			ephemeral: metadata.ephemeral,
+			proxy: metadata.proxy,
+			needsProxy: metadata.needsProxy,
 		};
+	}
+
+	async saveProxyFile({
+		projectId,
+		assetId,
+		proxyFile,
+	}: {
+		projectId: string;
+		assetId: string;
+		proxyFile: File;
+	}): Promise<void> {
+		const { mediaAssetsAdapter } = this.getProjectMediaAdapters({ projectId });
+		await mediaAssetsAdapter.set(`${assetId}-proxy`, proxyFile);
+	}
+
+	async loadProxyFile({
+		projectId,
+		assetId,
+	}: {
+		projectId: string;
+		assetId: string;
+	}): Promise<File | null> {
+		const { mediaAssetsAdapter } = this.getProjectMediaAdapters({ projectId });
+		return mediaAssetsAdapter.get(`${assetId}-proxy`);
+	}
+
+	async deleteProxyFile({
+		projectId,
+		assetId,
+	}: {
+		projectId: string;
+		assetId: string;
+	}): Promise<void> {
+		const { mediaAssetsAdapter } = this.getProjectMediaAdapters({ projectId });
+		await mediaAssetsAdapter.remove(`${assetId}-proxy`);
 	}
 
 	async loadAllMediaAssets({

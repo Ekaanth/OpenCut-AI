@@ -195,11 +195,27 @@ export const ACTIONS = {
 		category: "ai",
 		defaultShortcuts: ["ctrl+shift+e"],
 	},
+	"add-transition": {
+		description: "Add transition between selected clips",
+		category: "editing",
+	},
+	"remove-transition": {
+		description: "Remove transition from selected clip",
+		category: "editing",
+	},
+	"smart-cut": {
+		description: "Remove filler words and silences in one click",
+		category: "ai",
+	},
 } as const satisfies Record<string, TActionDefinition>;
 
 export type TAction = keyof typeof ACTIONS;
 
-export function getActionDefinition({ action }: { action: TAction }): TActionDefinition {
+export function getActionDefinition({
+	action,
+}: {
+	action: TAction;
+}): TActionDefinition {
 	return ACTIONS[action];
 }
 

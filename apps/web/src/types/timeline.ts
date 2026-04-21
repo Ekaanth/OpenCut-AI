@@ -2,6 +2,11 @@ import type { ElementAnimations } from "./animation";
 import type { Effect, EffectParamValues } from "./effects";
 import type { BlendMode, Transform } from "./rendering";
 
+export interface TransitionData {
+	type: string;
+	duration: number;
+}
+
 export interface Bookmark {
 	time: number;
 	note?: string;
@@ -32,6 +37,8 @@ export interface VideoTrack extends BaseTrack {
 	isMain: boolean;
 	muted: boolean;
 	hidden: boolean;
+	volume?: number;
+	solo?: boolean;
 }
 
 export interface TextTrack extends BaseTrack {
@@ -44,6 +51,9 @@ export interface AudioTrack extends BaseTrack {
 	type: "audio";
 	elements: AudioElement[];
 	muted: boolean;
+	volume?: number;
+	pan?: number;
+	solo?: boolean;
 }
 
 export interface StickerTrack extends BaseTrack {
@@ -110,6 +120,7 @@ export interface VideoElement extends BaseTimelineElement {
 	opacity: number;
 	blendMode?: BlendMode;
 	effects?: Effect[];
+	transitionOut?: TransitionData;
 }
 
 export interface ImageElement extends BaseTimelineElement {
@@ -120,6 +131,7 @@ export interface ImageElement extends BaseTimelineElement {
 	opacity: number;
 	blendMode?: BlendMode;
 	effects?: Effect[];
+	transitionOut?: TransitionData;
 }
 
 export interface TextBackground {
@@ -164,6 +176,7 @@ export interface TextElement extends BaseTimelineElement {
 	opacity: number;
 	blendMode?: BlendMode;
 	effects?: Effect[];
+	transitionOut?: TransitionData;
 }
 
 export interface StickerElement extends BaseTimelineElement {
@@ -174,6 +187,7 @@ export interface StickerElement extends BaseTimelineElement {
 	opacity: number;
 	blendMode?: BlendMode;
 	effects?: Effect[];
+	transitionOut?: TransitionData;
 }
 
 export interface EffectElement extends BaseTimelineElement {

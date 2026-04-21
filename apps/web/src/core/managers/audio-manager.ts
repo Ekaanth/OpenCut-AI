@@ -12,6 +12,15 @@ import {
 export class AudioManager {
 	private audioContext: AudioContext | null = null;
 	private masterGain: GainNode | null = null;
+	private masterAnalyser: AnalyserNode | null = null;
+	private trackNodes = new Map<
+		string,
+		{
+			gain: GainNode;
+			panner: StereoPannerNode;
+			analyser: AnalyserNode;
+		}
+	>();
 	private playbackStartTime = 0;
 	private playbackStartContextTime = 0;
 	private scheduleTimer: number | null = null;
@@ -115,13 +124,138 @@ export class AudioManager {
 		this.audioContext = createAudioContext();
 		this.masterGain = this.audioContext.createGain();
 		this.masterGain.gain.value = this.lastVolume;
-		this.masterGain.connect(this.audioContext.destination);
+		this.masterAnalyser = this.audioContext.createAnalyser();
+		this.masterAnalyser.fftSize = 256;
+		this.masterAnalyser.smoothingTimeConstant = 0.8;
+		this.masterGain.connect(this.masterAnalyser);
+		this.masterAnalyser.connect(this.audioContext.destination);
 		return this.audioContext;
 	}
 
 	private updateGain(): void {
 		if (!this.masterGain) return;
 		this.masterGain.gain.value = this.lastVolume;
+	}
+
+	private getOrCreateTrackNodes(trackId: string): {
+		gain: GainNode;
+		panner: StereoPannerNode;
+		analyser: AnalyserNode;
+	} | null {
+		const ctx = this.audioContext;
+		if (!ctx || !this.masterGain) return null;
+
+		const existing = this.trackNodes.get(trackId);
+		if (existing) return existing;
+
+		const tracks = this.editor.timeline.getTracks();
+		const track = tracks.find((t) => t.id === trackId);
+		const trackVolume =
+			track && ("volume" in track ? track.volume : undefined) ?? 1;
+		const trackPan =
+			track && ("pan" in track ? track.pan : undefined) ?? 0;
+
+		const gain = ctx.createGain();
+		gain.gain.value = trackVolume;
+
+		const panner = ctx.createStereoPanner();
+		panner.pan.value = trackPan;
+
+		const analyser = ctx.createAnalyser();
+		analyser.fftSize = 256;
+		analyser.smoothingTimeConstant = 0.8;
+
+		gain.connect(panner);
+		panner.connect(analyser);
+		analyser.connect(this.masterGain);
+
+		const nodes = { gain, panner, analyser };
+		this.trackNodes.set(trackId, nodes);
+		return nodes;
+	}
+
+	private rebuildTrackNodes(): void {
+		for (const [, nodes] of this.trackNodes) {
+			try {
+				nodes.gain.disconnect();
+				nodes.panner.disconnect();
+				nodes.analyser.disconnect();
+			} catch {}
+		}
+		this.trackNodes.clear();
+	}
+
+	getTrackLevels(trackId: string): { peak: number; rms: number } {
+		const nodes = this.trackNodes.get(trackId);
+		if (!nodes) return { peak: 0, rms: 0 };
+		return this.readAnalyserLevels(nodes.analyser);
+	}
+
+	getMasterLevels(): { peak: number; rms: number } {
+		if (!this.masterAnalyser) return { peak: 0, rms: 0 };
+		return this.readAnalyserLevels(this.masterAnalyser);
+	}
+
+	private readAnalyserLevels(analyser: AnalyserNode): {
+		peak: number;
+		rms: number;
+	} {
+		const bufferLength = analyser.fftSize;
+		const dataArray = new Float32Array(bufferLength);
+		analyser.getFloatTimeDomainData(dataArray);
+
+		let peak = 0;
+		let sumSquares = 0;
+		for (let i = 0; i < bufferLength; i++) {
+			const abs = Math.abs(dataArray[i]);
+			if (abs > peak) peak = abs;
+			sumSquares += dataArray[i] * dataArray[i];
+		}
+		const rms = Math.sqrt(sumSquares / bufferLength);
+		return { peak, rms };
+	}
+
+	updateTrackVolume(trackId: string, volume: number): void {
+		const nodes = this.trackNodes.get(trackId);
+		if (nodes) {
+			nodes.gain.gain.value = volume;
+		}
+	}
+
+	updateTrackPan(trackId: string, pan: number): void {
+		const nodes = this.trackNodes.get(trackId);
+		if (nodes) {
+			nodes.panner.pan.value = pan;
+		}
+	}
+
+	private getTrackDestination(clipId: string): AudioNode {
+		const ctx = this.audioContext;
+		if (!ctx || !this.masterGain) return ctx?.destination ?? this.masterGain!;
+
+		const tracks = this.editor.timeline.getTracks();
+		const trackWithClip = tracks.find((t) =>
+			t.elements.some((el) => el.id === clipId),
+		);
+
+		if (!trackWithClip) return this.masterGain;
+
+		const trackNodes = this.getOrCreateTrackNodes(trackWithClip.id);
+		if (!trackNodes) return this.masterGain;
+
+		const isSoloMode = tracks.some(
+			(t) => "solo" in t && t.solo,
+		);
+		const trackSolo = "solo" in trackWithClip ? trackWithClip.solo : false;
+
+		if (isSoloMode && !trackSolo) {
+			const silentGain = ctx.createGain();
+			silentGain.gain.value = 0;
+			silentGain.connect(this.masterGain);
+			return silentGain;
+		}
+
+		return trackNodes.gain;
 	}
 
 	private getPlaybackTime(): number {
@@ -136,6 +270,7 @@ export class AudioManager {
 		if (!audioContext) return;
 
 		this.stopPlayback();
+		this.rebuildTrackNodes();
 		this.playbackSessionId++;
 		this.playbackLatencyCompensationSeconds = 0;
 
@@ -264,15 +399,16 @@ export class AudioManager {
 					node.playbackRate.value = clipRate;
 				}
 
-				// Apply per-clip volume via a GainNode
+				const destinationNode = this.getTrackDestination(clip.id);
+
 				const clipVolume = clip.volume ?? 1;
-				if (clipVolume < 1 && this.masterGain) {
+				if (clipVolume < 1) {
 					const clipGain = audioContext.createGain();
 					clipGain.gain.value = clipVolume;
 					node.connect(clipGain);
-					clipGain.connect(this.masterGain);
+					clipGain.connect(destinationNode);
 				} else {
-					node.connect(this.masterGain ?? audioContext.destination);
+					node.connect(destinationNode);
 				}
 
 				const startTimestamp =
@@ -372,6 +508,15 @@ export class AudioManager {
 		}
 		this.inputs.clear();
 		this.sinks.clear();
+
+		for (const [, nodes] of this.trackNodes) {
+			try {
+				nodes.gain.disconnect();
+				nodes.panner.disconnect();
+				nodes.analyser.disconnect();
+			} catch {}
+		}
+		this.trackNodes.clear();
 	}
 
 	private async getAudioSink({

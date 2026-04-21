@@ -5,6 +5,7 @@ export const ANIMATION_PROPERTY_PATHS = [
 	"transform.rotate",
 	"opacity",
 	"volume",
+	"playbackRate",
 	"color",
 	"background.color",
 	"background.paddingX",

@@ -1,3 +1,4 @@
+import type { ProxyResolution } from "@/services/storage/types";
 import type { TScene } from "./timeline";
 
 export type TBackground =
@@ -29,6 +30,8 @@ export interface TProjectSettings {
 	canvasSize: TCanvasSize;
 	originalCanvasSize?: TCanvasSize | null;
 	background: TBackground;
+	proxyEditing?: boolean;
+	proxyResolution?: ProxyResolution;
 }
 
 export interface TTimelineViewState {

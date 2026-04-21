@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/utils/ui";
+import { SpeedCurveEditor } from "./speed-curve-editor";
 
 export function VideoProperties({
 	element,
@@ -84,7 +85,9 @@ function SpeedSection({
 					<div className="flex flex-col gap-1.5">
 						<Slider
 							value={[currentRate]}
-							onValueChange={([v]) => handleSpeedChange(Math.round(v * 100) / 100)}
+							onValueChange={([v]) =>
+								handleSpeedChange(Math.round(v * 100) / 100)
+							}
 							min={0.1}
 							max={4.0}
 							step={0.05}
@@ -101,11 +104,16 @@ function SpeedSection({
 						{SPEED_PRESETS.map((preset) => (
 							<Button
 								key={preset.value}
-								variant={Math.abs(currentRate - preset.value) < 0.01 ? "secondary" : "outline"}
+								variant={
+									Math.abs(currentRate - preset.value) < 0.01
+										? "secondary"
+										: "outline"
+								}
 								size="sm"
 								className={cn(
 									"h-6 px-2 text-[10px] min-w-0",
-									Math.abs(currentRate - preset.value) < 0.01 && "ring-1 ring-primary",
+									Math.abs(currentRate - preset.value) < 0.01 &&
+										"ring-1 ring-primary",
 								)}
 								onClick={() => handleSpeedChange(preset.value)}
 							>
@@ -113,6 +121,9 @@ function SpeedSection({
 							</Button>
 						))}
 					</div>
+
+					{/* Speed Curve Editor */}
+					<SpeedCurveEditor element={element} trackId={trackId} />
 				</div>
 			</SectionContent>
 		</Section>

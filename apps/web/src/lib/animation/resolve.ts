@@ -1,6 +1,12 @@
-import type { AnimationPropertyPath, ElementAnimations } from "@/types/animation";
+import type {
+	AnimationPropertyPath,
+	ElementAnimations,
+} from "@/types/animation";
 import type { Transform } from "@/types/timeline";
-import { getColorValueAtTime, getNumberChannelValueAtTime } from "./interpolation";
+import {
+	getColorValueAtTime,
+	getNumberChannelValueAtTime,
+} from "./interpolation";
 import { getColorChannelForPath } from "./color-channel";
 import { getNumberChannelForPath } from "./number-channel";
 
@@ -144,5 +150,24 @@ export function resolveVolumeAtTime({
 		}),
 		time: Math.max(0, localTime),
 		fallbackValue: baseVolume,
+	});
+}
+
+export function resolvePlaybackRateAtTime({
+	basePlaybackRate,
+	animations,
+	localTime,
+}: {
+	basePlaybackRate: number;
+	animations: ElementAnimations | undefined;
+	localTime: number;
+}): number {
+	return getNumberChannelValueAtTime({
+		channel: getNumberChannelForPath({
+			animations,
+			propertyPath: "playbackRate",
+		}),
+		time: Math.max(0, localTime),
+		fallbackValue: basePlaybackRate,
 	});
 }

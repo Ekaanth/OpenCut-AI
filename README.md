@@ -5,39 +5,60 @@
     </td>
     <td align="right">
       <h1>OpenCut AI</h1>
-      <h3 style="margin-top: -10px;">A fork of <a href="https://github.com/OpenCut-app/OpenCut">OpenCut</a> with AI added on top.</h3>
-      <p>Transcribe, generate, edit by text, clone voices — install locally and run everything on your machine.</p>
+      <h3 style="margin-top: -10px;">The privacy-first, open-source AI video editor.</h3>
+      <p>Self-host. Edit by text. Clone voices. Remove fillers. No cloud, no subscriptions, no data leaving your machine.</p>
     </td>
   </tr>
 </table>
 
-## What is this?
+## Why OpenCut AI?
 
-This project is a fork of [OpenCut](https://github.com/OpenCut-app/OpenCut), the open-source video editor. We've added a full suite of AI capabilities on top of the core editor — transcription, image generation, voice cloning, filler removal, natural language commands, and more. Everything runs locally on your machine. No cloud, no API keys, no subscriptions.
+Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 
-## AI Features (added on top of OpenCut)
+| | OpenCut AI | Descript | CapCut | DaVinci Resolve |
+|---|---|---|---|---|
+| **Self-hosted** | Yes | No | No | No |
+| **Open source** | Yes | No | No | No |
+| **Data stays local** | Always | Cloud | Cloud (ByteDance) | Local |
+| **AI editing** | Yes | Yes | Yes | Limited |
+| **Cost** | Free (your server) | $24–65/mo | Free with watermark | $295 one-time |
+| **Per-seat pricing** | No | Yes | No | No |
 
-- **Virality Score** — Analyze your video's engagement potential before publishing. Scores 7 signals (hook strength, curiosity gap, audio energy, beat sync, face presence, emotional arc, viral potential) and gives a letter grade (A–F) with actionable suggestions.
-- **YouTube to Reels** — Paste a YouTube URL to auto-detect the best short-form clips (15–90s), score each clip's engagement, reframe to 9:16 with face tracking, add captions, and export ready-to-upload reels.
-- **Edit by text** — Transcribe your video, then edit it like a document. Delete a sentence and the video cuts itself.
-- **AI transcription** — Whisper-powered speech-to-text with word-level timestamps, running locally on GPU or CPU.
-- **Filler word removal** — Detect and remove "um", "uh", "like", and "you know" in one click.
-- **AI image generation** — Generate images from text prompts via Stable Diffusion and place them on the timeline.
-- **Voice cloning & TTS** — Clone any voice from a 6-second sample. Generate voiceovers in that voice. Supports [Sarvam AI](https://www.sarvam.ai/) for Indian language voiceovers and [Smallest AI](https://www.smallest.ai/) for low-latency voice generation.
-- **Smart subtitles** — One-click subtitle generation with karaoke, pill, and classic styles.
-- **Natural language commands** — Control the editor in plain English: "remove the intro", "speed up the middle".
-- **Audio denoising** — Clean up background noise from audio tracks.
-- **TurboQuant inference** — Optimized LLM inference powered by the [`turboquant-gpu`](https://github.com/DevTechJr/turboquant-gpu) library. KV cache compression down to 2-bit on GPU (via cuTile fused kernels) and 3-bit on CPU, with a user-selectable **Compute Mode** toggle (Auto / CPU / GPU) in Settings → AI Optimization.
+**OpenCut AI is the only self-hosted, open-source video editor with AI built in.** Run it on a $20/mo server or your laptop. Your footage, your models, your rules.
 
-## Editor Features (from OpenCut + our additions)
+## Features
 
+### AI-Powered Editing
+
+- **Edit by text** — Transcribe, then edit video like a document. Delete a sentence and the timeline cuts itself.
+- **Smart Cut** — One-click filler word removal ("um", "uh", "like") and silence detection. Runs locally via FFmpeg.
+- **AI transcription** — Whisper-powered speech-to-text with word-level timestamps. GPU or CPU.
+- **Voice cloning & TTS** — Clone any voice from a 6-second sample. Supports [Sarvam AI](https://www.sarvam.ai/) for 22 Indian languages and [Smallest AI](https://www.smallest.ai/) for 15 languages with 80+ voices.
+- **Virality Score** — Score your video's engagement potential across 7 signals (hook, curiosity gap, energy, beat sync, face, emotion, viral) before publishing.
+- **YouTube to Reels** — Paste a URL, auto-detect clips, reframe to 9:16 with face tracking, add captions, export reels.
+- **AI image generation** — Generate images from text via Stable Diffusion and place on the timeline.
+- **Smart subtitles** — One-click generation with karaoke, pill, and classic styles.
+- **Natural language commands** — "remove the intro", "speed up the middle" — the editor listens.
+- **Audio denoising** — Clean up background noise from any track.
+
+### Professional Editing
+
+- **Transitions** — 7 built-in transitions (cross-dissolve, dip-black, slide, wipe, zoom) with WebGL dual-texture shaders. Apply between any two adjacent clips.
+- **Speed ramping** — Variable speed curves with click-to-add keyframes and 5 presets (linear, ease-in, ease-out, smooth, bounce). Per-clip playback rate animation.
+- **Proxy editing** — Auto-generate lower-resolution copies of 4K+ footage for smooth preview. Export always uses originals. Choose 480p, 720p, or 1080p proxy resolution.
+- **Audio mixer** — Per-track volume, stereo pan, solo/mute with real-time level meters. Canvas-based peak/RMS visualization.
 - **Multi-track timeline** — Video, audio, text, sticker, and effect tracks with drag-and-drop.
-- **Separate audio** — Extract audio from video into its own track with independent volume control.
-- **Freeze frame** — Capture any frame at the playhead and insert it as a still image.
-- **Audio properties panel** — Per-element volume (0–200%) with dB readout, mute toggle, and keyframe animation.
-- **Frame size presets** — Toggle between 16:9 (YouTube), 9:16 (TikTok/Reels), 1:1 (Instagram), 4:3 above the preview.
-- **Real-time preview** — Live canvas rendering with transform and effect support.
-- **No watermarks or subscriptions** — Free and open-source.
+- **Separate audio** — Extract audio from video into its own track with independent control.
+- **Freeze frame** — Capture any frame at the playhead and insert as a still image.
+- **Frame size presets** — Toggle 16:9, 9:16, 1:1, 4:3 above the preview.
+- **Real-time preview** — Live canvas rendering with transforms, effects, and transitions.
+- **No watermarks or subscriptions** — Free and open-source, forever.
+
+### Infrastructure
+
+- **TurboQuant inference** — KV cache compression down to 2-bit on GPU, 3-bit on CPU, with a compute mode toggle (Auto / CPU / GPU).
+- **All data local** — Files stored in OPFS (Origin Private File System). Nothing leaves the browser or your server.
+- **Docker-ready** — One command to start the full stack (database, Redis, AI backend, 7 microservices).
 
 ## Project Structure
 
@@ -46,9 +67,8 @@ apps/web/             — Next.js web application
   src/components/     — UI and editor components
   src/hooks/          — Custom React hooks
   src/lib/            — Utility, command, and API logic
-  src/stores/         — State management (Zustand)
-  src/core/           — Editor core (managers, commands)
-  src/services/       — Renderer, storage, video cache
+  src/core/           — Editor core (singleton managers)
+  src/services/       — Renderer, storage, video cache, proxy generator
   src/types/          — TypeScript type definitions
 services/ai-backend/  — FastAPI AI backend
   app/routes/         — API endpoints (transcribe, tts, youtube, engagement, etc.)
@@ -263,7 +283,7 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
 
 **Graceful degradation**
 
-The factory in `compute_backends.py` is defensive: if `GPUTurboBackend.__init__` raises (e.g. `turboquant-gpu` not installed, CUDA driver missing, `cuda-tile` extras incompatible), it logs a warning and falls back to `CPUTurboBackend`. The service comes up either way — you'll just see `"backend": "cpu"` in `/health` and the CPU turbo-boost path (thread pinning + MKLDNN + 3-bit metrics probe) kicks in instead.
+The factory in `compute_backends.py` is defensive: if `GPUTurboBackend.__init__` throws (e.g. `turboquant-gpu` not installed, CUDA driver missing, `cuda-tile` extras incompatible), it logs a warning and falls back to `CPUTurboBackend`. The service comes up either way — you'll just see `"backend": "cpu"` in `/health` and the CPU turbo-boost path (thread pinning + MKLDNN + 3-bit metrics probe) kicks in instead.
 
 ### Security Notes (turboquant-service)
 
@@ -340,6 +360,15 @@ OpenCut AI runs entirely on your own infrastructure — no per-seat fees, no API
 | Usage limits     | **None**                   | Minutes-based | Credits-based | Credits-based |
 | Data privacy     | **100% on your server**    | Cloud         | Cloud         | Cloud         |
 | AI models        | **Open-source, swappable** | Proprietary   | Proprietary   | Proprietary   |
+
+## Who is this for?
+
+- **Privacy-conscious creators and journalists** — your footage never leaves your machine
+- **Enterprises with data sovereignty requirements** — self-host on your own infrastructure
+- **Education** — install once in a lab, no per-seat licenses
+- **Developers** — fully open source, extend and contribute
+- **Subscription-fatigued creators** — pay for a server, not a subscription
+- **Indian market** — 22 Indian languages via Sarvam AI is unmatched by any competitor
 
 ## Attribution
 

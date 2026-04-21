@@ -614,6 +614,20 @@ export class TimelineManager {
 		this.updateTracks(updatedTracks);
 	}
 
+	updateTrack({
+		trackId,
+		updates,
+	}: {
+		trackId: string;
+		updates: Partial<{ muted: boolean; hidden: boolean; volume: number; pan: number; solo: boolean }>;
+	}): void {
+		const tracks = this.getTracks();
+		const updatedTracks = tracks.map((track) =>
+			track.id === trackId ? { ...track, ...updates } : track,
+		) as TimelineTrack[];
+		this.updateTracks(updatedTracks);
+	}
+
 	updateTracks(newTracks: TimelineTrack[]): void {
 		this.editor.scenes.updateSceneTracks({ tracks: newTracks });
 		this.notify();

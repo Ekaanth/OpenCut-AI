@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { TemplatePanel } from "@/components/editor/ai/template-panel";
 import { BRollSuggestionsPanel } from "@/components/editor/ai/broll-suggestions-panel";
 import { YouTubeReelsPanel } from "@/components/editor/youtube/youtube-reels-panel";
+import { AIDubbingPanel } from "@/components/editor/panels/assets/views/ai-dubbing";
+import { AutoChaptersPanel } from "@/components/editor/panels/assets/views/auto-chapters";
 
 // ----- Thinking Messages -----
 
@@ -80,7 +82,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels" | "dubbing" | "chapters";
 
 // ----- Workflow Steps -----
 
@@ -544,6 +546,26 @@ export function AIStudioView() {
 							B-Roll
 						</Button>
 					)}
+					{hasTranscript && (
+						<Button
+							variant={mode === "dubbing" ? "secondary" : "ghost"}
+							size="sm"
+							className="h-6 text-[10px] px-2"
+							onClick={() => setMode("dubbing")}
+						>
+							Dub
+						</Button>
+					)}
+					{hasTranscript && (
+						<Button
+							variant={mode === "chapters" ? "secondary" : "ghost"}
+							size="sm"
+							className="h-6 text-[10px] px-2"
+							onClick={() => setMode("chapters")}
+						>
+							Chapters
+						</Button>
+					)}
 					<Button
 						variant={mode === "workflow" ? "secondary" : "ghost"}
 						size="sm"
@@ -816,6 +838,20 @@ export function AIStudioView() {
 			{/* ── B-Roll Mode ── */}
 			{mode === "broll" && (
 				<BRollSuggestionsPanel className="flex-1 min-h-0" />
+			)}
+
+			{/* ── Dubbing Mode ── */}
+			{mode === "dubbing" && (
+				<div className="flex-1 min-h-0 overflow-y-auto">
+					<AIDubbingPanel />
+				</div>
+			)}
+
+			{/* ── Auto Chapters Mode ── */}
+			{mode === "chapters" && (
+				<div className="flex-1 min-h-0 overflow-y-auto">
+					<AutoChaptersPanel />
+				</div>
 			)}
 
 			{/* ── YouTube Reels Mode ── */}

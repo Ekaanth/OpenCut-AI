@@ -9,8 +9,10 @@ import {
 	getElementLocalTime,
 	resolveOpacityAtTime,
 	resolveTransformAtTime,
+	resolvePlaybackRateAtTime,
 } from "@/lib/animation";
 import { resolveEffectParamsAtTime } from "@/lib/animation/effect-param-channel";
+import { getNumberChannelForPath } from "@/lib/animation/number-channel";
 import { TIME_EPSILON_SECONDS } from "@/constants/animation-constants";
 import { getEffect } from "@/lib/effects";
 import { webglEffectRenderer } from "../webgl-effect-renderer";
@@ -33,9 +35,49 @@ export abstract class VisualNode<
 	Params extends VisualNodeParams = VisualNodeParams,
 > extends BaseNode<Params> {
 	protected getSourceLocalTime({ time }: { time: number }): number {
-		const rate = this.params.playbackRate ?? 1.0;
+		const baseRate = this.params.playbackRate ?? 1.0;
 		const elapsed = time - this.params.timeOffset;
-		return elapsed * rate + this.params.trimStart;
+		const animations = this.params.animations;
+
+		const speedChannel = animations
+			? getNumberChannelForPath({ animations, propertyPath: "playbackRate" })
+			: null;
+
+		if (speedChannel && speedChannel.keyframes.length > 0) {
+			return this.getSourceTimeViaSpeedCurve({
+				localTime: Math.max(0, Math.min(elapsed, this.params.duration)),
+				baseRate,
+				animations: animations!,
+			});
+		}
+
+		return elapsed * baseRate + this.params.trimStart;
+	}
+
+	private getSourceTimeViaSpeedCurve({
+		localTime,
+		baseRate,
+		animations,
+	}: {
+		localTime: number;
+		baseRate: number;
+		animations: ElementAnimations;
+	}): number {
+		const steps = Math.max(10, Math.ceil(localTime * 30));
+		const dt = localTime / steps;
+		let sourceTime = this.params.trimStart;
+
+		for (let i = 0; i < steps; i++) {
+			const t = i * dt;
+			const rate = resolvePlaybackRateAtTime({
+				basePlaybackRate: baseRate,
+				animations,
+				localTime: t,
+			});
+			sourceTime += rate * dt;
+		}
+
+		return sourceTime;
 	}
 
 	protected getAnimationLocalTime({ time }: { time: number }): number {
@@ -69,7 +111,9 @@ export abstract class VisualNode<
 	}): void {
 		renderer.context.save();
 
-		const animationLocalTime = this.getAnimationLocalTime({ time: timelineTime });
+		const animationLocalTime = this.getAnimationLocalTime({
+			time: timelineTime,
+		});
 		const transform = resolveTransformAtTime({
 			baseTransform: this.params.transform,
 			animations: this.params.animations,
@@ -154,13 +198,7 @@ export abstract class VisualNode<
 			});
 		}
 
-		renderer.context.drawImage(
-			currentResult,
-			x,
-			y,
-			scaledWidth,
-			scaledHeight,
-		);
+		renderer.context.drawImage(currentResult, x, y, scaledWidth, scaledHeight);
 		renderer.context.restore();
 	}
 }

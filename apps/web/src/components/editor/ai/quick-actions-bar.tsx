@@ -19,26 +19,42 @@ import {
 	CheckmarkBadge01Icon,
 	Mic01Icon,
 	ClosedCaptionIcon,
+	Scissor01Icon,
 } from "@hugeicons/core-free-icons";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { useEditor } from "@/hooks/use-editor";
 import { useTextTimelineBridge } from "@/hooks/use-text-timeline-bridge";
+import { useSmartCut } from "@/hooks/use-smart-cut";
 import { DEFAULT_TEXT_ELEMENT } from "@/constants/text-constants";
-import {
-	computeCutsFromDeletedSegments,
-} from "@/lib/text-timeline-sync";
+import { computeCutsFromDeletedSegments } from "@/lib/text-timeline-sync";
 import { aiClient } from "@/lib/ai-client";
 import { useAssetsPanelStore } from "@/stores/assets-panel-store";
 import { useBackgroundTasksStore } from "@/stores/background-tasks-store";
-import { buildPopoverSubtitleElements, distributeElementsToTracks } from "@/lib/podcast/subtitle-presets";
+import {
+	buildPopoverSubtitleElements,
+	distributeElementsToTracks,
+} from "@/lib/podcast/subtitle-presets";
 import { toast } from "sonner";
 
 type ActionStatus = "idle" | "running" | "done";
 
 const FILLER_WORDS = new Set([
-	"um", "uh", "like", "you know", "so", "basically",
-	"actually", "literally", "right", "well", "er", "ah",
-	"hmm", "huh", "okay", "ok",
+	"um",
+	"uh",
+	"like",
+	"you know",
+	"so",
+	"basically",
+	"actually",
+	"literally",
+	"right",
+	"well",
+	"er",
+	"ah",
+	"hmm",
+	"huh",
+	"okay",
+	"ok",
 ]);
 
 /**
@@ -50,15 +66,18 @@ export function QuickActionsBar({ className }: { className?: string }) {
 	const segments = useTranscriptStore((s) => s.segments);
 	const editor = useEditor();
 	const { handleDeleteSegments } = useTextTimelineBridge();
+	const { runSmartCut } = useSmartCut();
 
 	const [fillerStatus, setFillerStatus] = useState<ActionStatus>("idle");
 	const [fillerCount, setFillerCount] = useState(0);
 	const [silenceStatus, setSilenceStatus] = useState<ActionStatus>("idle");
 	const [silenceCount, setSilenceCount] = useState(0);
 	const [factcheckStatus, setFactcheckStatus] = useState<ActionStatus>("idle");
-	const [popoverSubStatus, setPopoverSubStatus] = useState<ActionStatus>("idle");
+	const [popoverSubStatus, setPopoverSubStatus] =
+		useState<ActionStatus>("idle");
 	const [popoverSubCount, setPopoverSubCount] = useState(0);
 	const [findClipsStatus, setFindClipsStatus] = useState<ActionStatus>("idle");
+	const [smartCutStatus, setSmartCutStatus] = useState<ActionStatus>("idle");
 
 	// Derive subtitle state from actual timeline tracks
 	const subtitleTrackId = useMemo(() => {
@@ -67,7 +86,12 @@ export function QuickActionsBar({ className }: { className?: string }) {
 			(t) =>
 				t.type === "text" &&
 				t.elements.length > 0 &&
-				t.elements.some((el) => ("name" in el && (el.name?.startsWith("Subtitle ") || el.name?.startsWith("Caption ")))),
+				t.elements.some(
+					(el) =>
+						"name" in el &&
+						(el.name?.startsWith("Subtitle ") ||
+							el.name?.startsWith("Caption ")),
+				),
 		);
 		return textTrack?.id ?? null;
 	}, [editor, segments]); // re-derive when segments change (triggers re-render)
@@ -77,7 +101,10 @@ export function QuickActionsBar({ className }: { className?: string }) {
 		let count = 0;
 		for (const seg of segments) {
 			for (const w of seg.words) {
-				const clean = w.word.toLowerCase().replace(/[.,!?]/g, "").trim();
+				const clean = w.word
+					.toLowerCase()
+					.replace(/[.,!?]/g, "")
+					.trim();
 				if (FILLER_WORDS.has(clean)) count++;
 			}
 		}
@@ -112,7 +139,12 @@ export function QuickActionsBar({ className }: { className?: string }) {
 			for (const seg of segs) {
 				const words = seg.text.trim().split(/\s+/);
 				const fillerWords = words.filter((w) =>
-					FILLER_WORDS.has(w.toLowerCase().replace(/[.,!?]/g, "").trim()),
+					FILLER_WORDS.has(
+						w
+							.toLowerCase()
+							.replace(/[.,!?]/g, "")
+							.trim(),
+					),
 				);
 				if (words.length > 0 && fillerWords.length / words.length >= 0.8) {
 					segmentsToRemove.push(String(seg.id));
@@ -120,12 +152,16 @@ export function QuickActionsBar({ className }: { className?: string }) {
 			}
 
 			if (segmentsToRemove.length > 0) {
-				const toDelete = segs.filter((s) => segmentsToRemove.includes(String(s.id)));
+				const toDelete = segs.filter((s) =>
+					segmentsToRemove.includes(String(s.id)),
+				);
 				const cuts = computeCutsFromDeletedSegments(toDelete);
 				handleDeleteSegments(segmentsToRemove, cuts);
 				toast.success(`Removed ${segmentsToRemove.length} filler segments`);
 			} else {
-				toast.info("No segments are predominantly filler words. Use word-level editing in the transcript panel.");
+				toast.info(
+					"No segments are predominantly filler words. Use word-level editing in the transcript panel.",
+				);
 			}
 			setFillerStatus("idle");
 		} else {
@@ -144,7 +180,9 @@ export function QuickActionsBar({ className }: { className?: string }) {
 	// --- Find & Remove Silences ---
 	const handleSilences = useCallback(() => {
 		if (silenceStatus === "done") {
-			toast.success("Silences are removed when you delete segments (gaps auto-close).");
+			toast.success(
+				"Silences are removed when you delete segments (gaps auto-close).",
+			);
 			setSilenceStatus("idle");
 		} else {
 			setSilenceCount(currentSilenceCount);
@@ -221,8 +259,12 @@ export function QuickActionsBar({ className }: { className?: string }) {
 			if (result.claims.length === 0) {
 				toast.info("No verifiable claims found.");
 			} else {
-				const trueCount = result.claims.filter((c) => c.verdict === "True").length;
-				const falseCount = result.claims.filter((c) => c.verdict === "False").length;
+				const trueCount = result.claims.filter(
+					(c) => c.verdict === "True",
+				).length;
+				const falseCount = result.claims.filter(
+					(c) => c.verdict === "False",
+				).length;
 				toast.success(`Fact check complete: ${result.claims.length} claims`, {
 					description: `${trueCount} true, ${falseCount} false. Open the Fact Check panel for details.`,
 				});
@@ -270,9 +312,8 @@ export function QuickActionsBar({ className }: { className?: string }) {
 
 			for (let t = 0; t < trackBuckets.length; t++) {
 				const trackId = editor.timeline.addTrack({ type: "text", index: 0 });
-				const label = trackBuckets.length === 1
-					? "Popover Subs"
-					: `Popover Subs ${t + 1}`;
+				const label =
+					trackBuckets.length === 1 ? "Popover Subs" : `Popover Subs ${t + 1}`;
 				editor.timeline.renameTrack({ trackId, name: label });
 
 				for (const el of trackBuckets[t]) {
@@ -291,7 +332,8 @@ export function QuickActionsBar({ className }: { className?: string }) {
 			setPopoverSubCount((c) => c + 1);
 			setPopoverSubStatus("idle");
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "Failed to add popover subtitles";
+			const message =
+				err instanceof Error ? err.message : "Failed to add popover subtitles";
 			bgTasks.updateTask(taskId, {
 				status: "error",
 				error: message,
@@ -304,39 +346,78 @@ export function QuickActionsBar({ className }: { className?: string }) {
 	// --- Find Clips (opens panel) ---
 	const handleFindClips = useCallback(() => {
 		useAssetsPanelStore.getState().setActiveTab("audio");
-		toast.info("Switched to Audio panel — use the Podcast tab to find best clips.");
+		toast.info(
+			"Switched to Audio panel — use the Podcast tab to find best clips.",
+		);
 		setFindClipsStatus("done");
 	}, []);
+
+	// --- Smart Cut (one-click filler + silence removal) ---
+	const handleSmartCut = useCallback(async () => {
+		setSmartCutStatus("running");
+		const result = await runSmartCut();
+		if (result && result.cuts > 0) {
+			setSmartCutStatus("done");
+		} else {
+			setSmartCutStatus("idle");
+		}
+	}, [runSmartCut]);
 
 	// Early return AFTER all hooks to satisfy Rules of Hooks
 	if (segments.length === 0) return null;
 
-	const effectiveFillerCount = fillerStatus === "done" ? fillerCount : currentFillerCount;
-	const effectiveSilenceCount = silenceStatus === "done" ? silenceCount : currentSilenceCount;
+	const effectiveFillerCount =
+		fillerStatus === "done" ? fillerCount : currentFillerCount;
+	const effectiveSilenceCount =
+		silenceStatus === "done" ? silenceCount : currentSilenceCount;
 
 	const actions = [
 		{
+			id: "smart-cut",
+			label: smartCutStatus === "done" ? "Cut done" : "Smart cut",
+			description: "Remove all filler words and silences in one click",
+			icon: Scissor01Icon,
+			status: smartCutStatus,
+			handler: handleSmartCut,
+		},
+		{
 			id: "fillers",
-			label: fillerStatus === "done" && effectiveFillerCount > 0 ? "Remove fillers" : currentFillerCount > 0 ? `${currentFillerCount} fillers` : "Find fillers",
-			description: fillerStatus === "done" && effectiveFillerCount > 0
-				? `${effectiveFillerCount} filler words found — click to remove`
-				: currentFillerCount > 0
-					? `${currentFillerCount} filler words detected`
-					: "Scan for filler words (um, uh, like...)",
+			label:
+				fillerStatus === "done" && effectiveFillerCount > 0
+					? "Remove fillers"
+					: currentFillerCount > 0
+						? `${currentFillerCount} fillers`
+						: "Find fillers",
+			description:
+				fillerStatus === "done" && effectiveFillerCount > 0
+					? `${effectiveFillerCount} filler words found — click to remove`
+					: currentFillerCount > 0
+						? `${currentFillerCount} filler words detected`
+						: "Scan for filler words (um, uh, like...)",
 			icon: Delete02Icon,
 			count: effectiveFillerCount > 0 ? effectiveFillerCount : undefined,
-			status: currentFillerCount > 0 && fillerStatus === "idle" ? ("done" as ActionStatus) : fillerStatus,
+			status:
+				currentFillerCount > 0 && fillerStatus === "idle"
+					? ("done" as ActionStatus)
+					: fillerStatus,
 			handler: handleFillers,
 		},
 		{
 			id: "silences",
-			label: silenceStatus === "done" && effectiveSilenceCount > 0 ? `${effectiveSilenceCount} gaps` : currentSilenceCount > 0 ? `${currentSilenceCount} gaps` : "Find silences",
-			description: effectiveSilenceCount > 0
-				? `${effectiveSilenceCount} silent gaps detected between segments`
-				: "Detect long pauses between transcript segments",
+			label:
+				silenceStatus === "done" && effectiveSilenceCount > 0
+					? `${effectiveSilenceCount} gaps`
+					: currentSilenceCount > 0
+						? `${currentSilenceCount} gaps`
+						: "Find silences",
+			description:
+				effectiveSilenceCount > 0
+					? `${effectiveSilenceCount} silent gaps detected between segments`
+					: "Detect long pauses between transcript segments",
 			icon: AiMicIcon,
 			count: effectiveSilenceCount > 0 ? effectiveSilenceCount : undefined,
-			status: currentSilenceCount > 0 ? ("done" as ActionStatus) : silenceStatus,
+			status:
+				currentSilenceCount > 0 ? ("done" as ActionStatus) : silenceStatus,
 			handler: handleSilences,
 		},
 		{
@@ -352,9 +433,10 @@ export function QuickActionsBar({ className }: { className?: string }) {
 		{
 			id: "popover-subs",
 			label: popoverSubCount > 0 ? "Add more subs" : "Popover subs",
-			description: popoverSubCount > 0
-				? `${popoverSubCount} set${popoverSubCount > 1 ? "s" : ""} added — click to add another layer`
-				: "Word-by-word popover subtitles — each word appears when spoken and stays visible",
+			description:
+				popoverSubCount > 0
+					? `${popoverSubCount} set${popoverSubCount > 1 ? "s" : ""} added — click to add another layer`
+					: "Word-by-word popover subtitles — each word appears when spoken and stays visible",
 			icon: ClosedCaptionIcon,
 			count: popoverSubCount > 0 ? popoverSubCount : undefined,
 			status: popoverSubStatus,
@@ -405,15 +487,9 @@ export function QuickActionsBar({ className }: { className?: string }) {
 							{action.status === "running" ? (
 								<Spinner className="size-3" />
 							) : action.status === "done" ? (
-								<HugeiconsIcon
-									icon={Tick01Icon}
-									className="size-3"
-								/>
+								<HugeiconsIcon icon={Tick01Icon} className="size-3" />
 							) : (
-								<HugeiconsIcon
-									icon={action.icon}
-									className="size-3"
-								/>
+								<HugeiconsIcon icon={action.icon} className="size-3" />
 							)}
 							{action.label}
 							{action.count !== undefined && action.count > 0 && (

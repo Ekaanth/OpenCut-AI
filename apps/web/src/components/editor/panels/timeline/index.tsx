@@ -59,6 +59,7 @@ import { useEditor } from "@/hooks/use-editor";
 import { useTimelinePlayhead } from "@/hooks/timeline/use-timeline-playhead";
 import { DragLine } from "./drag-line";
 import { invokeAction } from "@/lib/actions";
+import { AudioMixerPanel } from "./audio-mixer-panel";
 
 const TRACKS_CONTAINER_MAX_HEIGHT = 800;
 const FALLBACK_CONTAINER_WIDTH = 1000;
@@ -82,6 +83,7 @@ export function Timeline() {
 	const trackLabelsScrollRef = useRef<HTMLDivElement>(null);
 
 	const [isResizing, setIsResizing] = useState(false);
+	const [showMixer, setShowMixer] = useState(false);
 	const [currentSnapPoint, setCurrentSnapPoint] = useState<SnapPoint | null>(
 		null,
 	);
@@ -541,6 +543,18 @@ export function Timeline() {
 					</div>
 				</div>
 			</div>
+			{showMixer && (
+				<div className="border-t bg-background/95">
+					<AudioMixerPanel />
+				</div>
+			)}
+			<button
+				type="button"
+				onClick={() => setShowMixer((prev) => !prev)}
+				className="flex items-center justify-center border-t py-0.5 text-[9px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+			>
+				{showMixer ? "Hide Mixer" : "Show Mixer"}
+			</button>
 		</section>
 	);
 }

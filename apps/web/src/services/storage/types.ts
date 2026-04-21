@@ -14,6 +14,28 @@ export interface StorageAdapter<T> {
 	clear(): Promise<void>;
 }
 
+export type ProxyResolution = "480p" | "720p" | "1080p";
+
+export interface ProxyInfo {
+	resolution: ProxyResolution;
+	width: number;
+	height: number;
+	generatedAt: number;
+	fileSize: number;
+}
+
+export const PROXY_PRESETS: Record<
+	ProxyResolution,
+	{ maxWidth: number; maxHeight: number }
+> = {
+	"480p": { maxWidth: 854, maxHeight: 480 },
+	"720p": { maxWidth: 1280, maxHeight: 720 },
+	"1080p": { maxWidth: 1920, maxHeight: 1080 },
+};
+
+export const PROXY_THRESHOLD_WIDTH = 1920;
+export const PROXY_THRESHOLD_HEIGHT = 1080;
+
 export interface MediaAssetData {
 	id: string;
 	name: string;
@@ -28,6 +50,8 @@ export interface MediaAssetData {
 	thumbnailUrl?: string;
 	/** User-defined label for organising assets (e.g. "Drone shot", "Person A cam") */
 	label?: string;
+	proxy?: ProxyInfo;
+	needsProxy?: boolean;
 }
 
 export type SerializedScene = Omit<TScene, "createdAt" | "updatedAt"> & {

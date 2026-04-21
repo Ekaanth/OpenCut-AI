@@ -74,10 +74,11 @@ function RenderTreeController() {
 			canvasSize: { width, height },
 			background: activeProject.settings.background,
 			isPreview: true,
+			useProxy: activeProject.settings.proxyEditing ?? false,
 		});
 
 		editor.renderer.setRenderTree({ renderTree });
-	}, [tracks, mediaAssets, activeProject?.settings.background, width, height]);
+	}, [tracks, mediaAssets, activeProject?.settings.background, activeProject?.settings.proxyEditing, width, height]);
 
 	return null;
 }

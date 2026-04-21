@@ -20,6 +20,7 @@ export {
 	resolveColorAtTime,
 	resolveNumberAtTime,
 	resolveOpacityAtTime,
+	resolvePlaybackRateAtTime,
 	resolveTransformAtTime,
 	resolveVolumeAtTime,
 } from "./resolve";

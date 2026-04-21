@@ -24,7 +24,11 @@ interface AnimationPropertyDefinition {
 	defaultInterpolation: AnimationInterpolation;
 	numericRange?: NumericRange;
 	supportsElement: ({ element }: { element: TimelineElement }) => boolean;
-	getValue: ({ element }: { element: TimelineElement }) => AnimationValue | null;
+	getValue: ({
+		element,
+	}: {
+		element: TimelineElement;
+	}) => AnimationValue | null;
 	setValue: ({
 		element,
 		value,
@@ -123,6 +127,21 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 		setValue: ({ element, value }) =>
 			element.type === "audio"
 				? { ...element, volume: value as number }
+				: element,
+	},
+	playbackRate: {
+		valueKind: "number",
+		defaultInterpolation: "linear",
+		numericRange: { min: 0.1, max: 4.0 },
+		supportsElement: ({ element }) =>
+			element.type === "video" || element.type === "audio",
+		getValue: ({ element }) =>
+			element.type === "video" || element.type === "audio"
+				? (element.playbackRate ?? 1.0)
+				: null,
+		setValue: ({ element, value }) =>
+			element.type === "video" || element.type === "audio"
+				? { ...element, playbackRate: value as number }
 				: element,
 	},
 	color: {
@@ -228,7 +247,10 @@ const ANIMATION_PROPERTY_REGISTRY: Record<
 			element.type === "text"
 				? {
 						...element,
-						background: { ...element.background, cornerRadius: value as number },
+						background: {
+							...element.background,
+							cornerRadius: value as number,
+						},
 					}
 				: element,
 	},

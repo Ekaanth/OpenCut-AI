@@ -5,7 +5,22 @@ export type BackgroundTaskStatus = "running" | "completed" | "error";
 
 export interface BackgroundTask {
 	id: string;
-	type: "transcription" | "voiceover" | "translation" | "tts" | "clip-finder" | "keyword-extraction" | "question-cards" | "popover-subs" | "speaker-diarization" | "template-generation" | "broll-suggestions" | "broll-batch";
+	type:
+		| "transcription"
+		| "voiceover"
+		| "translation"
+		| "tts"
+		| "clip-finder"
+		| "keyword-extraction"
+		| "question-cards"
+		| "popover-subs"
+		| "speaker-diarization"
+		| "template-generation"
+		| "broll-suggestions"
+		| "broll-batch"
+		| "smart-cut"
+		| "proxy-generation"
+		| "dubbing";
 	label: string;
 	status: BackgroundTaskStatus;
 	progress: string;
@@ -21,7 +36,9 @@ interface BackgroundTasksState {
 	addTask: (task: Omit<BackgroundTask, "startedAt" | "status">) => void;
 	updateTask: (
 		id: string,
-		updates: Partial<Pick<BackgroundTask, "progress" | "status" | "error" | "completedAt">>,
+		updates: Partial<
+			Pick<BackgroundTask, "progress" | "status" | "error" | "completedAt">
+		>,
 	) => void;
 	removeTask: (id: string) => void;
 	clearCompleted: () => void;
@@ -47,12 +64,11 @@ export const useBackgroundTasksStore = create<BackgroundTasksState>(
 			// Guard: don't re-notify if task is already in a terminal state
 			const existing = get().tasks.find((t) => t.id === id);
 			if (!existing) return;
-			const wasTerminal = existing.status === "completed" || existing.status === "error";
+			const wasTerminal =
+				existing.status === "completed" || existing.status === "error";
 
 			set((state) => ({
-				tasks: state.tasks.map((t) =>
-					t.id === id ? { ...t, ...updates } : t,
-				),
+				tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
 			}));
 
 			// Only toast on the first transition to a terminal state
