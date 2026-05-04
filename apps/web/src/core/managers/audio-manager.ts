@@ -151,9 +151,9 @@ export class AudioManager {
 		const tracks = this.editor.timeline.getTracks();
 		const track = tracks.find((t) => t.id === trackId);
 		const trackVolume =
-			track && ("volume" in track ? track.volume : undefined) ?? 1;
+			(track && ("volume" in track ? track.volume : undefined)) ?? 1;
 		const trackPan =
-			track && ("pan" in track ? track.pan : undefined) ?? 0;
+			(track && ("pan" in track ? track.pan : undefined)) ?? 0;
 
 		const gain = ctx.createGain();
 		gain.gain.value = trackVolume;

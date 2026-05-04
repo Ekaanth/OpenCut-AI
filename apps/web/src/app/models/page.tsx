@@ -29,6 +29,28 @@ interface AIModel {
 
 const models: AIModel[] = [
 	{
+		name: "Kimi K2",
+		provider: "MoonshotAI",
+		category: "Language Model",
+		description:
+			"MoonshotAI's flagship open-source model — 1T total / 32B active MoE architecture. Frontier-class reasoning for complex video scripts, agentic editing commands, and long-context analysis. Runs via Ollama (Q3/Q4/Q5 GGUF) or TurboQuant (HuggingFace, 4-bit NF4). Context: 128K tokens.",
+		size: "1T (32B active) MoE",
+		license: "Kimi K2 Open",
+		link: "https://github.com/MoonshotAI/Kimi-K2",
+		tags: ["commands", "scripts", "reasoning", "long-context", "turboquant"],
+	},
+	{
+		name: "Kimi VL A3B",
+		provider: "MoonshotAI",
+		category: "Language Model",
+		description:
+			"Kimi Vision-Language model with 3B active parameters. Understands images and text for scene analysis, video frame description, and multimodal editing commands. Two variants: Instruct (general) and Thinking (chain-of-thought reasoning). Runs via TurboQuant with 4-bit NF4 quantization.",
+		size: "3B active params",
+		license: "Apache 2.0",
+		link: "https://huggingface.co/moonshotai",
+		tags: ["multimodal", "vision", "reasoning", "turboquant"],
+	},
+	{
 		name: "Whisper",
 		provider: "OpenAI",
 		category: "Speech-to-Text",
@@ -243,21 +265,21 @@ export default function ModelsPage() {
 				<TierCard
 					name="Lite"
 					ram="4-8 GB"
-					models="Llama 3.2 1B + Whisper Base + noisereduce"
-					description="Runs on any machine. Basic AI commands, transcription, and audio cleanup. TurboQuant lets you squeeze a 3B model in here."
+					models="Llama 3.2 1B / Kimi K2 Q3 + Whisper Base + noisereduce"
+					description="Runs on any machine. Basic AI commands and transcription. Kimi K2 Q3 brings strong reasoning even in the Lite tier."
 				/>
 				<TierCard
 					name="Standard"
 					ram="8-16 GB"
-					models="Llama 3.2 3B / Mistral 7B + Whisper Small + XTTS v2 + rembg"
-					description="Recommended for most users. Good AI commands, voice cloning, and image generation. TurboQuant compression makes this the sweet spot."
+					models="Kimi K2 Q4 / Llama 3.2 3B / Mistral 7B + Whisper Small + XTTS v2 + rembg"
+					description="Recommended for most users. Kimi K2 Q4 delivers frontier reasoning with TurboQuant compression — the new sweet spot for video scripts."
 					recommended
 				/>
 				<TierCard
 					name="Pro"
 					ram="16-32+ GB"
-					models="Llama 3.1 8B + Whisper Medium + SDXL + XTTS v2 + full stack"
-					description="Best quality across the board. 8B models with near-lossless 4-bit compression. GPU recommended for image generation."
+					models="Kimi K2 Q5 / Llama 3.1 8B + Whisper Medium + SDXL + XTTS v2 + full stack"
+					description="Best quality across the board. Kimi K2 Q5 near-lossless at 5-bit with TurboQuant. GPU recommended for image generation and fast Kimi inference."
 				/>
 			</div>
 

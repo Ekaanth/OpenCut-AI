@@ -45,7 +45,7 @@ export async function generateProxy(
 
 		const origWidth = videoTrack.displayWidth;
 		const origHeight = videoTrack.displayHeight;
-		const duration = videoTrack.duration;
+		const duration = await videoTrack.computeDuration();
 
 		if (duration <= 0) throw new Error("Video has no duration");
 
@@ -57,7 +57,8 @@ export async function generateProxy(
 		const proxyWidth = Math.round(origWidth * scale);
 		const proxyHeight = Math.round(origHeight * scale);
 
-		const fps = Math.min(videoTrack.fps ?? 30, 30);
+		const stats = await videoTrack.computePacketStats();
+		const fps = Math.min(stats.averagePacketRate ?? 30, 30);
 		const frameCount = Math.ceil(duration * fps);
 
 		const canvas = document.createElement("canvas");
@@ -95,7 +96,7 @@ export async function generateProxy(
 				const ctx = canvas.getContext("2d");
 				if (ctx) {
 					ctx.clearRect(0, 0, proxyWidth, proxyHeight);
-					frame.draw(ctx, 0, 0, proxyWidth, proxyHeight);
+					ctx.drawImage(frame.canvas, 0, 0, proxyWidth, proxyHeight);
 				}
 
 				await videoSource.add(frame.timestamp, frame.duration);

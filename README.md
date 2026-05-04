@@ -57,6 +57,7 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 ### Infrastructure
 
 - **TurboQuant inference** — KV cache compression down to 2-bit on GPU, 3-bit on CPU, with a compute mode toggle (Auto / CPU / GPU).
+- **Kimi K2 & Kimi VL** — MoonshotAI's open-source Kimi models are fully supported: Kimi K2 (1T/32B active MoE) via Ollama GGUF (Q3/Q4/Q5) for every tier, and Kimi VL A3B (vision-language, 3B active) via TurboQuant for multimodal scene analysis.
 - **All data local** — Files stored in OPFS (Origin Private File System). Nothing leaves the browser or your server.
 - **Docker-ready** — One command to start the full stack (database, Redis, AI backend, 7 microservices).
 

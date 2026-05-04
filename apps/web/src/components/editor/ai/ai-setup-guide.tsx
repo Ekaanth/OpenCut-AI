@@ -83,9 +83,12 @@ function statusBadge(status: ServiceState): {
 
 const SUGGESTED_MODELS = [
 	{ name: "llama3.2:1b", description: "Fastest, minimal resources", size: "~1.3 GB", device: "cpu" as const, turboquant: true },
+	{ name: "kimi-k2:latest", description: "MoonshotAI Kimi K2 — frontier reasoning, 3-bit (Lite tier)", size: "~1.4 GB", device: "cpu" as const, turboquant: true },
 	{ name: "llama3.2:3b", description: "Fast, lightweight — good for commands and analysis", size: "~2 GB", device: "cpu" as const, turboquant: true },
+	{ name: "kimi-k2:q4_K_M", description: "MoonshotAI Kimi K2 — long-context agentic tasks, 4-bit (Standard tier)", size: "~3 GB", device: "cpu" as const, turboquant: true },
 	{ name: "mistral:7b", description: "High quality, needs more RAM", size: "~4.1 GB", device: "cpu" as const, turboquant: true },
 	{ name: "llama3.1:8b", description: "Best quality Llama, needs 8+ GB", size: "~4.9 GB", device: "gpu" as const, turboquant: true },
+	{ name: "kimi-k2:q5_K_M", description: "MoonshotAI Kimi K2 — near-lossless 5-bit, best reasoning (Pro tier)", size: "~7 GB", device: "gpu" as const, turboquant: true },
 	{ name: "qwen2.5:3b", description: "Strong multilingual, TurboQuant validated", size: "~2 GB", device: "cpu" as const, turboquant: true },
 	{ name: "qwen2.5:7b", description: "Excellent quality, multilingual", size: "~4.7 GB", device: "gpu" as const, turboquant: true },
 	{ name: "phi3.5:3.8b", description: "Microsoft Phi — 128K context, compact", size: "~2.2 GB", device: "cpu" as const, turboquant: true },

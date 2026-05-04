@@ -85,6 +85,40 @@ MODEL_DIR.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 
 MODEL_CATALOG: list[dict[str, Any]] = [
+    # ── Kimi family (MoonshotAI) ──────────────────────────────────────
+    {
+        "id": "moonshotai/Kimi-K2-Instruct",
+        "name": "Kimi K2 Instruct",
+        "family": "kimi",
+        "params": "1T (32B active)",
+        "memory_fp16_mb": 65000,
+        "memory_4bit_mb": 22000,
+        "context_length": 131072,
+        "description": "MoonshotAI frontier model — 1T total / 32B active MoE. State-of-the-art reasoning for complex scripts and agentic video editing.",
+        "turboquant_validated": False,
+    },
+    {
+        "id": "moonshotai/Kimi-VL-A3B-Instruct",
+        "name": "Kimi VL A3B Instruct",
+        "family": "kimi",
+        "params": "3B active",
+        "memory_fp16_mb": 7000,
+        "memory_4bit_mb": 2500,
+        "context_length": 131072,
+        "description": "Kimi vision-language model — 3B active params. Handles images and text for scene understanding and video analysis.",
+        "turboquant_validated": True,
+    },
+    {
+        "id": "moonshotai/Kimi-VL-A3B-Thinking",
+        "name": "Kimi VL A3B Thinking",
+        "family": "kimi",
+        "params": "3B active",
+        "memory_fp16_mb": 7000,
+        "memory_4bit_mb": 2500,
+        "context_length": 131072,
+        "description": "Kimi VL with chain-of-thought reasoning mode. Best for multi-step editing tasks and complex video instructions.",
+        "turboquant_validated": False,
+    },
     # ── Llama family ──────────────────────────────────────────────────
     {
         "id": "meta-llama/Llama-3.2-1B-Instruct",

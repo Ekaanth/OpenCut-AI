@@ -26,7 +26,7 @@ export const MODEL_TIERS = [
 	{
 		name: "lite" as const,
 		label: "Lite",
-		description: "Minimal footprint — runs on 4-8 GB RAM",
+		description: "Minimal footprint — runs on 4-8 GB RAM. Includes Kimi K2 Q3 (3-bit)",
 		ramRange: "4-8 GB",
 		defaultModel: "llama3.2:1b",
 		quality: "Good",
@@ -34,7 +34,7 @@ export const MODEL_TIERS = [
 	{
 		name: "standard" as const,
 		label: "Standard",
-		description: "Best quality/size balance — 8-16 GB RAM. Includes Gemma 4 E2B (5B)",
+		description: "Best quality/size balance — 8-16 GB RAM. Includes Kimi K2 Q4, Gemma 4 E2B (5B)",
 		ramRange: "8-16 GB",
 		defaultModel: "llama3.2:3b-instruct-q4_K_M",
 		quality: "Great",
@@ -42,7 +42,7 @@ export const MODEL_TIERS = [
 	{
 		name: "pro" as const,
 		label: "Pro",
-		description: "Maximum quality — 16-32+ GB RAM or GPU. Includes Gemma 4 E4B, 26B MoE, 31B Dense",
+		description: "Maximum quality — 16-32+ GB RAM or GPU. Includes Kimi K2 Q5, Gemma 4 E4B, 26B MoE, 31B Dense",
 		ramRange: "16-32+ GB",
 		defaultModel: "llama3.1:8b-instruct-q4_K_M",
 		quality: "Excellent",

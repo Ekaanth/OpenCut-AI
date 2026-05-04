@@ -78,7 +78,9 @@ services:
       - OPENCUTAI_OLLAMA_URL=http://ollama:11434
       - OPENCUTAI_PORT=8420
       - OPENCUTAI_CORS_ORIGINS=["http://localhost:3000","http://localhost:3100","http://localhost:5173"]
-      - OPENCUTAI_OLLAMA_DEFAULT_MODEL=llama3.2:1b
+      # LLM model for Ollama. Kimi K2 options:
+      #   kimi-k2:latest (Q3, ~1.4GB), kimi-k2:q4_K_M (Q4, ~3GB), kimi-k2:q5_K_M (Q5, ~7GB)
+      - OPENCUTAI_OLLAMA_DEFAULT_MODEL=${OLLAMA_DEFAULT_MODEL:-llama3.2:1b}
       - OPENCUTAI_OLLAMA_TIMEOUT=300
       - OPENCUTAI_WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
       - OPENCUTAI_WHISPER_DEVICE=cpu
@@ -207,6 +209,9 @@ services:
     ports:
       - "8430:8430"
     environment:
+      # HuggingFace model for TurboQuant inference. Kimi options:
+      #   moonshotai/Kimi-VL-A3B-Instruct  (~2.5GB 4-bit, Standard tier)
+      #   moonshotai/Kimi-K2-Instruct       (~22GB 4-bit, Pro / GPU tier)
       - MODEL_NAME=${TURBOQUANT_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
       - KV_CACHE_BITS=${KV_CACHE_BITS:-4}
       - MAX_CONTEXT_LENGTH=8192

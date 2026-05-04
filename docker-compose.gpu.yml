@@ -7,6 +7,14 @@
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 #
+# For Kimi K2 on GPU (recommended, requires 24+ GB VRAM):
+#   TURBOQUANT_MODEL=moonshotai/Kimi-K2-Instruct docker compose \
+#     -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# For Kimi VL A3B on GPU (requires 6+ GB VRAM):
+#   TURBOQUANT_MODEL=moonshotai/Kimi-VL-A3B-Instruct docker compose \
+#     -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
 # Requirements:
 #   - NVIDIA container toolkit installed on the host
 #   - Docker Compose v2.3+
