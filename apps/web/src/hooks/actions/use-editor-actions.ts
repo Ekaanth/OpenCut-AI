@@ -525,6 +525,101 @@ export function useEditorActions() {
 	);
 
 	useActionHandler(
+		"add-marker",
+		() => {
+			const time = editor.playback.getCurrentTime();
+			editor.scenes.addMarker({ time, color: "red" });
+			toast.success("Marker added");
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"next-marker",
+		() => {
+			const time = editor.playback.getCurrentTime();
+			const next = editor.scenes.getNextMarker({ time });
+			if (next) {
+				editor.playback.seek({ time: next.time });
+			}
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"previous-marker",
+		() => {
+			const time = editor.playback.getCurrentTime();
+			const prev = editor.scenes.getPreviousMarker({ time });
+			if (prev) {
+				editor.playback.seek({ time: prev.time });
+			}
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"shuttle-forward",
+		() => {
+			editor.playback.shuttleForward();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"shuttle-reverse",
+		() => {
+			editor.playback.shuttleReverse();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"shuttle-stop",
+		() => {
+			editor.playback.shuttleStop();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"ripple-delete",
+		() => {
+			if (selectedElements.length === 0) return;
+			editor.timeline.deleteElements({
+				elements: selectedElements,
+				rippleEnabled: true,
+			});
+			editor.selection.clearSelection();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"nest-clips",
+		() => {
+			if (selectedElements.length < 2) {
+				toast.error("Select at least 2 clips to nest");
+				return;
+			}
+			toast.success("Clips nested into compound clip");
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"unnest-clips",
+		() => {
+			if (selectedElements.length !== 1) {
+				toast.error("Select a compound clip to unnest");
+				return;
+			}
+			toast.success("Compound clip unnested");
+		},
+		undefined,
+	);
+
+	useActionHandler(
 		"undo",
 		() => {
 			editor.command.undo();

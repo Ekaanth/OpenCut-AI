@@ -4,6 +4,7 @@ import type {
 	VideoElement,
 } from "@/types/timeline";
 import { BlendingSection, TransformSection } from "./sections";
+import { CropMaskSection } from "./sections/crop-mask";
 import {
 	Section,
 	SectionContent,
@@ -30,6 +31,7 @@ export function VideoProperties({
 				trackId={trackId}
 				showTopBorder={false}
 			/>
+			<CropMaskSection element={element} trackId={trackId} />
 			{element.type === "video" && (
 				<SpeedSection element={element} trackId={trackId} />
 			)}

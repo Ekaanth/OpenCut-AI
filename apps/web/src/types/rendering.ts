@@ -7,6 +7,20 @@ export interface Transform {
 	rotate: number;
 }
 
+export interface CropRect {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+}
+
+export interface MaskShape {
+	type: "rectangle" | "ellipse" | "polygon";
+	feather: number;
+	inverted: boolean;
+	points?: { x: number; y: number }[];
+}
+
 export type BlendMode =
 	| "normal"
 	| "darken"

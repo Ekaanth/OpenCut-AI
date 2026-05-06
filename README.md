@@ -34,6 +34,13 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **Smart Cut** — One-click filler word removal ("um", "uh", "like") and silence detection. Runs locally via FFmpeg.
 - **AI transcription** — Whisper-powered speech-to-text with word-level timestamps. GPU or CPU.
 - **Voice cloning & TTS** — Clone any voice from a 6-second sample. Supports [Sarvam AI](https://www.sarvam.ai/) for 22 Indian languages and [Smallest AI](https://www.smallest.ai/) for 15 languages with 80+ voices.
+- **AI Auto-Duck** — Automatically lowers background music during speech segments with configurable duck amount and fade.
+- **AI Music Generation** — Generate royalty-free background music with 15 genres, 12 moods, and 3 tempo settings. Preview and insert directly to the timeline.
+- **AI Thumbnail Generator** — Create eye-catching thumbnails from prompts or transcript analysis. 5 styles, 4 size presets, 5 color schemes, up to 4 variations at once.
+- **AI Script-to-Video** — Write a script, AI generates voiceover, visuals, and builds the timeline automatically.
+- **AI Auto-Color Correction** — 8 color correction profiles (Vibrant Pop, Film Look, Warm Sunset, etc.) with batch apply to all video clips.
+- **AI Video-to-Shorts Auto-Composer** — One-click: AI selects best clip, trims to target duration, sets canvas size (9:16, 1:1, 4:5), adds subtitles.
+- **Speaker-Labeled Captions** — Auto-assign color-coded speaker labels, rename speakers, apply captions to timeline.
 - **Virality Score** — Score your video's engagement potential across 7 signals (hook, curiosity gap, energy, beat sync, face, emotion, viral) before publishing.
 - **YouTube to Reels** — Paste a URL, auto-detect clips, reframe to 9:16 with face tracking, add captions, export reels.
 - **AI image generation** — Generate images from text via Stable Diffusion and place on the timeline.
@@ -43,12 +50,29 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 
 ### Professional Editing
 
-- **Transitions** — 7 built-in transitions (cross-dissolve, dip-black, slide, wipe, zoom) with WebGL dual-texture shaders. Apply between any two adjacent clips.
+- **20 built-in transitions** — Cross-dissolve, dip-black, slide, wipe, zoom, iris, clock wipe, morph, glitch, film burn, page peel, spin, push, fade-white, checkerboard, dissolve-zoom, band-slide, cube-spin, and more. All WebGL dual-texture shaders.
+- **22 filter presets + 12 effects** — Sunset Glow, Moonlight, Cyberpunk, Film Noir, Dreamy, Retro VHS, Teal & Orange, Bleach Bypass, Cross Process, Faded Film. Effects include Sharpen, Chromatic Aberration, Vignette, Film Grain, Glitch, RGB Split, Lens Distortion, Motion Blur, Posterize, Duotone.
 - **Speed ramping** — Variable speed curves with click-to-add keyframes and 5 presets (linear, ease-in, ease-out, smooth, bounce). Per-clip playback rate animation.
-- **Proxy editing** — Auto-generate lower-resolution copies of 4K+ footage for smooth preview. Export always uses originals. Choose 480p, 720p, or 1080p proxy resolution.
-- **Audio mixer** — Per-track volume, stereo pan, solo/mute with real-time level meters. Canvas-based peak/RMS visualization.
+- **Crop & Mask tool** — Rectangle, ellipse, polygon masks with feather control and inversion. Pixel-based crop values in properties panel.
+- **Multicam editing** — Sync angles by timecode, multicam viewer panel, one-click angle switching, auto-detect video tracks as angles.
+- **Marker system** — Press `M` to drop colored markers (red, yellow, green, blue, purple). Markers panel, jump to next/previous, notes on markers.
+- **J/K/L shuttle playback** — `J` reverse, `K` stop, `L` forward. Press multiple times for 2x, 4x, 8x speed. Full reverse playback support.
+- **Ripple trim** — Delete clips and close gaps automatically. `computeRippleTrim()` shifts downstream elements.
+- **Nesting / compound clips** — Select multiple clips and nest into a single compound clip. Un-nest to explode back to individual clips.
+- **Proxy editing** — Auto-generate lower-resolution copies of 4K+ footage for smooth preview. Export always uses originals.
+- **Audio mixer** — Per-track volume, stereo pan, solo/mute with real-time level meters.
+- **Audio effects chain** — Per-track insert chain: EQ (3-band/parametric), Compressor, Noise Gate, Reverb (room/hall/plate), De-esser, Limiter. Real-time Web Audio API processing.
+- **Direct audio recording** — Record audio directly to timeline from your microphone. Live level metering, pause/resume, auto-insert at playhead position.
+- **LUFS loudness normalization** — Measure integrated, short-term, momentary, true peak loudness. Normalize to platform targets (YouTube -14, Spotify -14, Apple Podcasts -16, EBU R128 -23, ATSC A/85 -24). Custom target slider.
+- **Beat detection** — Detect beats in music tracks, display BPM, visualize beat strength, toggle beat grid overlay and snap-to-beats.
+- **Batch export** — Queue multiple export jobs. 8 platform presets: YouTube 1080p/4K, TikTok/Reels 9:16, Instagram Square/Portrait, Twitter/X, Podcast Audio, Web/Email.
+- **Keyboard shortcut editor** — Full shortcut management UI with search, category filter, click-to-rebind, conflict detection, and reset to defaults.
+- **Undo history panel** — Visual history list with jump-to-any-point. See redo stack, click to navigate command history.
+- **Color-coded tracks** — Assign 8 colors to tracks. Lock/unlock tracks to prevent accidental edits.
+- **Filmstrip thumbnails** — Canvas-based frame extraction with LRU cache. Thumbnails rendered on timeline clips.
+- **Template gallery** — 8 built-in project templates (YouTube Intro, TikTok Vlog, Podcast Highlight, Product Review, Classroom Lesson, Instagram Reel, Travel Vlog, Tutorial). Search, filter by category, one-click apply.
+- **Share project via link** — Generate share links with expiration, password protection, and permission controls (download/edit). Auto-copy to clipboard, revoke support.
 - **Multi-track timeline** — Video, audio, text, sticker, and effect tracks with drag-and-drop.
-- **Separate audio** — Extract audio from video into its own track with independent control.
 - **Freeze frame** — Capture any frame at the playhead and insert as a still image.
 - **Frame size presets** — Toggle 16:9, 9:16, 1:1, 4:3 above the preview.
 - **Real-time preview** — Live canvas rendering with transforms, effects, and transitions.

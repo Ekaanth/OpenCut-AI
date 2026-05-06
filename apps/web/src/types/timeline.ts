@@ -1,6 +1,6 @@
 import type { ElementAnimations } from "./animation";
 import type { Effect, EffectParamValues } from "./effects";
-import type { BlendMode, Transform } from "./rendering";
+import type { BlendMode, Transform, CropRect, MaskShape } from "./rendering";
 
 export interface TransitionData {
 	type: string;
@@ -14,21 +14,44 @@ export interface Bookmark {
 	duration?: number;
 }
 
+export interface Marker {
+	id: string;
+	time: number;
+	note?: string;
+	color: string;
+	createdAt: number;
+}
+
+export type MarkerColor = "red" | "yellow" | "green" | "blue" | "purple";
+
 export interface TScene {
 	id: string;
 	name: string;
 	isMain: boolean;
 	tracks: TimelineTrack[];
 	bookmarks: Bookmark[];
+	markers: Marker[];
 	createdAt: Date;
 	updatedAt: Date;
 }
 
 export type TrackType = "video" | "text" | "audio" | "sticker" | "effect";
 
+export type TrackColor =
+	| "default"
+	| "red"
+	| "orange"
+	| "yellow"
+	| "green"
+	| "blue"
+	| "purple"
+	| "pink";
+
 interface BaseTrack {
 	id: string;
 	name: string;
+	color?: TrackColor;
+	locked?: boolean;
 }
 
 export interface VideoTrack extends BaseTrack {
@@ -114,13 +137,14 @@ export interface VideoElement extends BaseTimelineElement {
 	mediaId: string;
 	muted?: boolean;
 	hidden?: boolean;
-	/** Playback speed multiplier. 1.0 = normal, 0.5 = half speed, 2.0 = double speed. */
 	playbackRate?: number;
 	transform: Transform;
 	opacity: number;
 	blendMode?: BlendMode;
 	effects?: Effect[];
 	transitionOut?: TransitionData;
+	crop?: CropRect;
+	mask?: MaskShape;
 }
 
 export interface ImageElement extends BaseTimelineElement {
@@ -132,6 +156,8 @@ export interface ImageElement extends BaseTimelineElement {
 	blendMode?: BlendMode;
 	effects?: Effect[];
 	transitionOut?: TransitionData;
+	crop?: CropRect;
+	mask?: MaskShape;
 }
 
 export interface TextBackground {
@@ -177,6 +203,8 @@ export interface TextElement extends BaseTimelineElement {
 	blendMode?: BlendMode;
 	effects?: Effect[];
 	transitionOut?: TransitionData;
+	crop?: CropRect;
+	mask?: MaskShape;
 }
 
 export interface StickerElement extends BaseTimelineElement {
@@ -188,6 +216,8 @@ export interface StickerElement extends BaseTimelineElement {
 	blendMode?: BlendMode;
 	effects?: Effect[];
 	transitionOut?: TransitionData;
+	crop?: CropRect;
+	mask?: MaskShape;
 }
 
 export interface EffectElement extends BaseTimelineElement {
@@ -275,4 +305,17 @@ export interface ClipboardItem {
 	trackId: string;
 	trackType: TrackType;
 	element: CreateTimelineElement;
+}
+
+export interface CompoundClip extends BaseTimelineElement {
+	type: "compound";
+	innerTracks: TimelineTrack[];
+	name: string;
+	transform: Transform;
+	opacity: number;
+	blendMode?: BlendMode;
+	effects?: Effect[];
+	transitionOut?: TransitionData;
+	crop?: CropRect;
+	mask?: MaskShape;
 }

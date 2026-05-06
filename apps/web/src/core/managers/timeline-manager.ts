@@ -619,13 +619,28 @@ export class TimelineManager {
 		updates,
 	}: {
 		trackId: string;
-		updates: Partial<{ muted: boolean; hidden: boolean; volume: number; pan: number; solo: boolean }>;
+		updates: Partial<{ muted: boolean; hidden: boolean; volume: number; pan: number; solo: boolean; color: string; locked: boolean }>;
 	}): void {
 		const tracks = this.getTracks();
 		const updatedTracks = tracks.map((track) =>
 			track.id === trackId ? { ...track, ...updates } : track,
 		) as TimelineTrack[];
 		this.updateTracks(updatedTracks);
+	}
+
+	setTrackColor({ trackId, color }: { trackId: string; color: string }): void {
+		this.updateTrack({ trackId, updates: { color } as any });
+	}
+
+	toggleTrackLock({ trackId }: { trackId: string }): void {
+		const track = this.getTracks().find((t) => t.id === trackId);
+		if (!track) return;
+		this.updateTrack({ trackId, updates: { locked: !(track as any).locked } as any });
+	}
+
+	isTrackLocked(trackId: string): boolean {
+		const track = this.getTracks().find((t) => t.id === trackId);
+		return !!(track as any)?.locked;
 	}
 
 	updateTracks(newTracks: TimelineTrack[]): void {

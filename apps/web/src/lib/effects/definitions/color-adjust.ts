@@ -144,4 +144,54 @@ export const FILTER_PRESETS: FilterPreset[] = [
 		name: "Golden Hour",
 		params: { brightness: 0.05, contrast: 1.1, saturation: 1.2, temperature: 0.7, vignette: 0.3 },
 	},
+	{
+		id: "sunset-glow",
+		name: "Sunset Glow",
+		params: { brightness: 0.08, contrast: 1.15, saturation: 1.3, temperature: 0.8, vignette: 0.25 },
+	},
+	{
+		id: "moonlight",
+		name: "Moonlight",
+		params: { brightness: -0.1, contrast: 1.2, saturation: 0.3, temperature: -0.7, vignette: 0.5 },
+	},
+	{
+		id: "cyberpunk",
+		name: "Cyberpunk",
+		params: { brightness: -0.05, contrast: 1.6, saturation: 1.5, temperature: -0.6, vignette: 0.4 },
+	},
+	{
+		id: "film-noir-bw",
+		name: "Film Noir B&W",
+		params: { brightness: -0.15, contrast: 1.8, saturation: 0, temperature: 0, vignette: 0.8 },
+	},
+	{
+		id: "dreamy",
+		name: "Dreamy",
+		params: { brightness: 0.15, contrast: 0.75, saturation: 0.7, temperature: 0.2, vignette: 0.15 },
+	},
+	{
+		id: "retro-vhs",
+		name: "Retro VHS",
+		params: { brightness: 0.05, contrast: 1.3, saturation: 1.4, temperature: 0.4, vignette: 0.1 },
+	},
+	{
+		id: "cinematic-teal-orange",
+		name: "Teal & Orange",
+		params: { brightness: -0.03, contrast: 1.25, saturation: 1.1, temperature: 0.35, vignette: 0.3 },
+	},
+	{
+		id: "bleach-bypass",
+		name: "Bleach Bypass",
+		params: { brightness: -0.05, contrast: 1.7, saturation: 0.35, temperature: 0.1, vignette: 0.35 },
+	},
+	{
+		id: "cross-process",
+		name: "Cross Process",
+		params: { brightness: 0.1, contrast: 1.2, saturation: 1.6, temperature: -0.3, vignette: 0.2 },
+	},
+	{
+		id: "faded-film",
+		name: "Faded Film",
+		params: { brightness: 0.12, contrast: 0.9, saturation: 0.55, temperature: 0.15, vignette: 0.3 },
+	},
 ];

@@ -1,7 +1,7 @@
 export interface TransitionDefinition {
 	type: string;
 	name: string;
-	category: "dissolve" | "slide" | "wipe" | "zoom" | "dip";
+	category: "dissolve" | "slide" | "wipe" | "zoom" | "dip" | "iris" | "morph" | "distortion" | "burn" | "peel" | "spin" | "cube" | "pattern";
 	keywords: string[];
 	defaultDuration: number;
 	fragmentShader: string;

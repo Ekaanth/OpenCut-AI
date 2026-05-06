@@ -1,5 +1,5 @@
 import type { EditorCore } from "@/core";
-import type { TimelineTrack, TScene } from "@/types/timeline";
+import type { TimelineTrack, TScene, Marker, MarkerColor } from "@/types/timeline";
 import { storageService } from "@/services/storage/service";
 import {
 	getMainScene,
@@ -178,12 +178,16 @@ export class ScenesManager {
 					this.ensureScenesHaveMainTrack({
 						scenes: result.project.scenes ?? [],
 					});
+				const scenesWithMarkers = ensuredScenes.map((s) => ({
+					...s,
+					markers: s.markers ?? [],
+				}));
 				const currentScene = findCurrentScene({
-					scenes: ensuredScenes,
+					scenes: scenesWithMarkers,
 					currentSceneId: result.project.currentSceneId,
 				});
 
-				this.list = ensuredScenes;
+				this.list = scenesWithMarkers;
 				this.active = currentScene;
 				this.notify();
 
@@ -221,13 +225,17 @@ export class ScenesManager {
 		const ensuredScenes = ensureMainScene({ scenes });
 		const { scenes: scenesWithMainTracks, hasAddedMainTrack } =
 			this.ensureScenesHaveMainTrack({ scenes: ensuredScenes });
+		const scenesWithMarkers = scenesWithMainTracks.map((s) => ({
+			...s,
+			markers: s.markers ?? [],
+		}));
 		const currentScene = currentSceneId
-			? scenesWithMainTracks.find((s) => s.id === currentSceneId)
+			? scenesWithMarkers.find((s) => s.id === currentSceneId)
 			: null;
 
-		const fallbackScene = getMainScene({ scenes: scenesWithMainTracks });
+		const fallbackScene = getMainScene({ scenes: scenesWithMarkers });
 
-		this.list = scenesWithMainTracks;
+		this.list = scenesWithMarkers;
 		this.active = currentScene || fallbackScene;
 		this.notify();
 
@@ -238,7 +246,7 @@ export class ScenesManager {
 			if (activeProject) {
 				const updatedProject = {
 					...activeProject,
-					scenes: scenesWithMainTracks,
+					scenes: scenesWithMarkers,
 					metadata: {
 						...activeProject.metadata,
 						updatedAt: new Date(),
@@ -361,5 +369,93 @@ export class ScenesManager {
 		}
 
 		return { scenes: ensuredScenes, hasAddedMainTrack };
+	}
+
+	addMarker({ time, color, note }: { time: number; color: MarkerColor; note?: string }): void {
+		if (!this.active) return;
+		const marker: Marker = {
+			id: `marker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			time,
+			color,
+			note,
+			createdAt: Date.now(),
+		};
+		const updatedScene: TScene = {
+			...this.active,
+			markers: [...(this.active.markers ?? []), marker],
+			updatedAt: new Date(),
+		};
+		this.updateActiveScene(updatedScene);
+	}
+
+	removeMarker({ markerId }: { markerId: string }): void {
+		if (!this.active) return;
+		const updatedScene: TScene = {
+			...this.active,
+			markers: (this.active.markers ?? []).filter((m) => m.id !== markerId),
+			updatedAt: new Date(),
+		};
+		this.updateActiveScene(updatedScene);
+	}
+
+	updateMarker({ markerId, updates }: { markerId: string; updates: Partial<Pick<Marker, "note" | "color" | "time">> }): void {
+		if (!this.active) return;
+		const updatedScene: TScene = {
+			...this.active,
+			markers: (this.active.markers ?? []).map((m) =>
+				m.id === markerId ? { ...m, ...updates } : m,
+			),
+			updatedAt: new Date(),
+		};
+		this.updateActiveScene(updatedScene);
+	}
+
+	getMarkers(): Marker[] {
+		return this.active?.markers ?? [];
+	}
+
+	getNextMarker({ time }: { time: number }): Marker | null {
+		const markers = (this.active?.markers ?? [])
+			.filter((m) => m.time > time + 0.01)
+			.sort((a, b) => a.time - b.time);
+		return markers[0] ?? null;
+	}
+
+	getPreviousMarker({ time }: { time: number }): Marker | null {
+		const markers = (this.active?.markers ?? [])
+			.filter((m) => m.time < time - 0.01)
+			.sort((a, b) => b.time - a.time);
+		return markers[0] ?? null;
+	}
+
+	clearMarkers(): void {
+		if (!this.active) return;
+		const updatedScene: TScene = {
+			...this.active,
+			markers: [],
+			updatedAt: new Date(),
+		};
+		this.updateActiveScene(updatedScene);
+	}
+
+	private updateActiveScene(updatedScene: TScene): void {
+		this.list = this.list.map((s) =>
+			s.id === this.active?.id ? updatedScene : s,
+		);
+		this.active = updatedScene;
+		this.notify();
+
+		const activeProject = this.editor.project.getActive();
+		if (activeProject) {
+			const updatedProject = {
+				...activeProject,
+				scenes: this.list,
+				metadata: {
+					...activeProject.metadata,
+					updatedAt: new Date(),
+				},
+			};
+			this.editor.project.setActiveProject({ project: updatedProject });
+		}
 	}
 }

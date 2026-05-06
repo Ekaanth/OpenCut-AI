@@ -106,4 +106,37 @@ export class CommandManager {
 	isInTransaction(): boolean {
 		return this.transactionBuffer !== null;
 	}
+
+	getHistory(): readonly Command[] {
+		return this.history;
+	}
+
+	getRedoStack(): readonly Command[] {
+		return this.redoStack;
+	}
+
+	getHistoryLength(): number {
+		return this.history.length;
+	}
+
+	getRedoLength(): number {
+		return this.redoStack.length;
+	}
+
+	undoTo(index: number): void {
+		while (this.history.length > index && this.history.length > 0) {
+			const command = this.history.pop();
+			command?.undo();
+			if (command) this.redoStack.push(command);
+		}
+	}
+
+	redoTo(index: number): void {
+		const target = Math.min(index, this.history.length + this.redoStack.length);
+		while (this.history.length < target && this.redoStack.length > 0) {
+			const command = this.redoStack.pop();
+			command?.redo();
+			if (command) this.history.push(command);
+		}
+	}
 }

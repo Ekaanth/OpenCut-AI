@@ -31,6 +31,7 @@ export function transformProjectV0ToV1({
 		isMain: true,
 		tracks: [],
 		bookmarks: [],
+		markers: [],
 		createdAt: sceneCreatedAt,
 		updatedAt: sceneUpdatedAt,
 	};

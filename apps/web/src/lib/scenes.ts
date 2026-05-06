@@ -30,6 +30,7 @@ export function buildDefaultScene({
 		isMain,
 		tracks,
 		bookmarks: [],
+		markers: [],
 		createdAt: new Date(),
 		updatedAt: new Date(),
 	};

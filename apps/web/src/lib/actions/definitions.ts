@@ -111,6 +111,43 @@ export const ACTIONS = {
 		description: "Toggle ripple editing",
 		category: "editing",
 	},
+	"add-marker": {
+		description: "Add marker at playhead",
+		category: "timeline",
+		defaultShortcuts: ["m"],
+	},
+	"next-marker": {
+		description: "Jump to next marker",
+		category: "navigation",
+	},
+	"previous-marker": {
+		description: "Jump to previous marker",
+		category: "navigation",
+	},
+	"shuttle-forward": {
+		description: "Shuttle forward (double press L = 2x)",
+		category: "playback",
+	},
+	"shuttle-reverse": {
+		description: "Shuttle reverse (double press J = 2x)",
+		category: "playback",
+	},
+	"shuttle-stop": {
+		description: "Stop shuttle playback",
+		category: "playback",
+	},
+	"ripple-delete": {
+		description: "Ripple delete selected elements",
+		category: "editing",
+	},
+	"nest-clips": {
+		description: "Nest selected clips into compound clip",
+		category: "editing",
+	},
+	"unnest-clips": {
+		description: "Unnest compound clip",
+		category: "editing",
+	},
 	"select-all": {
 		description: "Select all elements",
 		category: "selection",
@@ -206,6 +243,10 @@ export const ACTIONS = {
 	"smart-cut": {
 		description: "Remove filler words and silences in one click",
 		category: "ai",
+	},
+	"toggle-track-lock": {
+		description: "Lock/Unlock selected track",
+		category: "timeline",
 	},
 } as const satisfies Record<string, TActionDefinition>;
 

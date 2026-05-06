@@ -146,6 +146,7 @@ class StorageService {
 			isMain: scene.isMain,
 			tracks: this.stripAudioBuffers({ tracks: scene.tracks }),
 			bookmarks: scene.bookmarks,
+			markers: scene.markers,
 			createdAt: scene.createdAt.toISOString(),
 			updatedAt: scene.updatedAt.toISOString(),
 		}));
@@ -186,10 +187,11 @@ class StorageService {
 				isMain: scene.isMain,
 				tracks: (scene.tracks ?? []).map((track) =>
 					track.type === "video"
-						? { ...track, isMain: track.isMain ?? false } // legacy: isMain was optional
+						? { ...track, isMain: track.isMain ?? false }
 						: track,
 				),
 				bookmarks: normalizeBookmarks({ raw: scene.bookmarks }),
+				markers: scene.markers ?? [],
 				createdAt: new Date(scene.createdAt),
 				updatedAt: new Date(scene.updatedAt),
 			})) ?? [];

@@ -10,6 +10,10 @@ export class PlaybackManager {
 	private listeners = new Set<() => void>();
 	private playbackTimer: number | null = null;
 	private lastUpdate = 0;
+	private shuttleSpeed = 0;
+	private shuttleDirection: "forward" | "reverse" | null = null;
+	private lastShuttlePress = 0;
+	private static readonly SHUTTLE_SPEEDS = [1, 2, 4, 8];
 
 	constructor(private editor: EditorCore) {}
 
@@ -112,6 +116,50 @@ export class PlaybackManager {
 		return this.isScrubbing;
 	}
 
+	shuttleForward(): void {
+		const now = Date.now();
+		if (this.shuttleDirection === "forward" && now - this.lastShuttlePress < 500) {
+			const idx = PlaybackManager.SHUTTLE_SPEEDS.indexOf(this.shuttleSpeed);
+			this.shuttleSpeed = PlaybackManager.SHUTTLE_SPEEDS[Math.min(idx + 1, PlaybackManager.SHUTTLE_SPEEDS.length - 1)];
+		} else {
+			this.shuttleSpeed = 1;
+		}
+		this.shuttleDirection = "forward";
+		this.lastShuttlePress = now;
+		this.isPlaying = true;
+		this.startTimer();
+		this.notify();
+	}
+
+	shuttleReverse(): void {
+		const now = Date.now();
+		if (this.shuttleDirection === "reverse" && now - this.lastShuttlePress < 500) {
+			const idx = PlaybackManager.SHUTTLE_SPEEDS.indexOf(this.shuttleSpeed);
+			this.shuttleSpeed = PlaybackManager.SHUTTLE_SPEEDS[Math.min(idx + 1, PlaybackManager.SHUTTLE_SPEEDS.length - 1)];
+		} else {
+			this.shuttleSpeed = 1;
+		}
+		this.shuttleDirection = "reverse";
+		this.lastShuttlePress = now;
+		this.isPlaying = true;
+		this.startTimer();
+		this.notify();
+	}
+
+	shuttleStop(): void {
+		this.shuttleSpeed = 0;
+		this.shuttleDirection = null;
+		this.pause();
+	}
+
+	getShuttleSpeed(): number {
+		return this.shuttleSpeed;
+	}
+
+	getShuttleDirection(): "forward" | "reverse" | null {
+		return this.shuttleDirection;
+	}
+
 	subscribe(listener: () => void): () => void {
 		this.listeners.add(listener);
 		return () => this.listeners.delete(listener);
@@ -144,7 +192,8 @@ export class PlaybackManager {
 		const delta = (now - this.lastUpdate) / 1000;
 		this.lastUpdate = now;
 
-		const newTime = this.currentTime + delta;
+		const speed = this.shuttleDirection === "reverse" ? -this.shuttleSpeed : this.shuttleSpeed;
+		const newTime = this.currentTime + delta * speed;
 		const duration = this.editor.timeline.getTotalDuration();
 
 		if (duration > 0 && newTime >= duration) {
@@ -157,6 +206,19 @@ export class PlaybackManager {
 					detail: { time: duration },
 				}),
 			);
+		} else if (newTime <= 0) {
+			this.currentTime = 0;
+			this.notify();
+
+			window.dispatchEvent(
+				new CustomEvent("playback-seek", {
+					detail: { time: 0 },
+				}),
+			);
+
+			if (this.shuttleDirection === "reverse" && this.shuttleSpeed > 0) {
+				this.shuttleStop();
+			}
 		} else {
 			this.currentTime = newTime;
 			this.notify();
