@@ -15,7 +15,10 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/env/package.json packages/env/package.json
 COPY packages/ui/package.json packages/ui/package.json
 
-RUN bun install
+RUN bun install --ignore-scripts && \
+    cd /app && \
+    sed -i '/@napi-rs\/canvas/d' apps/web/package.json && \
+    bun install
 
 COPY apps/web/ apps/web/
 COPY packages/env/ packages/env/

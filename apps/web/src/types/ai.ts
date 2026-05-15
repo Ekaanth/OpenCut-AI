@@ -53,7 +53,13 @@ export type EditorActionType =
 	| "REMOVE_FILLERS"
 	| "ADD_CHAPTER_MARKERS"
 	| "DENOISE_AUDIO"
-	| "GENERATE_IMAGE";
+	| "GENERATE_IMAGE"
+	| "SET_CANVAS_SIZE"
+	| "ADD_MUSIC"
+	| "NORMALIZE_AUDIO"
+	| "AUTO_DUCK"
+	| "COLOR_CORRECT"
+	| "EXPORT_PROJECT";
 
 export interface EditorAction {
 	type: EditorActionType;

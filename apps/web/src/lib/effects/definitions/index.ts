@@ -11,6 +11,7 @@ import { lensDistortionEffectDefinition } from "./lens-distortion";
 import { motionBlurEffectDefinition } from "./motion-blur";
 import { posterizeEffectDefinition } from "./posterize";
 import { duotoneEffectDefinition } from "./duotone";
+import { chromaKeyEffectDefinition } from "./chroma-key";
 
 const defaultEffects = [
 	blurEffectDefinition,
@@ -25,6 +26,7 @@ const defaultEffects = [
 	motionBlurEffectDefinition,
 	posterizeEffectDefinition,
 	duotoneEffectDefinition,
+	chromaKeyEffectDefinition,
 ];
 
 export function registerDefaultEffects(): void {

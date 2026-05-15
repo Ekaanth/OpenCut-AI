@@ -643,6 +643,21 @@ export class TimelineManager {
 		return !!(track as any)?.locked;
 	}
 
+	reorderTracks({ fromIndex, toIndex }: { fromIndex: number; toIndex: number }): void {
+		const currentTracks = this.getTracks();
+		if (fromIndex === toIndex) return;
+		if (fromIndex < 0 || fromIndex >= currentTracks.length) return;
+		if (toIndex < 0 || toIndex >= currentTracks.length) return;
+
+		const before = [...currentTracks];
+		const after = [...currentTracks];
+		const [moved] = after.splice(fromIndex, 1);
+		after.splice(toIndex, 0, moved);
+
+		const command = new TracksSnapshotCommand(before, after);
+		this.editor.command.execute({ command });
+	}
+
 	updateTracks(newTracks: TimelineTrack[]): void {
 		this.editor.scenes.updateSceneTracks({ tracks: newTracks });
 		this.notify();

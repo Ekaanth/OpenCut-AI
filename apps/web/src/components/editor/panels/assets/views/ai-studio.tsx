@@ -27,6 +27,8 @@ import { BRollSuggestionsPanel } from "@/components/editor/ai/broll-suggestions-
 import { YouTubeReelsPanel } from "@/components/editor/youtube/youtube-reels-panel";
 import { AIDubbingPanel } from "@/components/editor/panels/assets/views/ai-dubbing";
 import { AutoChaptersPanel } from "@/components/editor/panels/assets/views/auto-chapters";
+import { SmartReframePanel } from "@/components/editor/panels/assets/views/smart-reframe";
+import { MotionTrackingPanel } from "@/components/editor/panels/assets/views/motion-tracking";
 
 // ----- Thinking Messages -----
 
@@ -82,7 +84,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels" | "dubbing" | "chapters";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels" | "dubbing" | "chapters" | "reframe" | "tracking";
 
 // ----- Workflow Steps -----
 
@@ -582,6 +584,22 @@ export function AIStudioView() {
 					>
 						YT Reels
 					</Button>
+					<Button
+						variant={mode === "reframe" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2"
+						onClick={() => setMode("reframe")}
+					>
+						Reframe
+					</Button>
+					<Button
+						variant={mode === "tracking" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2"
+						onClick={() => setMode("tracking")}
+					>
+						Tracking
+					</Button>
 				</div>
 			</div>
 
@@ -859,6 +877,16 @@ export function AIStudioView() {
 				<div className="flex-1 min-h-0 overflow-y-auto px-2 py-3">
 					<YouTubeReelsPanel />
 				</div>
+			)}
+
+			{/* ── Smart Reframe Mode ── */}
+			{mode === "reframe" && (
+				<SmartReframePanel className="flex-1 min-h-0" />
+			)}
+
+			{/* ── Motion Tracking Mode ── */}
+			{mode === "tracking" && (
+				<MotionTrackingPanel className="flex-1 min-h-0" />
 			)}
 
 

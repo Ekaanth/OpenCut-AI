@@ -38,9 +38,12 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **AI Music Generation** — Generate royalty-free background music with 15 genres, 12 moods, and 3 tempo settings. Preview and insert directly to the timeline.
 - **AI Thumbnail Generator** — Create eye-catching thumbnails from prompts or transcript analysis. 5 styles, 4 size presets, 5 color schemes, up to 4 variations at once.
 - **AI Script-to-Video** — Write a script, AI generates voiceover, visuals, and builds the timeline automatically.
+- **AI Co-Pilot Agent** — Describe your goal in plain English ("make this a 60-second reel with captions and music"). AI creates a multi-step plan, you review, then it executes. 19 action types, cancel anytime. Runs through your local LLM.
+- **AI Scene Detection** — Client-side visual scene change detection using color histogram analysis. Finds camera cuts and angle changes with before/after thumbnails. No data leaves your machine.
 - **AI Auto-Color Correction** — 8 color correction profiles (Vibrant Pop, Film Look, Warm Sunset, etc.) with batch apply to all video clips.
 - **AI Video-to-Shorts Auto-Composer** — One-click: AI selects best clip, trims to target duration, sets canvas size (9:16, 1:1, 4:5), adds subtitles.
 - **Speaker-Labeled Captions** — Auto-assign color-coded speaker labels, rename speakers, apply captions to timeline.
+- **YouTube Chapters Export** — Auto-detect chapter boundaries, export in YouTube `MM:SS Title` format. One-click copy chapters or full description with title, tags, and timestamps.
 - **Virality Score** — Score your video's engagement potential across 7 signals (hook, curiosity gap, energy, beat sync, face, emotion, viral) before publishing.
 - **YouTube to Reels** — Paste a URL, auto-detect clips, reframe to 9:16 with face tracking, add captions, export reels.
 - **AI image generation** — Generate images from text via Stable Diffusion and place on the timeline.

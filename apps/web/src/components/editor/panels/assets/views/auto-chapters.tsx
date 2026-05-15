@@ -6,9 +6,15 @@ import { useTranscriptStore } from "@/stores/transcript-store";
 import { useBackgroundTasksStore } from "@/stores/background-tasks-store";
 import { aiClient } from "@/lib/ai-client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { toast } from "sonner";
 import type { Chapter } from "@/types/ai";
+import {
+	copyYouTubeChapters,
+	copyYouTubeDescription,
+	formatTimeYouTube,
+} from "@/lib/chapters/youtube-chapters";
 
 function formatTime(seconds: number): string {
 	const m = Math.floor(seconds / 60);
@@ -26,9 +32,10 @@ export function AutoChaptersPanel() {
 
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
 	const [suggestedTitle, setSuggestedTitle] = useState<string | null>(null);
-	const [suggestedDescription, setSuggestedDescription] = useState<string | null>(
-		null,
-	);
+	const [suggestedDescription, setSuggestedDescription] = useState<
+		string | null
+	>(null);
+	const [showExport, setShowExport] = useState(false);
 
 	const handleAnalyze = useCallback(async () => {
 		const mediaAssets = editor.media.getAssets();
@@ -82,6 +89,28 @@ export function AutoChaptersPanel() {
 		},
 		[editor],
 	);
+
+	const handleCopyYouTube = useCallback(async () => {
+		try {
+			await copyYouTubeChapters(chapters);
+			toast.success("YouTube chapters copied to clipboard");
+		} catch {
+			toast.error("Failed to copy");
+		}
+	}, [chapters]);
+
+	const handleCopyFullDescription = useCallback(async () => {
+		try {
+			await copyYouTubeDescription({
+				chapters,
+				title: suggestedTitle ?? undefined,
+				description: suggestedDescription ?? undefined,
+			});
+			toast.success("Full YouTube description copied to clipboard");
+		} catch {
+			toast.error("Failed to copy");
+		}
+	}, [chapters, suggestedTitle, suggestedDescription]);
 
 	return (
 		<div className="flex flex-col gap-4 p-3">
@@ -148,6 +177,48 @@ export function AutoChaptersPanel() {
 							</Badge>
 						</button>
 					))}
+				</div>
+			)}
+
+			{chapters.length > 0 && (
+				<div className="space-y-2">
+					<Button
+						variant="outline"
+						size="sm"
+						className="w-full h-7 text-[10px]"
+						onClick={() => setShowExport(!showExport)}
+					>
+						YouTube Export {showExport ? "▲" : "▼"}
+					</Button>
+
+					{showExport && (
+						<div className="rounded border p-2 space-y-2">
+							<span className="text-[9px] text-muted-foreground">Preview</span>
+							<pre className="text-[9px] font-mono bg-muted/50 rounded p-2 overflow-x-auto whitespace-pre-wrap">
+								{chapters
+									.map((ch) => `${formatTimeYouTube(ch.start)} ${ch.title}`)
+									.join("\n")}
+							</pre>
+							<div className="flex gap-1">
+								<Button
+									variant="secondary"
+									size="sm"
+									className="flex-1 h-6 text-[9px]"
+									onClick={handleCopyYouTube}
+								>
+									Copy Chapters
+								</Button>
+								<Button
+									variant="secondary"
+									size="sm"
+									className="flex-1 h-6 text-[9px]"
+									onClick={handleCopyFullDescription}
+								>
+									Copy Full Description
+								</Button>
+							</div>
+						</div>
+					)}
 				</div>
 			)}
 

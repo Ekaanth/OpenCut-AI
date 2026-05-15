@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/utils/ui";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Tooltip,
@@ -13,6 +14,7 @@ import {
 	ViewOffSlashIcon,
 	VolumeHighIcon,
 	VolumeOffIcon,
+	DragIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
@@ -23,6 +25,7 @@ import {
 } from "../../../ui/context-menu";
 import { useTimelineZoom } from "@/hooks/timeline/use-timeline-zoom";
 import { useState, useRef, useCallback } from "react";
+import type { EditorCore } from "@/core";
 import { TimelineTrackContent } from "./timeline-track";
 import { TimelinePlayhead } from "./timeline-playhead";
 import { SelectionBox } from "../../selection-box";
@@ -271,50 +274,7 @@ export function Timeline() {
 								style={{ paddingTop: TIMELINE_CONSTANTS.PADDING_TOP_PX }}
 							>
 								<ScrollArea className="size-full" ref={trackLabelsScrollRef}>
-									<div className="flex flex-col gap-1">
-										{tracks.map((track) => (
-											<div
-												key={track.id}
-												className="group flex items-center gap-1 px-2"
-												style={{
-													height: `${getTrackHeight({ type: track.type })}px`,
-												}}
-											>
-												<TrackIcon track={track} />
-												<TrackLabel track={track} />
-												<div className="flex items-center gap-0.5 shrink-0">
-													{canTracktHaveAudio(track) && (
-														<TrackToggleIcon
-															isOff={track.muted}
-															icons={{
-																on: VolumeHighIcon,
-																off: VolumeOffIcon,
-															}}
-															onClick={() =>
-																editor.timeline.toggleTrackMute({
-																	trackId: track.id,
-																})
-															}
-														/>
-													)}
-													{canTrackBeHidden(track) && (
-														<TrackToggleIcon
-															isOff={track.hidden}
-															icons={{
-																on: ViewIcon,
-																off: ViewOffSlashIcon,
-															}}
-															onClick={() =>
-																editor.timeline.toggleTrackVisibility({
-																	trackId: track.id,
-																})
-															}
-														/>
-													)}
-												</div>
-											</div>
-										))}
-									</div>
+									<TrackLabelList tracks={tracks} editor={editor} />
 								</ScrollArea>
 							</div>
 						)}
@@ -563,6 +523,97 @@ function TrackIcon({ track }: { track: TimelineTrack }) {
 	const config = TRACK_CONFIG[track.type];
 	return (
 		<span className="flex items-center shrink-0">{config.icon}</span>
+ 	);
+}
+
+function TrackLabelList({ tracks, editor }: { tracks: TimelineTrack[]; editor: ReturnType<typeof useEditor> }) {
+	const [dragIndex, setDragIndex] = useState<number | null>(null);
+	const [dropIndex, setDropIndex] = useState<number | null>(null);
+
+	const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+		setDragIndex(index);
+		e.dataTransfer.effectAllowed = "move";
+		e.dataTransfer.setData("text/plain", index.toString());
+	}, []);
+
+	const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+		e.preventDefault();
+		e.dataTransfer.dropEffect = "move";
+		setDropIndex(index);
+	}, []);
+
+	const handleDrop = useCallback((e: React.DragEvent, toIndex: number) => {
+		e.preventDefault();
+		if (dragIndex !== null && dragIndex !== toIndex) {
+			editor.timeline.reorderTracks({ fromIndex: dragIndex, toIndex });
+		}
+		setDragIndex(null);
+		setDropIndex(null);
+	}, [dragIndex, editor]);
+
+	const handleDragEnd = useCallback(() => {
+		setDragIndex(null);
+		setDropIndex(null);
+	}, []);
+
+	return (
+		<div className="flex flex-col gap-1">
+			{tracks.map((track, index) => (
+				<div
+					key={track.id}
+					draggable
+					onDragStart={(e) => handleDragStart(e, index)}
+					onDragOver={(e) => handleDragOver(e, index)}
+					onDrop={(e) => handleDrop(e, index)}
+					onDragEnd={handleDragEnd}
+					className={cn(
+						"group flex items-center gap-1 px-2 transition-colors",
+						dragIndex === index && "opacity-50",
+						dropIndex === index && dragIndex !== index && "border-t-2 border-primary",
+					)}
+					style={{
+						height: `${getTrackHeight({ type: track.type })}px`,
+					}}
+				>
+					<HugeiconsIcon
+						icon={DragIcon}
+						className="size-3 text-muted-foreground/40 cursor-grab active:cursor-grabbing shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+					/>
+					<TrackIcon track={track} />
+					<TrackLabel track={track} />
+					<div className="flex items-center gap-0.5 shrink-0">
+						{canTracktHaveAudio(track) && (
+							<TrackToggleIcon
+								isOff={track.muted}
+								icons={{
+									on: VolumeHighIcon,
+									off: VolumeOffIcon,
+								}}
+								onClick={() =>
+									editor.timeline.toggleTrackMute({
+										trackId: track.id,
+									})
+								}
+							/>
+						)}
+						{canTrackBeHidden(track) && (
+							<TrackToggleIcon
+								isOff={track.hidden}
+								icons={{
+									on: ViewIcon,
+									off: ViewOffSlashIcon,
+								}}
+								onClick={() =>
+									editor.timeline.toggleTrackVisibility({
+										trackId: track.id,
+									})
+								}
+							/>
+						)}
+					</div>
+				</div>
+			))}
+		</div>
 	);
 }
 
