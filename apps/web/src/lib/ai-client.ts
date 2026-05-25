@@ -192,6 +192,58 @@ class AIClient {
 		return { "X-Seedance-Api-Key": key };
 	}
 
+	private getReplicateApiKey(): string {
+		return (
+			getStoredApiKey("replicate") ||
+			process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN ||
+			""
+		);
+	}
+
+	private replicateHeaders(): Record<string, string> {
+		const key = this.getReplicateApiKey();
+		if (!key) return {};
+		return { "X-Replicate-Api-Token": key };
+	}
+
+	private getStabilityApiKey(): string {
+		return (
+			getStoredApiKey("stability") ||
+			process.env.NEXT_PUBLIC_STABILITY_API_KEY ||
+			""
+		);
+	}
+
+	private stabilityHeaders(): Record<string, string> {
+		const key = this.getStabilityApiKey();
+		if (!key) return {};
+		return { "X-Stability-Api-Key": key };
+	}
+
+	private getLumaApiKey(): string {
+		return (
+			getStoredApiKey("luma") ||
+			process.env.NEXT_PUBLIC_LUMA_API_KEY ||
+			""
+		);
+	}
+
+	private lumaHeaders(): Record<string, string> {
+		const key = this.getLumaApiKey();
+		if (!key) return {};
+		return { "X-Luma-Api-Key": key };
+	}
+
+	private videoHeaders(provider: string): Record<string, string> {
+		switch (provider) {
+			case "replicate": return this.replicateHeaders();
+			case "stability": return this.stabilityHeaders();
+			case "luma": return this.lumaHeaders();
+			case "seedance": return this.seedanceHeaders();
+			default: return {};
+		}
+	}
+
 	private async request<T>(
 		endpoint: string,
 		options: RequestInit = {},
@@ -1561,7 +1613,6 @@ class AIClient {
 	): Promise<PromptGenResult> {
 		return this.requestWithKeepalive<PromptGenResult>("/api/video/generate-prompt", {
 			method: "POST",
-			headers: { ...this.seedanceHeaders() },
 			body: JSON.stringify({ title, description, style }),
 		});
 	}
@@ -1570,15 +1621,15 @@ class AIClient {
 	async generateVideo(request: VideoGenRequest): Promise<VideoGenResult> {
 		return this.requestWithKeepalive<VideoGenResult>("/api/video/generate", {
 			method: "POST",
-			headers: { ...this.seedanceHeaders() },
+			headers: { ...this.videoHeaders(request.provider) },
 			body: JSON.stringify(request),
 		});
 	}
 
 	/** Poll a video generation job for status. */
-	async getVideoJob(jobId: string): Promise<VideoGenResult> {
+	async getVideoJob(jobId: string, provider: string = "seedance"): Promise<VideoGenResult> {
 		return this.request<VideoGenResult>(`/api/video/jobs/${jobId}`, {
-			headers: { ...this.seedanceHeaders() },
+			headers: { ...this.videoHeaders(provider) },
 		});
 	}
 

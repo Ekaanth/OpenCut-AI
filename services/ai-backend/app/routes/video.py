@@ -30,6 +30,27 @@ def _get_seedance_key(request: Request) -> str:
     )
 
 
+def _get_replicate_key(request: Request) -> str:
+    return (
+        request.headers.get("X-Replicate-Api-Token", "").strip()
+        or settings.REPLICATE_API_TOKEN
+    )
+
+
+def _get_stability_key(request: Request) -> str:
+    return (
+        request.headers.get("X-Stability-Api-Key", "").strip()
+        or settings.STABILITY_API_KEY
+    )
+
+
+def _get_luma_key(request: Request) -> str:
+    return (
+        request.headers.get("X-Luma-Api-Key", "").strip()
+        or settings.LUMA_API_KEY
+    )
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -45,7 +66,11 @@ class VideoGenerateRequest(BaseModel):
     duration: int = Field(default=5, ge=1, le=15)
     width: int = Field(default=1920, ge=256, le=3840)
     height: int = Field(default=1080, ge=256, le=2160)
-    provider: str = Field(default="seedance", description="seedance or local")
+    provider: str = Field(default="seedance", description="replicate, seedance, stability, luma, or local")
+    model: str = Field(default="", description="Specific model ID within provider")
+    mode: str = Field(default="text-to-video")
+    imageUrl: str = Field(default="")
+    videoUrl: str = Field(default="")
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +172,15 @@ async def generate_video(req: VideoGenerateRequest, request: Request) -> dict:
     if req.provider == "seedance":
         api_key = _get_seedance_key(request)
         asyncio.create_task(_run_seedance_generation(job_id, req, api_key))
+    elif req.provider == "replicate":
+        api_key = _get_replicate_key(request)
+        asyncio.create_task(_run_replicate_generation(job_id, req, api_key))
+    elif req.provider == "stability":
+        api_key = _get_stability_key(request)
+        asyncio.create_task(_run_stability_generation(job_id, req, api_key))
+    elif req.provider == "luma":
+        api_key = _get_luma_key(request)
+        asyncio.create_task(_run_luma_generation(job_id, req, api_key))
     elif req.provider == "local":
         asyncio.create_task(_run_local_generation(job_id, req))
     else:
@@ -292,6 +326,302 @@ async def _run_seedance_generation(
 
     except Exception as e:
         logger.exception("Seedance generation failed for job %s", job_id)
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"] = str(e)
+
+
+# ---------------------------------------------------------------------------
+# Replicate (Runway, Pika, Kling, MiniMax, Stable Video, etc.)
+# ---------------------------------------------------------------------------
+
+REPLICATE_MODELS = {
+    "runway-gen3-alpha": "lucataco/runway-gen3-alpha:...",
+    "pika-1.0": "pika/pika-1.0:...",
+    "minimax-video-01": "minimax/video-01:...",
+    "stable-video-diffusion": "stability-ai/stable-video-diffusion:...",
+    "kling-v1.6": "kling/kling-v1.6-pro:...",
+}
+
+DEFAULT_REPLICATE_MODELS = {
+    "runway-gen3-alpha": "lucataco/runway-gen3-alpha:77d5a89a9b352c4b0e0b6b77e4e6c9c3f3e0f0e0",
+    "pika-1.0": "pika/pika:1.0",
+    "minimax-video-01": "minimax/video-01:d6b1c4b6e0e0e0e0e0e0e0e0e0e0e0e0",
+    "stable-video-diffusion": "stability-ai/stable-video-diffusion:db6ef745eb0a0d0e0e0e0e0e0e0e0e0e0",
+    "kling-v1.6": "kling/kling-v1.6-pro:77d5a89a9b352c4b0e0b6b77e4e6c9c3f3e0f0e0",
+}
+
+
+async def _run_replicate_generation(
+    job_id: str, req: VideoGenerateRequest, api_key: str = ""
+) -> None:
+    import httpx
+
+    api_key = api_key or settings.REPLICATE_API_TOKEN
+    if not api_key:
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"] = "Replicate API token not configured. Add it in Settings."
+        return
+
+    model_version = DEFAULT_REPLICATE_MODELS.get(req.model, DEFAULT_REPLICATE_MODELS["runway-gen3-alpha"])
+
+    input_data: dict = {
+        "prompt": req.prompt,
+    }
+
+    if req.mode == "image-to-video" and req.imageUrl:
+        input_data["image"] = req.imageUrl
+    elif req.mode == "video-to-video" and req.videoUrl:
+        input_data["video"] = req.videoUrl
+
+    aspect_ratio = _to_aspect_ratio(req.width, req.height)
+    input_data["aspect_ratio"] = aspect_ratio
+    input_data["duration"] = req.duration
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.replicate.com/v1/predictions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "version": model_version.split(":")[-1] if ":" in model_version else model_version,
+                    "input": input_data,
+                },
+            )
+
+            if resp.status_code not in (200, 201):
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = f"Replicate API error: {resp.status_code} — {resp.text[:300]}"
+                return
+
+            data = resp.json()
+            prediction_id = data.get("id")
+            if not prediction_id:
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = "No prediction ID returned from Replicate"
+                return
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            for _ in range(120):
+                await asyncio.sleep(3)
+
+                poll_resp = await client.get(
+                    f"https://api.replicate.com/v1/predictions/{prediction_id}",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+                if poll_resp.status_code != 200:
+                    continue
+
+                poll_data = poll_resp.json()
+                status = poll_data.get("status", "")
+
+                if status == "succeeded":
+                    output = poll_data.get("output", "")
+                    video_url = output if isinstance(output, str) else (output[0] if isinstance(output, list) and output else "")
+                    if video_url:
+                        local_url = await _download_video(client, video_url, job_id)
+                        _jobs[job_id]["status"] = "completed"
+                        _jobs[job_id]["videoUrl"] = local_url
+                        return
+                    _jobs[job_id]["status"] = "failed"
+                    _jobs[job_id]["error"] = "Replicate succeeded but no video URL"
+                    return
+
+                if status == "failed":
+                    error_msg = poll_data.get("error", "Replicate generation failed")
+                    _jobs[job_id]["status"] = "failed"
+                    _jobs[job_id]["error"] = str(error_msg)
+                    return
+
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = "Replicate generation timed out (6 min)"
+
+    except Exception as e:
+        logger.exception("Replicate generation failed for job %s", job_id)
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"] = str(e)
+
+
+# ---------------------------------------------------------------------------
+# Stability AI (Stable Video Diffusion)
+# ---------------------------------------------------------------------------
+
+async def _run_stability_generation(
+    job_id: str, req: VideoGenerateRequest, api_key: str = ""
+) -> None:
+    import httpx
+
+    api_key = api_key or settings.STABILITY_API_KEY
+    if not api_key:
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"] = "Stability AI API key not configured. Add it in Settings."
+        return
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            payload: dict = {
+                "prompt": req.prompt,
+                "aspect_ratio": _to_aspect_ratio(req.width, req.height),
+                "seed": 0,
+            }
+
+            if req.mode == "image-to-video" and req.imageUrl:
+                img_resp = await client.get(req.imageUrl, timeout=30)
+                img_resp.raise_for_status()
+
+                resp = await client.post(
+                    "https://api.stability.ai/v2beta/image-to-video",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                    },
+                    files={"image": ("image.png", img_resp.content, "image/png")},
+                    data={"seed": "0"},
+                )
+            else:
+                resp = await client.post(
+                    "https://api.stability.ai/v2beta/image-to-video",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+
+            if resp.status_code not in (200, 201):
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = f"Stability API error: {resp.status_code} — {resp.text[:300]}"
+                return
+
+            data = resp.json()
+            generation_id = data.get("id")
+            if not generation_id:
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = "No generation ID from Stability AI"
+                return
+
+            for _ in range(120):
+                await asyncio.sleep(3)
+
+                poll_resp = await client.get(
+                    f"https://api.stability.ai/v2beta/image-to-video/result/{generation_id}",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Accept": "video/*",
+                    },
+                )
+
+                if poll_resp.status_code == 200:
+                    content_type = poll_resp.headers.get("content-type", "")
+                    if "video" in content_type:
+                        filename = f"video_{job_id}.mp4"
+                        filepath = os.path.join(settings.GENERATED_DIR, filename)
+                        with open(filepath, "wb") as f:
+                            f.write(poll_resp.content)
+                        _jobs[job_id]["status"] = "completed"
+                        _jobs[job_id]["videoUrl"] = f"/generated/{filename}"
+                        return
+
+                if poll_resp.status_code == 202:
+                    continue
+
+                if poll_resp.status_code >= 400:
+                    _jobs[job_id]["status"] = "failed"
+                    _jobs[job_id]["error"] = f"Stability polling error: {poll_resp.status_code}"
+                    return
+
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = "Stability generation timed out (6 min)"
+
+    except Exception as e:
+        logger.exception("Stability generation failed for job %s", job_id)
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"] = str(e)
+
+
+# ---------------------------------------------------------------------------
+# Luma AI (Dream Machine)
+# ---------------------------------------------------------------------------
+
+async def _run_luma_generation(
+    job_id: str, req: VideoGenerateRequest, api_key: str = ""
+) -> None:
+    import httpx
+
+    api_key = api_key or settings.LUMA_API_KEY
+    if not api_key:
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"] = "Luma AI API key not configured. Add it in Settings."
+        return
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            payload: dict = {
+                "prompt": req.prompt,
+                "aspect_ratio": _to_aspect_ratio(req.width, req.height),
+            }
+
+            if req.mode == "image-to-video" and req.imageUrl:
+                payload["image_url"] = req.imageUrl
+
+            resp = await client.post(
+                "https://api.lumalabs.ai/dream-machine/v1/generations",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+
+            if resp.status_code not in (200, 201):
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = f"Luma API error: {resp.status_code} — {resp.text[:300]}"
+                return
+
+            data = resp.json()
+            generation_id = data.get("id")
+            if not generation_id:
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = "No generation ID from Luma AI"
+                return
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            for _ in range(120):
+                await asyncio.sleep(3)
+
+                poll_resp = await client.get(
+                    f"https://api.lumalabs.ai/dream-machine/v1/generations/{generation_id}",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+                if poll_resp.status_code != 200:
+                    continue
+
+                poll_data = poll_resp.json()
+                state = poll_data.get("state", "")
+
+                if state == "completed":
+                    assets = poll_data.get("assets", {})
+                    video_url = assets.get("video", "")
+                    if video_url:
+                        local_url = await _download_video(client, video_url, job_id)
+                        _jobs[job_id]["status"] = "completed"
+                        _jobs[job_id]["videoUrl"] = local_url
+                        return
+                    _jobs[job_id]["status"] = "failed"
+                    _jobs[job_id]["error"] = "Luma completed but no video URL"
+                    return
+
+                if state == "failed":
+                    _jobs[job_id]["status"] = "failed"
+                    _jobs[job_id]["error"] = poll_data.get("failure_reason", "Luma generation failed")
+                    return
+
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = "Luma generation timed out (6 min)"
+
+    except Exception as e:
+        logger.exception("Luma generation failed for job %s", job_id)
         _jobs[job_id]["status"] = "failed"
         _jobs[job_id]["error"] = str(e)
 

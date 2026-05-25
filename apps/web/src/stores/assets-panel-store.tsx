@@ -11,12 +11,14 @@ import {
 	SparklesIcon,
 	Happy01Icon,
 	CrownIcon,
+	VideoReplayIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 export const TAB_KEYS = [
 	"media",
 	"ai",
+	"videogen",
 	"text",
 	"captions",
 	"audio",
@@ -42,6 +44,10 @@ export const tabs = {
 	ai: {
 		icon: createHugeiconsIcon({ icon: SparklesIcon }),
 		label: "AI Studio",
+	},
+	videogen: {
+		icon: createHugeiconsIcon({ icon: VideoReplayIcon }),
+		label: "Video Gen",
 	},
 	text: {
 		icon: createHugeiconsIcon({ icon: TextIcon }),

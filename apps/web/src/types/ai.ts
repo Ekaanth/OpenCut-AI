@@ -351,12 +351,20 @@ export interface ReelTemplate {
 }
 
 // Video generation types
+export type VideoProvider = "replicate" | "seedance" | "stability" | "luma" | "kling" | "local";
+
+export type VideoGenMode = "text-to-video" | "image-to-video" | "video-to-video";
+
 export interface VideoGenRequest {
 	prompt: string;
 	duration: number;
 	width: number;
 	height: number;
-	provider: "seedance" | "local";
+	provider: VideoProvider;
+	model?: string;
+	mode?: VideoGenMode;
+	imageUrl?: string;
+	videoUrl?: string;
 }
 
 export interface VideoGenResult {

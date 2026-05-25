@@ -982,6 +982,36 @@ const API_KEY_FIELDS = [
 		info: "Enables AI video generation from text prompts using Seedance 2.0 by ByteDance. Access via PiAPI — get your key at piapi.ai. Supports text-to-video in 16:9, 9:16, 1:1, and more. You can also use local generation without this key.",
 		required: false,
 	},
+	{
+		key: "replicate",
+		label: "Replicate API Token",
+		placeholder: "r8_...",
+		description: "Access Runway Gen-3, Pika, Kling, MiniMax, Stable Video & 10+ more models",
+		envVar: "NEXT_PUBLIC_REPLICATE_API_TOKEN",
+		envValue: process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN || "",
+		info: "One API key for 10+ video generation models: Runway Gen-3 Alpha, Pika 1.0, Kling v1.6, MiniMax Video-01, Stable Video Diffusion, and more. Pay-per-use billing. Get your token at replicate.com — $5 free credits on signup.",
+		required: false,
+	},
+	{
+		key: "stability",
+		label: "Stability AI API Key",
+		placeholder: "sk-...",
+		description: "Stable Video Diffusion and future Stability video models",
+		envVar: "NEXT_PUBLIC_STABILITY_API_KEY",
+		envValue: process.env.NEXT_PUBLIC_STABILITY_API_KEY || "",
+		info: "Enables Stable Video Diffusion for image-to-video animation and text-to-video generation. Get your key at platform.stability.ai — free credits available.",
+		required: false,
+	},
+	{
+		key: "luma",
+		label: "Luma AI API Key",
+		placeholder: "Your Luma AI key",
+		description: "Dream Machine — realistic motion and camera control",
+		envVar: "NEXT_PUBLIC_LUMA_API_KEY",
+		envValue: process.env.NEXT_PUBLIC_LUMA_API_KEY || "",
+		info: "Enables Luma Dream Machine for high-quality video generation with realistic camera motion. Supports text-to-video and image-to-video. Get your key at lumalabs.ai.",
+		required: false,
+	},
 ];
 
 function APIKeysSection() {

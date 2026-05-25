@@ -56,6 +56,15 @@ class Settings(BaseSettings):
     SEEDANCE_API_KEY: str = ""
     SEEDANCE_API_BASE_URL: str = "https://api.piapi.ai"
 
+    # Replicate (Runway, Pika, Kling, MiniMax, Stable Video, etc.)
+    REPLICATE_API_TOKEN: str = ""
+
+    # Stability AI (Stable Video Diffusion)
+    STABILITY_API_KEY: str = ""
+
+    # Luma AI (Dream Machine)
+    LUMA_API_KEY: str = ""
+
     # Google OAuth (for YouTube channel ownership verification)
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""

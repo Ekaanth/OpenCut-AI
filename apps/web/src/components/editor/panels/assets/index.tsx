@@ -12,6 +12,7 @@ import { AudioCombinedView } from "./views/audio-combined";
 import { ElementsCombinedView } from "./views/elements-combined";
 import { VisualsCombinedView } from "./views/visuals-combined";
 import { BrandKitView } from "./views/brand-kit";
+import { VideoGenerationPanel } from "./views/video-generation";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
@@ -19,6 +20,7 @@ export function AssetsPanel() {
 	const viewMap: Record<Tab, React.ReactNode> = {
 		media: <MediaView />,
 		ai: <AIStudioView />,
+		videogen: <VideoGenerationPanel />,
 		text: <TextView />,
 		captions: <Captions />,
 		audio: <AudioCombinedView />,
