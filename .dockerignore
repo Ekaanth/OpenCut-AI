@@ -13,6 +13,7 @@ node_modules
 .cursor
 .vscode
 .blameprompt
+.claude
 diffs
 docs
 agent-transcripts
@@ -21,6 +22,8 @@ terminals
 apps/web/.font-cache
 .content-collections
 services/ai-backend/.venv
-services/ai-backend/__pycache__
+services/**/__pycache__
+services/**/*.pyc
+services/**/*.pyo
 services/ai-backend/generated
 services/ai-backend/uploads

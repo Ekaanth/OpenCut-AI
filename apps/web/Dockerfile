@@ -1,5 +1,16 @@
 FROM oven/bun:alpine AS base
 
+FROM base AS pruner
+
+WORKDIR /app
+
+COPY apps/web/package.json apps/web/package.json
+COPY packages/env/package.json packages/env/package.json
+COPY packages/ui/package.json packages/ui/package.json
+COPY package.json package.json
+
+WORKDIR /app/apps/web
+
 FROM base AS builder
 
 WORKDIR /app
@@ -15,7 +26,8 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/env/package.json packages/env/package.json
 COPY packages/ui/package.json packages/ui/package.json
 
-RUN bun install --ignore-scripts && \
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --ignore-scripts && \
     cd /app && \
     sed -i '/@napi-rs\/canvas/d' apps/web/package.json && \
     bun install
@@ -27,7 +39,6 @@ COPY packages/ui/ packages/ui/
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build-time env stubs to pass zod validation
 ENV DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut"
 ENV BETTER_AUTH_SECRET="build-time-secret"
 ENV UPSTASH_REDIS_REST_URL="http://localhost:8079"
@@ -40,9 +51,9 @@ ENV FREESOUND_CLIENT_ID=$FREESOUND_CLIENT_ID
 ENV FREESOUND_API_KEY=$FREESOUND_API_KEY
 
 WORKDIR /app/apps/web
-RUN bun run build
+RUN --mount=type=cache,target=/app/apps/web/.next/cache \
+    bun run build
 
-# Production image — use Node since Next.js standalone outputs Node-compatible server
 FROM node:20-alpine AS runner
 WORKDIR /app
 

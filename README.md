@@ -86,7 +86,7 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **TurboQuant inference** — KV cache compression down to 2-bit on GPU, 3-bit on CPU, with a compute mode toggle (Auto / CPU / GPU).
 - **Kimi K2 & Kimi VL** — MoonshotAI's open-source Kimi models are fully supported: Kimi K2 (1T/32B active MoE) via Ollama GGUF (Q3/Q4/Q5) for every tier, and Kimi VL A3B (vision-language, 3B active) via TurboQuant for multimodal scene analysis.
 - **All data local** — Files stored in OPFS (Origin Private File System). Nothing leaves the browser or your server.
-- **Docker-ready** — One command to start the full stack (database, Redis, AI backend, 7 microservices).
+- **Docker-ready** — One command to start the full stack. BuildKit cache mounts, CPU-only PyTorch wheels, and parallel builds keep rebuilds fast.
 
 ## Project Structure
 
@@ -111,7 +111,7 @@ packages/             — Shared packages (env, UI)
 **All setups:**
 
 - [Bun](https://bun.sh/docs/installation)
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) v2.3+
+- [Docker](https://docs.docker.com/get-docker/) with BuildKit support and [Docker Compose](https://docs.docker.com/compose/install/) v2.3+
 
 **GPU setup (optional, NVIDIA only):**
 
@@ -141,6 +141,11 @@ packages/             — Shared packages (env, UI)
    **Option A — CPU (default, works on any machine):**
 
    ```bash
+   # Enable BuildKit for faster builds with cache mounts
+   export DOCKER_BUILDKIT=1
+
+   # Build shared base images first, then all services in parallel
+   docker compose build --parallel
    docker compose up -d
    ```
 
@@ -149,6 +154,9 @@ packages/             — Shared packages (env, UI)
    ```bash
    # Verify the host can see the GPU first
    nvidia-smi
+
+   # Enable BuildKit for faster builds with cache mounts
+   export DOCKER_BUILDKIT=1
 
    # Build + start everything with the GPU override file layered on top
    docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
@@ -173,6 +181,30 @@ packages/             — Shared packages (env, UI)
 The editor will be available at [http://localhost:3000](http://localhost:3000).
 
 > **Switching between CPU and GPU later?** You can toggle at runtime from the editor's **Settings → AI Optimization → Compute Mode** panel — no need to tear down Docker. If you started with Option A (CPU) and later want GPU, stop the stack (`docker compose down`) and restart with Option B.
+
+### Docker Build Optimizations
+
+All services are self-contained Dockerfiles that build in parallel without dependency ordering issues. BuildKit cache mounts share downloaded packages across services automatically.
+
+**Key optimizations:**
+
+| Technique | Benefit |
+|-----------|---------|
+| **CPU-only PyTorch** | ~8GB less to download across 4 services (~200MB vs ~2GB CUDA each) |
+| **BuildKit cache mounts** | uv/pip download cache survives across rebuilds — code-only changes skip dep installs entirely |
+| **Parallel builds** | `docker compose build --parallel` builds all services concurrently |
+| **Per-service .dockerignore** | Smaller build contexts, faster COPY operations |
+| **Layer-ordered Dockerfiles** | `requirements.txt` copied before source code — dep layer stays cached when only code changes |
+
+**Rebuilding after code changes:**
+
+```bash
+export DOCKER_BUILDKIT=1
+docker compose build --parallel
+docker compose up -d
+```
+
+On subsequent builds, only the `COPY . .` layer and below is rebuilt. The dependency install layers are served from the BuildKit cache unless `requirements.txt` or `requirements.lock` changes.
 
 ### AI Backend
 
@@ -328,6 +360,8 @@ The service also validates all `model_id` inputs against the strict HuggingFace 
 ### Self-Hosting
 
 ```bash
+export DOCKER_BUILDKIT=1
+docker compose build --parallel
 docker compose up -d
 ```
 

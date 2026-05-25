@@ -14,18 +14,13 @@ COPY requirements.txt requirements.lock* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/root/.cache/pip \
     if [ -f requirements.lock ]; then \
-      uv pip install --system \
-        --index-strategy unsafe-best-match \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r requirements.lock ; \
+      uv pip install --system -r requirements.lock ; \
     else \
-      uv pip install --system \
-        --index-strategy unsafe-best-match \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r requirements.txt ; \
+      uv pip install --system -r requirements.txt ; \
     fi \
  && if [ -n "$TURBOQUANT_EXTRAS" ]; then \
       uv pip install --system \
+        --index-strategy unsafe-best-match \
         "turboquant-gpu[$TURBOQUANT_EXTRAS]" \
         --extra-index-url https://pypi.nvidia.com ; \
     fi

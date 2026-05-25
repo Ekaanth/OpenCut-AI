@@ -23,14 +23,10 @@ services:
   turboquant-service:
     build:
       context: ./services/turboquant-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
       args:
         TURBOQUANT_EXTRAS: gpu
     environment:
-      # Force GPU mode regardless of what the user picked in the UI. Remove this
-      # line if you want the frontend compute-mode toggle to still drive the
-      # device (it will resolve "auto" → cuda inside the container since CUDA
-      # is exposed here).
       - DEVICE=${OPENCUTAI_AI_COMPUTE_MODE:-cuda}
     deploy:
       resources:
