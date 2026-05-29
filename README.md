@@ -439,3 +439,24 @@ This project is a fork of [OpenCut](https://github.com/OpenCut-app/OpenCut). We 
 ## License
 
 [MIT LICENSE](LICENSE)
+
+
+## ❤️ Support This Project
+
+OpenCut-AI is an independent, open-source project maintained in my free time.  
+If it has helped you or saved you time, your support keeps development active and new features coming!
+
+### Ways to Support
+
+<a href="https://buymeacoffee.com/humblefool">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" />
+</a>
+
+<br>
+
+- 💰 [Donate via PayPal](https://paypal.me/humblefool06)
+
+You can also click the **Sponsor** button on the top-right of this repository page (thanks to the `.github/FUNDING.yml` file).
+
+Every contribution — big or small — is deeply appreciated! 🙏  
+Thank you for supporting independent open source!
