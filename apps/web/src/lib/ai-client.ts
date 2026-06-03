@@ -1722,6 +1722,44 @@ class AIClient {
 			body: JSON.stringify({ clips }),
 		});
 	}
+
+	async scoreThumbnails(
+		imageUrls: string[],
+		headline?: string,
+		platform?: string,
+	): Promise<ThumbnailScoreResponse> {
+		return this.requestWithKeepalive("/api/engagement/score-thumbnails", {
+			method: "POST",
+			body: JSON.stringify({ image_urls: imageUrls, headline: headline ?? "", platform: platform ?? "youtube" }),
+		});
+	}
+
+	async generateHookVariants(req: HookVariantRequest): Promise<HookVariantResponse> {
+		return this.requestWithKeepalive("/api/engagement/generate-hook-variants", {
+			method: "POST",
+			body: JSON.stringify(req),
+		});
+	}
+
+	async recordScore(score: EngagementScoreResult & { project_id?: string; type?: string }): Promise<{ recorded: boolean; id: string }> {
+		return this.requestWithKeepalive("/api/engagement/record-score", {
+			method: "POST",
+			body: JSON.stringify(score),
+		});
+	}
+
+	async getScoreHistory(projectId?: string, limit?: number): Promise<ScoreHistoryResponse> {
+		const params = new URLSearchParams();
+		if (projectId) params.set("project_id", projectId);
+		if (limit) params.set("limit", String(limit));
+		return this.requestWithKeepalive(`/api/engagement/score-history?${params.toString()}`);
+	}
+
+	async getScoreAnalytics(projectId?: string): Promise<ScoreAnalyticsResponse> {
+		const params = new URLSearchParams();
+		if (projectId) params.set("project_id", projectId);
+		return this.requestWithKeepalive(`/api/engagement/score-analytics?${params.toString()}`);
+	}
 }
 
 // ── YouTube / Engagement types ──────────────────────────────────────
@@ -1777,6 +1815,75 @@ export interface ScoredClipData {
 	transcript_preview: string;
 	tags: string[];
 	engagement: EngagementScoreResult | null;
+}
+
+export interface ThumbnailScoreResult {
+	index: number;
+	overall: number;
+	grade: string;
+	contrast: number;
+	text_readability: number;
+	face_presence: number;
+	color_vibrancy: number;
+	composition: number;
+	suggestion: string;
+}
+
+export interface ThumbnailScoreResponse {
+	results: ThumbnailScoreResult[];
+	winner_index: number;
+	winner_score: number;
+}
+
+export interface HookVariantRequest {
+	transcript_text?: string;
+	transcript_segments?: { start: number; end: number; text: string }[];
+	clip_start?: number;
+	clip_end?: number;
+	max_variants?: number;
+}
+
+export interface HookVariant {
+	text: string;
+	style: string;
+	estimated_score: number;
+	reason: string;
+}
+
+export interface HookVariantResponse {
+	variants: HookVariant[];
+	total: number;
+}
+
+export interface ScoreHistoryEntry {
+	id: string;
+	project_id: string;
+	composite: number;
+	grade: string;
+	hook: EngagementSubScore;
+	curiousity: EngagementSubScore;
+	energy: EngagementSubScore;
+	audio_sync: EngagementSubScore;
+	face_presence: EngagementSubScore;
+	emotional_arc: EngagementSubScore;
+	virality: EngagementSubScore;
+	type: string;
+	created_at: number;
+}
+
+export interface ScoreHistoryResponse {
+	history: ScoreHistoryEntry[];
+	total: number;
+}
+
+export interface ScoreAnalyticsResponse {
+	total_scored: number;
+	avg_composite: number;
+	grade_distribution: Record<string, number>;
+	avg_sub_scores: Record<string, number>;
+	trend: { timestamp: number; avg_composite: number; count: number }[];
+	strongest_signal: string;
+	weakest_signal: string;
 }
 
 export const aiClient = new AIClient();

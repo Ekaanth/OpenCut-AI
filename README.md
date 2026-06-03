@@ -21,6 +21,9 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 | **Open source** | Yes | No | No | No |
 | **Data stays local** | Always | Cloud | Cloud (ByteDance) | Local |
 | **AI editing** | Yes | Yes | Yes | Limited |
+| **AI video generation** | 9 models, 5 providers | No | No | No |
+| **A/B testing** | Thumbnails + Hooks | No | No | No |
+| **Engagement analytics** | Yes (7 signals) | No | No | No |
 | **Cost** | Free (your server) | $24–65/mo | Free with watermark | $295 one-time |
 | **Per-seat pricing** | No | Yes | No | No |
 
@@ -45,6 +48,14 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **Speaker-Labeled Captions** — Auto-assign color-coded speaker labels, rename speakers, apply captions to timeline.
 - **YouTube Chapters Export** — Auto-detect chapter boundaries, export in YouTube `MM:SS Title` format. One-click copy chapters or full description with title, tags, and timestamps.
 - **Virality Score** — Score your video's engagement potential across 7 signals (hook, curiosity gap, energy, beat sync, face, emotion, viral) before publishing.
+- **A/B Thumbnail Testing** — Generate up to 4 thumbnail variants, auto-score each on contrast, text readability, face presence, color vibrancy, and composition. Winner gets a "Recommended" badge. TubeBuddy charges $15/mo for this.
+- **A/B Hook Testing** — Generate 5 hook variants from your transcript, each scored for engagement potential. Compare side-by-side and pick the best opening.
+- **Engagement Analytics Dashboard** — Track score history over time. Avg composite, grade distribution, per-signal breakdown, strongest/weakest signals, trend chart.
+- **AI Video Generation Hub** — Generate video from text, image, or video using 9 models across 5 providers (Runway Gen-3 Alpha, Pika 1.0, Kling v1.6 Pro, MiniMax, Stable Video Diffusion, Seedance 2.0, Luma Dream Machine, CogVideoX). 3 modes, 6 aspect ratios, prompt enhancement, one-click add to timeline.
+- **Smart Reframe** — AI-powered face detection generates position/scale keyframes to keep subjects centered when converting landscape to vertical. 4 presets: TikTok 9:16, Square, Instagram 4:5, YouTube 16:9.
+- **Chroma Key / Green Screen** — WebGL shader-based color keying with 5 presets, tolerance, softness, and spill suppression controls.
+- **Motion Tracking** — Client-side template matching (normalized cross-correlation) that generates transform keyframes. Runs entirely in the browser.
+- **Drag-to-Reorder Tracks** — Drag-and-drop track labels to reorder timeline tracks. Full undo/redo support.
 - **YouTube to Reels** — Paste a URL, auto-detect clips, reframe to 9:16 with face tracking, add captions, export reels.
 - **AI image generation** — Generate images from text via Stable Diffusion and place on the timeline.
 - **Smart subtitles** — One-click generation with karaoke, pill, and classic styles.

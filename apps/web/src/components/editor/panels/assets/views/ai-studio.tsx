@@ -29,6 +29,7 @@ import { AIDubbingPanel } from "@/components/editor/panels/assets/views/ai-dubbi
 import { AutoChaptersPanel } from "@/components/editor/panels/assets/views/auto-chapters";
 import { SmartReframePanel } from "@/components/editor/panels/assets/views/smart-reframe";
 import { MotionTrackingPanel } from "@/components/editor/panels/assets/views/motion-tracking";
+import { ABTestingPanel } from "@/components/editor/panels/assets/views/ab-testing";
 
 // ----- Thinking Messages -----
 
@@ -84,7 +85,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels" | "dubbing" | "chapters" | "reframe" | "tracking";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels" | "dubbing" | "chapters" | "reframe" | "tracking" | "ab-testing";
 
 // ----- Workflow Steps -----
 
@@ -600,6 +601,14 @@ export function AIStudioView() {
 					>
 						Tracking
 					</Button>
+					<Button
+						variant={mode === "ab-testing" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2"
+						onClick={() => setMode("ab-testing")}
+					>
+						A/B Test
+					</Button>
 				</div>
 			</div>
 
@@ -887,6 +896,11 @@ export function AIStudioView() {
 			{/* ── Motion Tracking Mode ── */}
 			{mode === "tracking" && (
 				<MotionTrackingPanel className="flex-1 min-h-0" />
+			)}
+
+			{/* ── A/B Testing Mode ── */}
+			{mode === "ab-testing" && (
+				<ABTestingPanel className="flex-1 min-h-0" />
 			)}
 
 
