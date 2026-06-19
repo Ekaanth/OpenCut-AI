@@ -469,5 +469,16 @@ If it has helped you or saved you time, your support keeps development active an
 
 You can also click the **Sponsor** button on the top-right of this repository page (thanks to the `.github/FUNDING.yml` file).
 
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=Ekaanth%2FOpenCut-AI&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Ekaanth/OpenCut-AI&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Ekaanth/OpenCut-AI&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Ekaanth/OpenCut-AI&type=date&legend=top-left" />
+ </picture>
+</a>
+
 Every contribution — big or small — is deeply appreciated! 🙏  
 Thank you for supporting independent open source!
