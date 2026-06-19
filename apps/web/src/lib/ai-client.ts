@@ -1760,6 +1760,47 @@ class AIClient {
 		if (projectId) params.set("project_id", projectId);
 		return this.requestWithKeepalive(`/api/engagement/score-analytics?${params.toString()}`);
 	}
+
+	// ── Visual / Semantic Search (CLIP embeddings) ────────────────────
+
+	/** Embed a natural-language query into a 512-dim L2-normalized vector. */
+	async embedText(query: string): Promise<EmbedTextResult> {
+		return this.request<EmbedTextResult>("/api/search/embed-text", {
+			method: "POST",
+			body: JSON.stringify({ text: query }),
+		});
+	}
+
+	/** Embed a batch of natural-language queries into 512-dim vectors. */
+	async embedTexts(texts: string[]): Promise<EmbedTextsResult> {
+		return this.request<EmbedTextsResult>("/api/search/embed-texts", {
+			method: "POST",
+			body: JSON.stringify({ texts }),
+		});
+	}
+
+	/**
+	 * Embed a batch of video frames into 512-dim vectors. `formData` must
+	 * contain one or more `files` entries (JPEG/PNG blobs sampled from a
+	 * media asset).
+	 */
+	async embedFrames(formData: FormData): Promise<EmbedFramesResult> {
+		return this.requestFormData<EmbedFramesResult>("/api/search/embed-frames", formData, 300_000);
+	}
+
+	/**
+	 * Zero-shot classification: rank candidate `labels` for the image in
+	 * `formData`. Used for auto-tagging on import.
+	 */
+	async zeroShotTags(formData: FormData, labels: readonly string[]): Promise<ZeroShotResult> {
+		formData.append("labels", labels.join(","));
+		return this.requestFormData<ZeroShotResult>("/api/search/zero-shot-tags", formData);
+	}
+
+	/** Health-check the downstream CLIP service (used by Settings panel). */
+	async clipServiceHealth(): Promise<ClipServiceHealthResult> {
+		return this.request<ClipServiceHealthResult>("/api/search/health");
+	}
 }
 
 // ── YouTube / Engagement types ──────────────────────────────────────
@@ -1884,6 +1925,50 @@ export interface ScoreAnalyticsResponse {
 	trend: { timestamp: number; avg_composite: number; count: number }[];
 	strongest_signal: string;
 	weakest_signal: string;
+}
+
+// ── Visual / Semantic Search types ─────────────────────────────────
+
+export interface EmbedTextResult {
+	vector: number[];
+	model: string;
+	dim: number;
+}
+
+export interface EmbedTextsResult {
+	vectors: number[][];
+	model: string;
+	dim: number;
+}
+
+export interface EmbedFramesResult {
+	vectors: number[][];
+	model: string;
+	dim: number;
+	count: number;
+}
+
+export interface ZeroShotTag {
+	label: string;
+	score: number;
+}
+
+export interface ZeroShotResult {
+	tags: ZeroShotTag[];
+	model: string;
+}
+
+export interface ClipServiceHealthResult {
+	upstream?: {
+		service: string;
+		status: string;
+		model: { loaded: boolean; name: string; pretrained: string; installed: boolean; error: string | null };
+		device: string;
+		version: string;
+	};
+	reachable: boolean;
+	url?: string;
+	error?: string;
 }
 
 export const aiClient = new AIClient();

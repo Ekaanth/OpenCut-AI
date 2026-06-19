@@ -13,6 +13,7 @@ import { ElementsCombinedView } from "./views/elements-combined";
 import { VisualsCombinedView } from "./views/visuals-combined";
 import { BrandKitView } from "./views/brand-kit";
 import { VideoGenerationPanel } from "./views/video-generation";
+import { VisualSearchView } from "./views/visual-search";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
@@ -26,6 +27,7 @@ export function AssetsPanel() {
 		audio: <AudioCombinedView />,
 		elements: <ElementsCombinedView />,
 		visuals: <VisualsCombinedView />,
+		search: <VisualSearchView />,
 		brandkit: <BrandKitView />,
 		settings: <SettingsView />,
 	};

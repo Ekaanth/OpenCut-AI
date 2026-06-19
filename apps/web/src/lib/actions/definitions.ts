@@ -264,6 +264,10 @@ export const ACTIONS = {
 		description: "Reorder tracks by dragging",
 		category: "timeline",
 	},
+	"find-similar-clips": {
+		description: "Find visually similar clips to the selected media",
+		category: "ai",
+	},
 } as const satisfies Record<string, TActionDefinition>;
 
 export type TAction = keyof typeof ACTIONS;

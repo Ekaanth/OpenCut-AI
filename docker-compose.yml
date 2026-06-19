@@ -86,6 +86,7 @@ services:
       - OPENCUTAI_SPEAKER_SERVICE_URL=http://speaker-service:8424
       - OPENCUTAI_FACE_SERVICE_URL=http://face-service:8425
       - OPENCUTAI_TURBOQUANT_SERVICE_URL=http://turboquant-service:8430
+      - OPENCUTAI_CLIP_SERVICE_URL=http://clip-service:8426
       - OPENCUTAI_AI_MEMORY_BUDGET=${AI_MEMORY_BUDGET:-auto}
       - OPENCUTAI_AI_MODEL_TIER=${AI_MODEL_TIER:-auto}
       - OPENCUTAI_KV_CACHE_BITS=${KV_CACHE_BITS:-4}
@@ -197,6 +198,29 @@ services:
       retries: 5
       start_period: 15s
 
+  clip-service:
+    build:
+      context: ./services/clip-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8426:8426"
+    environment:
+      # CLIP model defaults. Override via .env if a larger model is desired
+      # (e.g. CLIP_MODEL_NAME=ViT-L-14, CLIP_PRETRAINED=laion2b_s32b_b82k).
+      - CLIP_MODEL_NAME=${CLIP_MODEL_NAME:-ViT-B-32}
+      - CLIP_PRETRAINED=${CLIP_PRETRAINED:-laion2b_s34b_b79k}
+      - DEVICE=${OPENCUTAI_AI_COMPUTE_MODE:-auto}
+    volumes:
+      - clip_models:/root/.cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8426/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # First start must download ~340MB of CLIP weights.
+      start_period: 60s
+
   turboquant-service:
     build:
       context: ./services/turboquant-service
@@ -287,6 +311,7 @@ volumes:
   face_models:
   turboquant_models:
   image_generated:
+  clip_models:
 
 networks:
   default:

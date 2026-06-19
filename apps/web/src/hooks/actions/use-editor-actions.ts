@@ -6,7 +6,10 @@ import { useEditor } from "../use-editor";
 import { useElementSelection } from "../timeline/element/use-element-selection";
 import { useKeyframeSelection } from "../timeline/element/use-keyframe-selection";
 import { getElementsAtTime } from "@/lib/timeline";
+import { hasMediaId } from "@/lib/timeline/element-utils";
 import { useAIStore } from "@/stores/ai-store";
+import { useSearchStore } from "@/stores/search-store";
+import { useAssetsPanelStore } from "@/stores/assets-panel-store";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import {
 	captureTranscriptSnapshot,
@@ -27,6 +30,8 @@ export function useEditorActions() {
 	const rippleEditingEnabled = useTimelineStore((s) => s.rippleEditingEnabled);
 	const toggleRippleEditing = useTimelineStore((s) => s.toggleRippleEditing);
 	const toggleCommandPanel = useAIStore((s) => s.toggleCommandPanel);
+	const requestFindSimilar = useSearchStore((s) => s.requestFindSimilar);
+	const setActiveTab = useAssetsPanelStore((s) => s.setActiveTab);
 
 	useActionHandler(
 		"toggle-play",
@@ -685,6 +690,26 @@ export function useEditorActions() {
 					bubbles: true,
 				}),
 			);
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"find-similar-clips",
+		() => {
+			if (selectedElements.length === 0) {
+				toast.error("Select a video or image clip first");
+				return;
+			}
+			const resolved = editor.timeline.getElementsWithTracks({
+				elements: [selectedElements[0]],
+			})[0];
+			if (!resolved || !hasMediaId(resolved.element)) {
+				toast.error("Select a video or image clip first");
+				return;
+			}
+			requestFindSimilar(resolved.element.mediaId);
+			setActiveTab("search");
 		},
 		undefined,
 	);

@@ -12,6 +12,7 @@ import {
 	Happy01Icon,
 	CrownIcon,
 	VideoReplayIcon,
+	Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
@@ -24,6 +25,7 @@ export const TAB_KEYS = [
 	"audio",
 	"elements",
 	"visuals",
+	"search",
 	"brandkit",
 	"settings",
 ] as const;
@@ -68,6 +70,10 @@ export const tabs = {
 	visuals: {
 		icon: createHugeiconsIcon({ icon: MagicWand05Icon }),
 		label: "Visuals",
+	},
+	search: {
+		icon: createHugeiconsIcon({ icon: Search01Icon }),
+		label: "Search",
 	},
 	brandkit: {
 		icon: createHugeiconsIcon({ icon: CrownIcon }),

@@ -10,6 +10,7 @@ import {
 	type ProxyResolution,
 } from "@/services/storage/types";
 import { generateProxy } from "@/services/proxy";
+import { deleteEmbedding } from "@/services/search/embedding-store";
 
 export class MediaManager {
 	private assets: MediaAsset[] = [];
@@ -78,6 +79,7 @@ export class MediaManager {
 		const asset = this.assets.find((asset) => asset.id === id);
 
 		videoCache.clearVideo({ mediaId: id });
+		deleteEmbedding(id).catch(() => undefined);
 
 		if (asset?.url) {
 			URL.revokeObjectURL(asset.url);
@@ -167,6 +169,9 @@ export class MediaManager {
 		const mediaIds = this.assets.map((asset) => asset.id);
 		this.assets = [];
 		this.notify();
+
+		// Drop embedding index entries for the removed assets (fire-and-forget).
+		mediaIds.forEach((id) => deleteEmbedding(id).catch(() => undefined));
 
 		try {
 			await Promise.all(

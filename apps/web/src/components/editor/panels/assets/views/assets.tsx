@@ -38,6 +38,7 @@ import {
 	type MediaViewMode,
 	useAssetsPanelStore,
 } from "@/stores/assets-panel-store";
+import { useSearchStore } from "@/stores/search-store";
 import type { MediaAsset } from "@/types/assets";
 import { cn } from "@/utils/ui";
 import {
@@ -317,6 +318,8 @@ function MediaItemWithContextMenu({
 	onRemove: ({ event, id }: { event: React.MouseEvent; id: string }) => void;
 	onSetLabel: (id: string) => void;
 }) {
+	const requestFindSimilar = useSearchStore((s) => s.requestFindSimilar);
+	const setActiveTab = useAssetsPanelStore((s) => s.setActiveTab);
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger>{children}</ContextMenuTrigger>
@@ -324,6 +327,16 @@ function MediaItemWithContextMenu({
 				<ContextMenuItem onClick={() => onSetLabel(item.id)}>
 					{item.label ? "Edit label" : "Add label"}
 				</ContextMenuItem>
+				{item.type !== "audio" && (
+					<ContextMenuItem
+						onClick={() => {
+							requestFindSimilar(item.id);
+							setActiveTab("search");
+						}}
+					>
+						Find similar clips
+					</ContextMenuItem>
+				)}
 				<ContextMenuItem>Export clips</ContextMenuItem>
 				<ContextMenuItem
 					variant="destructive"

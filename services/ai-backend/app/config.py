@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     SPEAKER_SERVICE_URL: str = "http://localhost:8424"
     FACE_SERVICE_URL: str = "http://localhost:8425"
     TURBOQUANT_SERVICE_URL: str = "http://localhost:8430"
+    # CLIP embedding service — powers privacy-first semantic media search
+    CLIP_SERVICE_URL: str = "http://localhost:8426"
 
     # Sarvam AI (Indian language APIs)
     SARVAM_API_KEY: str = ""
