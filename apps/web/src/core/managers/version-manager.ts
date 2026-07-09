@@ -26,6 +26,8 @@ export class VersionManager {
 	private lastCommitId: string | null = null;
 	private dirty = false;
 	private initialized = false;
+	private initPromise: Promise<void> | null = null;
+	private initProjectId: string | null = null;
 	private unsubscribeHandlers: Array<() => void> = [];
 
 	// Auto-commit
@@ -47,6 +49,21 @@ export class VersionManager {
 	 * Creates the version DB, main branch, and initial commit if needed.
 	 */
 	async initialize(projectId: string): Promise<void> {
+		// Multiple components initialize version control on mount; share one
+		// in-flight init per project so concurrent calls can't both create "main"
+		if (this.initPromise && this.initProjectId === projectId) {
+			return this.initPromise;
+		}
+		this.initProjectId = projectId;
+		this.initPromise = this.doInitialize(projectId).catch((err) => {
+			this.initPromise = null;
+			this.initProjectId = null;
+			throw err;
+		});
+		return this.initPromise;
+	}
+
+	private async doInitialize(projectId: string): Promise<void> {
 		this.storage = new VersionStorage(projectId);
 
 		const mainBranch = await this.storage.getBranchByName("main");
@@ -116,7 +133,17 @@ export class VersionManager {
 		};
 
 		await this.storage.saveCommit(commit);
-		await this.storage.saveBranch(branch);
+		try {
+			await this.storage.saveBranch(branch);
+		} catch (err) {
+			// A concurrent init already created "main" (unique by-name index) — reuse it
+			const existing = await this.storage.getBranchByName("main");
+			if (!existing) throw err;
+			this.currentBranchName = "main";
+			this.lastCommitId = existing.headCommitId;
+			await this.storage.setMeta("currentBranch", "main");
+			return;
+		}
 		await this.storage.setMeta("currentBranch", "main");
 
 		this.currentBranchName = "main";
