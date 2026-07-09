@@ -9,7 +9,7 @@ import os
 import uuid
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.models.engagement import (
