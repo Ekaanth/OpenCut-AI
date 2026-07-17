@@ -4,6 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/utils/ui";
 import type { TimelineTrack, VideoTrack, AudioTrack } from "@/types/timeline";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { AudioEffectsChainPanel } from "./audio-effects-panel";
 
 type AudioTrackish = VideoTrack | AudioTrack;
 
@@ -113,6 +119,7 @@ function TrackMixerStrip({
 	const pan = "pan" in track ? track.pan ?? 0 : 0;
 	const isMuted = track.muted;
 	const isSolo = track.solo ?? false;
+	const effectCount = track.audioEffects?.length ?? 0;
 
 	const handleVolumeChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,6 +236,25 @@ function TrackMixerStrip({
 					</span>
 				</div>
 			)}
+
+			<Popover>
+				<PopoverTrigger asChild>
+					<button
+						type="button"
+						className={cn(
+							"w-full rounded text-[8px] font-medium py-0.5 border",
+							effectCount > 0
+								? "border-primary/50 text-primary bg-primary/10"
+								: "border-border text-muted-foreground",
+						)}
+					>
+						FX{effectCount > 0 ? ` (${effectCount})` : ""}
+					</button>
+				</PopoverTrigger>
+				<PopoverContent side="top" align="center" className="w-56 p-2">
+					<AudioEffectsChainPanel trackId={track.id} trackType={track.type} />
+				</PopoverContent>
+			</Popover>
 		</div>
 	);
 }
