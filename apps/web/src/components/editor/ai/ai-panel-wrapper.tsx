@@ -12,6 +12,7 @@ import { cn } from "@/utils/ui";
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { SparklesIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { generateUUID } from "@/utils/id";
 
 export function AIPanelWrapper() {
 	const {
@@ -39,7 +40,7 @@ export function AIPanelWrapper() {
 		async (message: string) => {
 			if (!isConnected) {
 				const errorMessage: AIMessage = {
-					id: crypto.randomUUID(),
+					id: generateUUID(),
 					role: "assistant",
 					content:
 						"Cannot process commands — the AI backend is not connected. Open the setup guide from the AI status indicator in the header to get started.",
@@ -50,7 +51,7 @@ export function AIPanelWrapper() {
 			}
 
 			const userMessage: AIMessage = {
-				id: crypto.randomUUID(),
+				id: generateUUID(),
 				role: "user",
 				content: message,
 				timestamp: new Date(),
@@ -61,12 +62,12 @@ export function AIPanelWrapper() {
 				const result = await executeCommand(message, null);
 
 				const assistantMessage: AIMessage = {
-					id: crypto.randomUUID(),
+					id: generateUUID(),
 					role: "assistant",
 					content: result.explanation,
 					timestamp: new Date(),
 					actions: result.actions.map((action) => ({
-						id: crypto.randomUUID(),
+						id: generateUUID(),
 						type: action.type,
 						label: action.type.replace(/_/g, " ").toLowerCase(),
 						description: action.description,
@@ -84,7 +85,7 @@ export function AIPanelWrapper() {
 					errorDetail.includes("Failed to fetch");
 
 				const errorMessage: AIMessage = {
-					id: crypto.randomUUID(),
+					id: generateUUID(),
 					role: "assistant",
 					content: isConnectionIssue
 						? `Cannot reach the AI backend: ${errorDetail}\n\nMake sure the AI backend is running at the configured URL. Open the setup guide for instructions.`
