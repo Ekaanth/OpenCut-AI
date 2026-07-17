@@ -29,7 +29,7 @@ export interface AllServicesHealth {
 
 export const SERVICE_URLS = {
 	backend: process.env.NEXT_PUBLIC_AI_BACKEND_URL || "http://localhost:8420",
-	ollama: "http://localhost:11434",
+	ollama: process.env.NEXT_PUBLIC_OLLAMA_URL || "http://localhost:11434",
 	whisper: process.env.NEXT_PUBLIC_WHISPER_SERVICE_URL || "http://localhost:8421",
 	tts: process.env.NEXT_PUBLIC_TTS_SERVICE_URL || "http://localhost:8422",
 	image: process.env.NEXT_PUBLIC_IMAGE_SERVICE_URL || "http://localhost:8423",
