@@ -72,7 +72,6 @@ export function useAIDubbing() {
 			});
 
 			const totalSegments = targetSegments.length;
-			let completed = 0;
 
 			const tracks = editor.timeline.getTracks();
 			let audioTrack = tracks.find((t) => t.type === "audio");
@@ -83,47 +82,88 @@ export function useAIDubbing() {
 			}
 
 			try {
-				for (const seg of targetSegments) {
+				// ── Phase 1: batch-translate all segments up front. ──────────
+				// The "local" engine uses the privacy-first NLLB-200 service
+				// (one batched request, fully offline). Sarvam stays per-segment
+				// because it's a cloud API with a 2000-char cap per call.
+				const needsTranslation = language !== options.targetLanguage;
+				const isSarvamLang = SARVAM_TTS_SUPPORTED_CODES.has(
+					options.targetLanguage,
+				);
+				const isLocal = options.engine === "local";
+				const isSarvam = options.engine === "sarvam" && isSarvamLang;
+				const isSmallest = options.engine === "smallest";
+
+				// translations[i] aligns with targetSegments[i]; defaults to the
+				// original text when no translation is required/available.
+				let translations: string[] = targetSegments.map((s) => s.text);
+
+				if (needsTranslation) {
 					setProgress({
-						currentSegment: completed + 1,
+						currentSegment: 0,
 						totalSegments,
-						currentText: seg.text.slice(0, 50),
+						currentText: "Translating all segments…",
 						phase: "translating",
 					});
-
-					let translatedText: string;
-					const isSarvamLang = SARVAM_TTS_SUPPORTED_CODES.has(
-						options.targetLanguage,
-					);
-
-					if (isSarvamLang && language !== options.targetLanguage) {
-						const srcCode = toSarvamCode(language) ?? "en-IN";
-						const tgtCode = toSarvamCode(options.targetLanguage) ?? "hi-IN";
-						const result = await aiClient.sarvamTranslate(
-							seg.text,
-							srcCode,
-							tgtCode,
-						);
-						translatedText = result.translated_text;
-					} else if (language !== options.targetLanguage) {
-						translatedText = await aiClient.translateText(
-							seg.text,
-							options.targetLanguage,
-						);
-					} else {
-						translatedText = seg.text;
+					try {
+						if (isLocal) {
+							// One batched call to the local NLLB-200 service.
+							translations = await aiClient.nllbTranslateBatch(
+								targetSegments.map((s) => s.text),
+								options.targetLanguage,
+								language,
+							);
+						} else if (isSarvam) {
+							const srcCode = toSarvamCode(language) ?? "en-IN";
+							const tgtCode =
+								toSarvamCode(options.targetLanguage) ?? "hi-IN";
+							translations = await Promise.all(
+								targetSegments.map((s) =>
+									aiClient.sarvamTranslate(s.text, srcCode, tgtCode).then(
+										(r) => r.translated_text,
+									),
+								),
+							);
+						} else {
+							// Smallest engine has no translation API — fall back to
+							// LLM translation (slower, lower quality) for non-local.
+							translations = await Promise.all(
+								targetSegments.map((s) =>
+									aiClient.translateText(s.text, options.targetLanguage),
+								),
+							);
+						}
+					} catch (translateErr) {
+						// If the local translate-service isn't running, fall back to
+						// LLM translation so dubbing still works.
+						if (isLocal) {
+							toast.warning(
+								"NLLB translate service unavailable — using LLM fallback.",
+							);
+							translations = await Promise.all(
+								targetSegments.map((s) =>
+									aiClient.translateText(s.text, options.targetLanguage),
+								),
+							);
+						} else {
+							throw translateErr;
+						}
 					}
+				}
+
+				// ── Phase 2: TTS + place each translated segment. ────────────
+				for (let i = 0; i < targetSegments.length; i++) {
+					const seg = targetSegments[i];
+					const translatedText = translations[i] ?? seg.text;
 
 					setProgress({
-						currentSegment: completed + 1,
+						currentSegment: i + 1,
 						totalSegments,
 						currentText: translatedText.slice(0, 50),
 						phase: "generating",
 					});
 
 					let audioBlob: Blob;
-					const isSarvam = options.engine === "sarvam" && isSarvamLang;
-					const isSmallest = options.engine === "smallest";
 
 					if (isSarvam) {
 						const sarvamCode =
@@ -150,7 +190,7 @@ export function useAIDubbing() {
 					}
 
 					setProgress({
-						currentSegment: completed + 1,
+						currentSegment: i + 1,
 						totalSegments,
 						currentText: translatedText.slice(0, 50),
 						phase: "placing",
@@ -180,17 +220,17 @@ export function useAIDubbing() {
 						},
 					});
 
-					completed++;
 					updateTask(taskId, {
-						progress: `${completed}/${totalSegments} segments`,
-					});
-					setProgress({
-						currentSegment: completed,
-						totalSegments,
-						currentText: translatedText.slice(0, 50),
-						phase: completed === totalSegments ? "done" : "translating",
+						progress: `${i + 1}/${totalSegments} segments`,
 					});
 				}
+
+				setProgress({
+					currentSegment: totalSegments,
+					totalSegments,
+					currentText: "",
+					phase: "done",
+				});
 
 				updateTask(taskId, {
 					status: "completed",
