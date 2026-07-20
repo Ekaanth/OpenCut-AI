@@ -62,9 +62,16 @@ class JobQueue:
     """Manages background jobs with Redis persistence.
 
     Falls back to in-memory dict when Redis is unavailable.
+
+    Args:
+        prefix: Redis key namespace for this queue. Lets multiple domains
+            (YouTube ingest, dubbing, background removal, ...) share Redis
+            without colliding. Defaults to ``youtube_job:`` for back-compat
+            with the original singleton.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, prefix: str = "youtube_job:") -> None:
+        self._prefix = prefix
         self._redis = None
         self._redis_checked = False
         self._memory_store: dict[str, Job] = {}
@@ -93,7 +100,7 @@ class JobQueue:
             return None
 
     def _redis_key(self, job_id: str) -> str:
-        return f"youtube_job:{job_id}"
+        return f"{self._prefix}{job_id}"
 
     async def create_job(self) -> Job:
         """Create a new job and return it."""
@@ -195,5 +202,9 @@ class JobQueue:
         self._memory_store[job.job_id] = job
 
 
-# Module-level singleton
-job_queue = JobQueue()
+# Module-level singletons. Each domain gets its own Redis key namespace so
+# job IDs can't collide across features. Callers that previously imported
+# `job_queue` are unaffected (still youtube_job:).
+job_queue = JobQueue(prefix="youtube_job:")
+dubbing_job_queue = JobQueue(prefix="dub_job:")
+video_bg_job_queue = JobQueue(prefix="vbg_job:")

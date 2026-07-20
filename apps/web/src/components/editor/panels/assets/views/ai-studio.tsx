@@ -26,6 +26,9 @@ import { TemplatePanel } from "@/components/editor/ai/template-panel";
 import { BRollSuggestionsPanel } from "@/components/editor/ai/broll-suggestions-panel";
 import { YouTubeReelsPanel } from "@/components/editor/youtube/youtube-reels-panel";
 import { AIDubbingPanel } from "@/components/editor/panels/assets/views/ai-dubbing";
+import { VideoBgRemovalPanel } from "@/components/editor/panels/assets/views/video-bg-removal";
+import { AutoBRollPanel } from "@/components/editor/panels/assets/views/auto-broll";
+import { EditBySpeakerPanel } from "@/components/editor/panels/assets/views/edit-by-speaker";
 import { AutoChaptersPanel } from "@/components/editor/panels/assets/views/auto-chapters";
 import { SmartReframePanel } from "@/components/editor/panels/assets/views/smart-reframe";
 import { MotionTrackingPanel } from "@/components/editor/panels/assets/views/motion-tracking";
@@ -85,7 +88,7 @@ interface WorkflowStep {
 	isCompleted?: boolean;
 }
 
-type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "youtube-reels" | "dubbing" | "chapters" | "reframe" | "tracking" | "ab-testing";
+type StudioMode = "chat" | "workflow" | "transcript" | "templates" | "ideas" | "broll" | "auto-broll" | "youtube-reels" | "dubbing" | "chapters" | "reframe" | "tracking" | "ab-testing" | "video-bg" | "edit-speaker";
 
 // ----- Workflow Steps -----
 
@@ -551,6 +554,26 @@ export function AIStudioView() {
 					)}
 					{hasTranscript && (
 						<Button
+							variant={mode === "auto-broll" ? "secondary" : "ghost"}
+							size="sm"
+							className="h-6 text-[10px] px-2"
+							onClick={() => setMode("auto-broll")}
+						>
+							Auto B-Roll
+						</Button>
+					)}
+					{hasTranscript && (
+						<Button
+							variant={mode === "edit-speaker" ? "secondary" : "ghost"}
+							size="sm"
+							className="h-6 text-[10px] px-2"
+							onClick={() => setMode("edit-speaker")}
+						>
+							Speakers
+						</Button>
+					)}
+					{hasTranscript && (
+						<Button
 							variant={mode === "dubbing" ? "secondary" : "ghost"}
 							size="sm"
 							className="h-6 text-[10px] px-2"
@@ -559,6 +582,14 @@ export function AIStudioView() {
 							Dub
 						</Button>
 					)}
+					<Button
+						variant={mode === "video-bg" ? "secondary" : "ghost"}
+						size="sm"
+						className="h-6 text-[10px] px-2"
+						onClick={() => setMode("video-bg")}
+					>
+						BG Remove
+					</Button>
 					{hasTranscript && (
 						<Button
 							variant={mode === "chapters" ? "secondary" : "ghost"}
@@ -867,10 +898,31 @@ export function AIStudioView() {
 				<BRollSuggestionsPanel className="flex-1 min-h-0" />
 			)}
 
+			{/* ── Auto B-roll from your footage (CLIP) ── */}
+			{mode === "auto-broll" && (
+				<div className="flex-1 min-h-0 overflow-y-auto">
+					<AutoBRollPanel />
+				</div>
+			)}
+
+			{/* ── Edit by Speaker (diarization) ── */}
+			{mode === "edit-speaker" && (
+				<div className="flex-1 min-h-0 overflow-y-auto">
+					<EditBySpeakerPanel />
+				</div>
+			)}
+
 			{/* ── Dubbing Mode ── */}
 			{mode === "dubbing" && (
 				<div className="flex-1 min-h-0 overflow-y-auto">
 					<AIDubbingPanel />
+				</div>
+			)}
+
+			{/* ── Video Background Removal Mode ── */}
+			{mode === "video-bg" && (
+				<div className="flex-1 min-h-0 overflow-y-auto">
+					<VideoBgRemovalPanel />
 				</div>
 			)}
 

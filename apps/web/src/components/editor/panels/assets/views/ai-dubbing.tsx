@@ -58,8 +58,8 @@ const ENGINES: Array<{
 	},
 	{
 		value: "local",
-		label: "Local XTTS",
-		description: "Voice cloning, any language",
+		label: "Local NLLB + XTTS",
+		description: "100% private — no cloud, no API key",
 	},
 ];
 
@@ -126,6 +126,26 @@ export function AIDubbingPanel() {
 				language. Each dubbed segment is placed as a new audio track aligned to
 				the original timestamps.
 			</p>
+
+			{engine === "local" && (
+				<div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1">
+					<svg
+						className="size-3 text-emerald-600 shrink-0"
+						viewBox="0 0 16 16"
+						fill="none"
+					>
+						<path
+							d="M8 1.5L2 4v4c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L8 1.5z"
+							stroke="currentColor"
+							strokeWidth="1.2"
+							strokeLinejoin="round"
+						/>
+					</svg>
+					<span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-medium">
+						Fully local — translation via NLLB-200, never leaves your machine
+					</span>
+				</div>
+			)}
 
 			<div className="flex flex-col gap-1.5">
 				<Label className="text-[10px]">Target language</Label>

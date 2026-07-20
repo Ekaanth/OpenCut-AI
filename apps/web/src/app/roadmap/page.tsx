@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReactMarkdownWrapper } from "@/components/ui/react-markdown-wrapper";
 import { cn } from "@/utils/ui";
 
-const LAST_UPDATED = "March 22, 2026";
+const LAST_UPDATED = "July 17, 2026";
 
 type StatusType = "complete" | "pending" | "default" | "info";
 
@@ -136,6 +136,60 @@ const roadmapItems: RoadmapItem[] = [
 		status: {
 			text: "Planned",
 			type: "pending",
+		},
+	},
+	{
+		title: "Multilingual captions (NLLB)",
+		description:
+			"Translate captions into multiple languages at once via the local NLLB-200 service, with one subtitle track per language and per-language SRT/VTT export. Falls back to Sarvam or the local LLM per language when NLLB is unavailable. No data-model change — reuses the existing translation + subtitle-track infrastructure.",
+		status: {
+			text: "Completed",
+			type: "complete",
+		},
+	},
+	{
+		title: "Edit by speaker",
+		description:
+			"Scope operations to a single speaker: remove their every segment (cuts the timeline too), tighten the gaps between their lines, or isolate them by muting other tracks. Reuses diarization plus the shared timeline-cut helpers first introduced by Smart Cut.",
+		status: {
+			text: "Completed",
+			type: "complete",
+		},
+	},
+	{
+		title: "Auto multicam sync",
+		description:
+			"Align camera angles that weren't timecode-locked by cross-correlating their audio waveforms — entirely on-device via the Web Audio API. Pick a reference angle, preview per-angle offsets with confidence scores, then apply with one undoable transaction.",
+		status: {
+			text: "Completed",
+			type: "complete",
+		},
+	},
+	{
+		title: "AI Dubbing (local NLLB + XTTS)",
+		description:
+			"Translate and re-voice video into 17 languages. A dedicated NLLB-200 translate-service runs fully on-device for the 'Local' engine — translation text never leaves the host. Combined with voice-cloned XTTS v2 for the privacy-first dubbing path. Cloud engines (Sarvam, Smallest) remain available as alternatives.",
+		status: {
+			text: "Completed",
+			type: "complete",
+		},
+	},
+	{
+		title: "Video background removal",
+		description:
+			"Remove the background from any video clip with no green screen. Per-frame rembg matting produces a transparent WebM, inserted non-destructively above the source clip. Configurable sampling rate, runs fully locally via the image-service.",
+		status: {
+			text: "Completed",
+			type: "complete",
+		},
+	},
+	{
+		title: "Auto B-roll from your footage",
+		description:
+			"Matches each transcript segment to your own media library by CLIP visual similarity and auto-inserts the best clip as an overlay. Reuses the on-device CLIP embedding index — your footage never leaves your machine. Threshold-tunable, with a reviewable per-segment match list.",
+		status: {
+			text: "Completed",
+			type: "complete",
 		},
 	},
 	{

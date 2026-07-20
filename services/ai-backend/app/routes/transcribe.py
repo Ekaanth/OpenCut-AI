@@ -96,6 +96,11 @@ class SubtitleRequest(BaseModel):
         default=None,
         description="Optional style settings for ASS format (font_name, font_size, primary_color, etc.)",
     )
+    filename: str | None = Field(
+        default=None,
+        description="Optional output filename override (e.g. 'subtitles-es.srt'). "
+        "Defaults to 'subtitles.<format>'. Useful for multilingual exports.",
+    )
 
 
 @router.post("/transcribe/subtitles")
@@ -113,20 +118,22 @@ async def generate_subtitles(request: SubtitleRequest) -> dict:
     if fmt == "srt":
         content = segments_to_srt(segments, max_chars=request.max_chars_per_line)
         media_type = "application/x-subrip"
-        filename = "subtitles.srt"
+        default_filename = "subtitles.srt"
     elif fmt == "vtt":
         content = segments_to_vtt(segments, max_chars=request.max_chars_per_line)
         media_type = "text/vtt"
-        filename = "subtitles.vtt"
+        default_filename = "subtitles.vtt"
     elif fmt == "ass":
         content = segments_to_ass(segments, style=request.style)
         media_type = "text/x-ssa"
-        filename = "subtitles.ass"
+        default_filename = "subtitles.ass"
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported subtitle format '{fmt}'. Use: srt, vtt, or ass.",
         )
+
+    filename = request.filename or default_filename
 
     return {
         "format": fmt,
