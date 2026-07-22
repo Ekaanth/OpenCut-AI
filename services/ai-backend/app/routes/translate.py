@@ -86,12 +86,10 @@ class TranslateBatchRequest(BaseModel):
 
 
 def _service_down(url: str) -> HTTPException:
+    logger.error("NLLB translate service unavailable at %s", url)
     return HTTPException(
         status_code=503,
-        detail=(
-            f"NLLB translate service is not available at {url}. "
-            "Start it with: docker compose up -d translate-service"
-        ),
+        detail="NLLB translate service is not available. Start it with: docker compose up -d translate-service",
     )
 
 

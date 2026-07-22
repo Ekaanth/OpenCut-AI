@@ -24,8 +24,14 @@ async def _proxy_file_upload(
     extra_form: dict | None = None,
 ):
     """Forward a file upload to a downstream microservice."""
+    contents = await file.read()
+    if len(contents) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
+        )
     async with httpx.AsyncClient(timeout=300) as client:
-        files = {"file": (file.filename, await file.read(), file.content_type)}
+        files = {"file": (file.filename, contents, file.content_type)}
         data = {}
         if extra_form:
             data = {k: str(v) for k, v in extra_form.items() if v is not None}
@@ -56,10 +62,10 @@ async def transcribe(
         detail = e.response.text if e.response else str(e)
         raise HTTPException(status_code=e.response.status_code, detail=detail)
     except httpx.ConnectError:
+        logger.error("Whisper service unavailable at %s", settings.WHISPER_SERVICE_URL)
         raise HTTPException(
             status_code=503,
-            detail="Whisper service is not available. Ensure whisper-service is running on "
-            f"{settings.WHISPER_SERVICE_URL}",
+            detail="Whisper service is not available. Ensure whisper-service is running.",
         )
     except Exception:
         logger.exception("Transcription proxy failed")
@@ -134,6 +140,9 @@ async def generate_subtitles(request: SubtitleRequest) -> dict:
         )
 
     filename = request.filename or default_filename
+    # Strip path separators to prevent confusion if a future client
+    # uses the filename in file-system contexts.
+    filename = filename.replace("/", "_").replace("\\", "_")
 
     return {
         "format": fmt,

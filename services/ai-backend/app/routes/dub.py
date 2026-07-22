@@ -49,9 +49,10 @@ async def _check_ready() -> None:
                 resp = await client.get(f"{url}/health")
                 resp.raise_for_status()
             except Exception:
+                logger.error("%s service unavailable at %s", name, url)
                 raise HTTPException(
                     status_code=503,
-                    detail=f"{name} service is not available at {url}. "
+                    detail=f"{name} service is not available. "
                     f"Start it with: docker compose up -d {name}-service",
                 )
 
@@ -83,6 +84,11 @@ async def create_dub(
     upload_id = uuid.uuid4().hex[:8]
     upload_path = os.path.join(settings.UPLOAD_DIR, f"dub_src_{upload_id}{ext}")
     contents = await file.read()
+    if len(contents) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
+        )
     with open(upload_path, "wb") as f:
         f.write(contents)
 
@@ -97,9 +103,15 @@ async def create_dub(
     speaker_wav_path: str | None = None
     if speaker_wav and speaker_wav.filename:
         try:
+            speaker_wav_contents = await speaker_wav.read()
+            if len(speaker_wav_contents) > settings.MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Speaker sample too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
+                )
             async with httpx.AsyncClient(timeout=60) as client:
                 files = {
-                    "file": (speaker_wav.filename, await speaker_wav.read(), speaker_wav.content_type),
+                    "file": (speaker_wav.filename, speaker_wav_contents, speaker_wav.content_type),
                 }
                 data = {"name": f"dub_voice_{upload_id}"}
                 resp = await client.post(

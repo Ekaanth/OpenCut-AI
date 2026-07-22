@@ -9,6 +9,7 @@ the browser already trusts via NEXT_PUBLIC_AI_BACKEND_URL).
 
 import logging
 import os
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -22,14 +23,14 @@ router = APIRouter(prefix="/api/background", tags=["background"])
 
 _FORWARD_TIMEOUT = 600.0
 
+ALLOWED_VIDEO_EXTS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv"}
+
 
 def _service_down(url: str) -> HTTPException:
+    logger.error("Image service unavailable at %s", url)
     return HTTPException(
         status_code=503,
-        detail=(
-            f"Image service is not available at {url}. "
-            "Start it with: docker compose up -d image-service"
-        ),
+        detail="Image service is not available. Start it with: docker compose up -d image-service",
     )
 
 
@@ -42,10 +43,23 @@ async def remove_video_background(
     """Start a video background-removal job on the image-service."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided.")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_VIDEO_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported video format '{ext}'. Allowed: {sorted(ALLOWED_VIDEO_EXTS)}",
+        )
+
+    contents = await file.read()
+    if len(contents) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
+        )
 
     try:
         async with httpx.AsyncClient(timeout=_FORWARD_TIMEOUT) as client:
-            files = {"file": (file.filename, await file.read(), file.content_type)}
+            files = {"file": (file.filename, contents, file.content_type)}
             data = {"fps": str(fps), "max_duration": str(max_duration)}
             resp = await client.post(
                 f"{settings.IMAGE_SERVICE_URL}/remove-bg-video",
