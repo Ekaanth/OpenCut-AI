@@ -36,12 +36,10 @@ ALLOWED_MEDIA_EXTS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".jpg", "
 
 
 def _service_down(url: str) -> HTTPException:
+    logger.error("CLIP embedding service unavailable at %s", url)
     return HTTPException(
         status_code=503,
-        detail=(
-            f"CLIP embedding service is not available at {url}. "
-            "Start it with: docker compose up -d clip-service"
-        ),
+        detail="CLIP embedding service is not available. Start it with: docker compose up -d clip-service",
     )
 
 
@@ -121,6 +119,11 @@ async def embed_asset(
     upload_id = uuid.uuid4().hex[:8]
     upload_path = os.path.join(settings.UPLOAD_DIR, f"broll_{upload_id}{ext}")
     contents = await file.read()
+    if len(contents) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
+        )
     with open(upload_path, "wb") as f:
         f.write(contents)
 

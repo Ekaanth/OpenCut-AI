@@ -390,6 +390,11 @@ async def remove_bg(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
+        if len(contents) > 500 * 1024 * 1024:  # 500 MB, matches ai-backend MAX_UPLOAD_SIZE
+            raise HTTPException(
+                status_code=413,
+                detail="File too large. Maximum size: 500 MB",
+            )
         with open(upload_path, "wb") as f:
             f.write(contents)
 
@@ -610,6 +615,11 @@ async def remove_bg_video(
     upload_id = uuid.uuid4().hex[:8]
     upload_path = os.path.join(UPLOAD_DIR, f"vbg_{upload_id}{ext}")
     contents = await file.read()
+    if len(contents) > 500 * 1024 * 1024:  # 500 MB, matches ai-backend MAX_UPLOAD_SIZE
+        raise HTTPException(
+            status_code=413,
+            detail="File too large. Maximum size: 500 MB",
+        )
     with open(upload_path, "wb") as f:
         f.write(contents)
 
