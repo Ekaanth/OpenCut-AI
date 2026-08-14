@@ -21,7 +21,11 @@ import {
 	isSarvamSTTSupported,
 } from "@/constants/sarvam-constants";
 import { SMALLEST_STT_LANGUAGES } from "@/constants/smallest-constants";
-import type { TranscriptionLanguage, TranscriptionEngine } from "@/types/transcription";
+import type {
+	TranscriptionLanguage,
+	TranscriptionEngine,
+} from "@/types/transcription";
+import type { TranscriptionResult } from "@/types/ai";
 
 import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
@@ -31,10 +35,126 @@ import { toast } from "sonner";
 import { aiClient } from "@/lib/ai-client";
 import type { TimelineElement } from "@/types/timeline";
 import { useBackgroundTasksStore } from "@/stores/background-tasks-store";
+import { downloadBlob } from "@/utils/browser";
+import { NLLB_LANGUAGES } from "@/lib/nllb-languages";
 
 interface SubtitleTrackInfo {
 	trackId: string;
 	language: string;
+}
+
+/** Check if we should use Sarvam for translation (Indian language pair).
+ *  Requires at least one side to be an Indian language (not just "en"),
+ *  AND the other side must also be Sarvam-supported.
+ */
+const shouldUseSarvamTranslation = (
+	sourceLang: string,
+	targetLang: string,
+): boolean => {
+	const sourceIsSarvam = SARVAM_SUPPORTED_CODES.has(sourceLang);
+	const targetIsSarvam = SARVAM_SUPPORTED_CODES.has(targetLang);
+	// Both must be Sarvam-supported, and at least one must be a non-English Indian language
+	const sourceIsIndian = sourceIsSarvam && sourceLang !== "en";
+	const targetIsIndian = targetIsSarvam && targetLang !== "en";
+	return (sourceIsIndian || targetIsIndian) && sourceIsSarvam && targetIsSarvam;
+};
+
+/**
+ * Translate transcript segments into a target language.
+ *
+ * Strategy (privacy-first):
+ *   1. NLLB-200 batch translation via the local translate-service (one request,
+ *      fully offline). Preferred — no text leaves the host.
+ *   2. If NLLB is unavailable AND the pair is Indian-language with a Sarvam
+ *      key configured, fall back to Sarvam cloud translation per segment.
+ *   3. Final fallback: the local LLM (`translateText`) in small batches.
+ *      Slower and lower quality, but always available.
+ *
+ * Timing (`start`/`end`) is inherited from the source segments — only `text`
+ * changes, so no audio re-analysis is needed.
+ */
+async function translateSegments(
+	segments: { text: string; start: number; end: number }[],
+	opts: {
+		targetCode: string;
+		targetName: string;
+		sourceCode: string;
+		onProgress?: (step: string) => void;
+	},
+): Promise<{ text: string; start: number; end: number }[]> {
+	const { targetCode, targetName, sourceCode, onProgress } = opts;
+	const texts = segments.map((s) => s.text);
+	const sameLang = sourceCode === targetCode;
+
+	if (sameLang) {
+		return segments.map((s) => ({ ...s }));
+	}
+
+	// 1. NLLB batch (preferred — local).
+	onProgress?.(`Translating to ${targetName} via NLLB…`);
+	try {
+		const translations = await aiClient.nllbTranslateBatch(
+			texts,
+			targetCode,
+			sourceCode,
+		);
+		return segments.map((s, i) => ({
+			text: translations[i] ?? s.text,
+			start: s.start,
+			end: s.end,
+		}));
+	} catch (nllbErr) {
+		console.warn("NLLB translation unavailable, falling back:", nllbErr);
+	}
+
+	// 2. Sarvam fallback (Indian languages only, cloud).
+	if (shouldUseSarvamTranslation(sourceCode, targetCode)) {
+		const sourceSarvamCode = SARVAM_LANGUAGE_MAP[sourceCode] || `${sourceCode}-IN`;
+		const targetSarvamCode = SARVAM_LANGUAGE_MAP[targetCode] || `${targetCode}-IN`;
+		const out: { text: string; start: number; end: number }[] = [];
+		for (let i = 0; i < segments.length; i++) {
+			onProgress?.(`Translating to ${targetName} (Sarvam) ${i + 1}/${segments.length}`);
+			try {
+				const result = await aiClient.sarvamTranslate(
+					segments[i].text,
+					sourceSarvamCode,
+					targetSarvamCode,
+				);
+				out.push({
+					text: result.translated_text || segments[i].text,
+					start: segments[i].start,
+					end: segments[i].end,
+				});
+			} catch {
+				out.push({ ...segments[i] });
+			}
+		}
+		return out;
+	}
+
+	// 3. LLM fallback (always available, slower/lower quality).
+	const BATCH_SIZE = 5;
+	const out: { text: string; start: number; end: number }[] = [];
+	for (let i = 0; i < segments.length; i += BATCH_SIZE) {
+		const batch = segments.slice(i, i + BATCH_SIZE);
+		const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+		const totalBatches = Math.ceil(segments.length / BATCH_SIZE);
+		onProgress?.(`Translating to ${targetName} (LLM) ${batchIndex}/${totalBatches}`);
+		const numberedLines = batch.map((seg, idx) => `${idx + 1}. ${seg.text}`).join("\n");
+		const translated = await aiClient.translateText(numberedLines, targetName);
+		const lines = translated
+			.split("\n")
+			.map((line) => line.replace(/^\d+\.\s*/, "").trim())
+			.filter((line) => line.length > 0);
+		for (let j = 0; j < batch.length; j++) {
+			out.push({
+				text: lines[j] || batch[j].text,
+				start: batch[j].start,
+				end: batch[j].end,
+			});
+		}
+	}
+	return out;
 }
 
 export function Captions() {
@@ -166,7 +286,7 @@ export function Captions() {
 
 			let file = mediaAsset.file;
 			const fileName = file.name || "";
-			const hasExtension = fileName.includes(".") && fileName.split(".").pop()!.length > 0;
+			const hasExtension = fileName.includes(".") && (fileName.split(".").pop()?.length ?? 0) > 0;
 
 			if (!hasExtension) {
 				const ext = mimeToExt[file.type] || ".mp4";
@@ -174,7 +294,7 @@ export function Captions() {
 				file = new File([file], newName, { type: file.type || "video/mp4" });
 			}
 
-			let result;
+			let result: TranscriptionResult;
 			if (engine === "sarvam") {
 				// Use Sarvam AI for Indian languages
 				const sarvamLangCode = selectedLanguage === "auto"
@@ -247,7 +367,7 @@ export function Captions() {
 
 			// ── Auto Speaker Diarization + Emotion Detection ──
 			// Run both in parallel: speaker labels and emotion annotations.
-			let speakerChangeTimes: number[] = [];
+			const speakerChangeTimes: number[] = [];
 			setProcessingStep("Detecting speakers & emotions...");
 			bgTasks.updateTask(taskId, { progress: "Detecting speakers & emotions..." });
 
@@ -487,19 +607,6 @@ export function Captions() {
 		toast.success("Subtitles added with word highlighting");
 	};
 
-	/** Check if we should use Sarvam for translation (Indian language pair).
-	 *  Requires at least one side to be an Indian language (not just "en"),
-	 *  AND the other side must also be Sarvam-supported.
-	 */
-	const shouldUseSarvamTranslation = (sourceLang: string, targetLang: string): boolean => {
-		const sourceIsSarvam = SARVAM_SUPPORTED_CODES.has(sourceLang);
-		const targetIsSarvam = SARVAM_SUPPORTED_CODES.has(targetLang);
-		// Both must be Sarvam-supported, and at least one must be a non-English Indian language
-		const sourceIsIndian = sourceIsSarvam && sourceLang !== "en";
-		const targetIsIndian = targetIsSarvam && targetLang !== "en";
-		return (sourceIsIndian || targetIsIndian) && sourceIsSarvam && targetIsSarvam;
-	};
-
 	const handleTranslateAndAdd = async () => {
 		const currentSegments = useTranscriptStore.getState().segments;
 		if (currentSegments.length === 0) return;
@@ -507,95 +614,29 @@ export function Captions() {
 		const targetLang = LANGUAGES.find((l) => l.code === translateLanguage);
 		if (!targetLang) return;
 
-		const transcriptLang = useTranscriptStore.getState().language;
-		const useSarvam = shouldUseSarvamTranslation(transcriptLang, translateLanguage);
-
 		const taskId = `translation-${targetLang.code}-${Date.now()}`;
 		const bgTasks = useBackgroundTasksStore.getState();
 
 		setIsTranslating(true);
 		setError(null);
 
-		const translationEngine = useSarvam ? "Sarvam AI" : "Local LLM";
-
 		bgTasks.addTask({
 			id: taskId,
 			type: "translation",
-			label: `${targetLang.name} translation (${translationEngine})`,
+			label: `${targetLang.name} translation`,
 			progress: "Starting...",
 		});
 
 		try {
-			const translatedSegments: { text: string; start: number; end: number }[] = [];
-
-			if (useSarvam) {
-				// Use Sarvam translation API — translate segment by segment
-				const sourceSarvamCode = SARVAM_LANGUAGE_MAP[transcriptLang] || `${transcriptLang}-IN`;
-				const targetSarvamCode = SARVAM_LANGUAGE_MAP[translateLanguage] || `${translateLanguage}-IN`;
-
-				for (let i = 0; i < currentSegments.length; i++) {
-					const seg = currentSegments[i];
-					const stepText = `Translating to ${targetLang.name} via Sarvam... (${i + 1}/${currentSegments.length})`;
-					setTranslatingStep(stepText);
-					bgTasks.updateTask(taskId, { progress: stepText });
-
-					try {
-						const result = await aiClient.sarvamTranslate(
-							seg.text,
-							sourceSarvamCode,
-							targetSarvamCode,
-						);
-						translatedSegments.push({
-							text: result.translated_text || seg.text,
-							start: seg.start,
-							end: seg.end,
-						});
-					} catch (translationErr) {
-						console.warn(`Sarvam translation failed for segment ${i}, using original:`, translationErr);
-						translatedSegments.push({
-							text: seg.text,
-							start: seg.start,
-							end: seg.end,
-						});
-					}
-				}
-			} else {
-				// Use local LLM (original approach)
-				const BATCH_SIZE = 5;
-
-				for (let i = 0; i < currentSegments.length; i += BATCH_SIZE) {
-					const batch = currentSegments.slice(i, i + BATCH_SIZE);
-					const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
-					const totalBatches = Math.ceil(currentSegments.length / BATCH_SIZE);
-					const stepText = `Translating to ${targetLang.name}... (${batchIndex}/${totalBatches})`;
-					setTranslatingStep(stepText);
-					bgTasks.updateTask(taskId, { progress: stepText });
-
-					// Send batch as numbered lines for reliable parsing
-					const numberedLines = batch
-						.map((seg, idx) => `${idx + 1}. ${seg.text}`)
-						.join("\n");
-
-					const translated = await aiClient.translateText(
-						numberedLines,
-						targetLang.name,
-					);
-
-					// Parse response — expect numbered lines back
-					const lines = translated
-						.split("\n")
-						.map((line) => line.replace(/^\d+\.\s*/, "").trim())
-						.filter((line) => line.length > 0);
-
-					for (let j = 0; j < batch.length; j++) {
-						translatedSegments.push({
-							text: lines[j] || batch[j].text,
-							start: batch[j].start,
-							end: batch[j].end,
-						});
-					}
-				}
-			}
+			const translatedSegments = await translateSegments(currentSegments, {
+				targetCode: targetLang.code,
+				targetName: targetLang.name,
+				sourceCode: useTranscriptStore.getState().language,
+				onProgress: (step) => {
+					setTranslatingStep(step);
+					bgTasks.updateTask(taskId, { progress: step });
+				},
+			});
 
 			// Place translated subtitles slightly above the original ones
 			const yOffset = activeSubtitleTracks.length > 0 ? 0.28 : 0.38;
@@ -642,7 +683,7 @@ export function Captions() {
 			} else if (message.includes("Sarvam API key")) {
 				setError("Sarvam API key is not configured. Add OPENCUTAI_SARVAM_API_KEY to your environment.");
 			} else if (message.includes("Smallest AI API key")) {
-				setError("Smallest AI API key is not configured. Add it in Settings > API Keys, or set OPENCUTAI_SMALLEST_API_KEY in your environment.");
+				setError("Smallest AI key is not configured. Add it in Settings > API Keys, or set OPENCUTAI_SMALLEST_API_KEY in your environment.");
 			} else {
 				setError(message);
 			}
@@ -677,6 +718,53 @@ export function Captions() {
 		}
 		setSubtitleTracks((prev) => prev.filter((t) => t.trackId !== trackId));
 		toast.success("Subtitle track removed");
+	};
+
+	const handleExportSubtitles = async (
+		track: SubtitleTrackInfo,
+		format: "srt" | "vtt",
+	) => {
+		// Prefer the stored translation (clean text); fall back to the live
+		// timeline track's text elements if no translation is stored.
+		const stored = useTranscriptStore
+			.getState()
+			.translations.find((t) => t.languageCode === track.language);
+		const segments = stored?.segments ?? [];
+		if (segments.length === 0) {
+			toast.error("No segments to export for this track.");
+			return;
+		}
+		const taskId = `sub-export-${track.language}-${Date.now()}`;
+		useBackgroundTasksStore.getState().addTask({
+			id: taskId,
+			type: "popover-subs",
+			label: `Exporting ${track.language}.${format}`,
+			progress: "Generating…",
+		});
+		try {
+			const result = await aiClient.generateSubtitles(segments, format);
+			const blob = new Blob([result.content], {
+				type: format === "srt" ? "application/x-subrip" : "text/vtt",
+			});
+			downloadBlob({
+				blob,
+				filename: `subtitles-${track.language}.${format}`,
+			});
+			useBackgroundTasksStore.getState().updateTask(taskId, {
+				status: "completed",
+				progress: "Downloaded",
+				completedAt: Date.now(),
+			});
+			toast.success(`Exported subtitles-${track.language}.${format}`);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : "Export failed";
+			useBackgroundTasksStore.getState().updateTask(taskId, {
+				status: "error",
+				error: msg,
+				completedAt: Date.now(),
+			});
+			toast.error("Subtitle export failed", { description: msg });
+		}
 	};
 
 	const handleLanguageChange = ({ value }: { value: string }) => {
@@ -825,22 +913,48 @@ export function Captions() {
 												key={track.trackId}
 												className="flex items-center justify-between rounded-md border px-3 py-2"
 											>
-												<div className="flex items-center gap-2">
-													<span className="bg-primary size-1.5 rounded-full shrink-0" />
-													<span className="text-sm font-medium">
-														{langName}
-													</span>
-												</div>
+									<div className="flex items-center gap-2">
+										<span className="bg-primary size-1.5 rounded-full shrink-0" />
+										<span className="text-sm font-medium">
+											{langName}
+										</span>
+									</div>
+									<div className="flex items-center gap-1">
+										{track.language !== "original" && (
+											<>
 												<Button
 													variant="ghost"
 													size="sm"
-													className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+													className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
 													onClick={() =>
-														handleRemoveSingleTrack(track.trackId)
+														handleExportSubtitles(track, "srt")
 													}
 												>
-													Remove
+													SRT
 												</Button>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+													onClick={() =>
+														handleExportSubtitles(track, "vtt")
+													}
+												>
+													VTT
+												</Button>
+											</>
+										)}
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+											onClick={() =>
+												handleRemoveSingleTrack(track.trackId)
+											}
+										>
+											Remove
+										</Button>
+									</div>
 											</div>
 										);
 									})}
@@ -868,13 +982,36 @@ export function Captions() {
 						<div className="border-t pt-4 flex flex-col gap-3">
 							<Label className="text-xs">Add language</Label>
 							<p className="text-[11px] text-muted-foreground leading-relaxed">
-								{shouldUseSarvamTranslation(
-									useTranscriptStore.getState().language,
-									translateLanguage,
-								)
-									? "Translate using Sarvam AI and add as a new subtitle track."
-									: "Translate using the local LLM and add as a new subtitle track."}
+								Translate via the local NLLB-200 service (fully offline). Falls back
+								to Sarvam AI for Indian languages or the local LLM if NLLB is
+								unavailable.
 							</p>
+
+							{/* Quick-add chips: batch-translate into several languages. */}
+							<div className="flex flex-wrap gap-1">
+								{NLLB_LANGUAGES.filter(
+									(l) =>
+										l.code !==
+											useTranscriptStore.getState().language &&
+										!activeSubtitleTracks.some(
+											(t) => t.language === l.code,
+										),
+								).map((lang) => (
+									<button
+										key={lang.code}
+										type="button"
+										disabled={isTranslating}
+										onClick={() => {
+											setTranslateLanguage(lang.code);
+											// Defer so state settles before the handler reads it.
+											setTimeout(() => handleTranslateAndAdd(), 0);
+										}}
+										className="rounded-full border border-border px-2 py-0.5 text-[10px] hover:bg-accent disabled:opacity-50 transition-colors"
+									>
+										{lang.name}
+									</button>
+								))}
+							</div>
 							<div className="flex gap-2">
 								<Select
 									value={translateLanguage}

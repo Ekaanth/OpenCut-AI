@@ -36,6 +36,9 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **Edit by text** — Transcribe, then edit video like a document. Delete a sentence and the timeline cuts itself.
 - **Smart Cut** — One-click filler word removal ("um", "uh", "like") and silence detection. Runs locally via FFmpeg.
 - **AI transcription** — Whisper-powered speech-to-text with word-level timestamps. GPU or CPU.
+- **AI Dubbing** — Translate and re-voice your video into 17 languages. The **Local engine** runs entirely on-device: NLLB-200 for translation, XTTS v2 for voice-cloned speech — no API key, no cloud, nothing leaves your machine. Cloud engines (Sarvam, Smallest) also available.
+- **Video Background Removal** — Remove the background from any clip with no green screen. Per-frame rembg matting produces a transparent WebM, inserted non-destructively above your source. Runs fully locally.
+- **Auto B-roll from your footage** — Matches each transcript segment to your own media library by CLIP visual similarity and auto-inserts the best clip as an overlay. Reuses the on-device CLIP embedding index — your footage never leaves your machine.
 - **Voice cloning & TTS** — Clone any voice from a 6-second sample. Supports [Sarvam AI](https://www.sarvam.ai/) for 22 Indian languages and [Smallest AI](https://www.smallest.ai/) for 15 languages with 80+ voices.
 - **AI Auto-Duck** — Automatically lowers background music during speech segments with configurable duck amount and fade.
 - **AI Music Generation** — Generate royalty-free background music with 15 genres, 12 moods, and 3 tempo settings. Preview and insert directly to the timeline.
@@ -46,6 +49,8 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **AI Auto-Color Correction** — 8 color correction profiles (Vibrant Pop, Film Look, Warm Sunset, etc.) with batch apply to all video clips.
 - **AI Video-to-Shorts Auto-Composer** — One-click: AI selects best clip, trims to target duration, sets canvas size (9:16, 1:1, 4:5), adds subtitles.
 - **Speaker-Labeled Captions** — Auto-assign color-coded speaker labels, rename speakers, apply captions to timeline.
+- **Edit by Speaker** — Scope operations to a single speaker at a time. Remove a speaker's every segment (cuts the timeline too), tighten the gaps between their lines, or mute everything else to isolate them. Reuses diarization + Smart Cut's cut/compact helpers. Fully local.
+- **Multilingual Captions** — Translate captions into multiple languages at once via the local NLLB-200 service (privacy-first; falls back to Sarvam or the LLM per language). One subtitle track per language, each exportable to SRT/VTT separately.
 - **YouTube Chapters Export** — Auto-detect chapter boundaries, export in YouTube `MM:SS Title` format. One-click copy chapters or full description with title, tags, and timestamps.
 - **Virality Score** — Score your video's engagement potential across 7 signals (hook, curiosity gap, energy, beat sync, face, emotion, viral) before publishing.
 - **A/B Thumbnail Testing** — Generate up to 4 thumbnail variants, auto-score each on contrast, text readability, face presence, color vibrancy, and composition. Winner gets a "Recommended" badge. TubeBuddy charges $15/mo for this.
@@ -69,6 +74,7 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 - **Speed ramping** — Variable speed curves with click-to-add keyframes and 5 presets (linear, ease-in, ease-out, smooth, bounce). Per-clip playback rate animation.
 - **Crop & Mask tool** — Rectangle, ellipse, polygon masks with feather control and inversion. Pixel-based crop values in properties panel.
 - **Multicam editing** — Sync angles by timecode, multicam viewer panel, one-click angle switching, auto-detect video tracks as angles.
+- **Auto multicam sync** — Align cameras that weren't timecode-locked by cross-correlating their audio waveforms entirely on-device. Pick a reference angle, set a ±search window, preview per-angle offsets with confidence scores, then apply. No cloud, no timecode needed.
 - **Marker system** — Press `M` to drop colored markers (red, yellow, green, blue, purple). Markers panel, jump to next/previous, notes on markers.
 - **J/K/L shuttle playback** — `J` reverse, `K` stop, `L` forward. Press multiple times for 2x, 4x, 8x speed. Full reverse playback support.
 - **Ripple trim** — Delete clips and close gaps automatically. `computeRippleTrim()` shifts downstream elements.
@@ -96,6 +102,7 @@ Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
 
 - **TurboQuant inference** — KV cache compression down to 2-bit on GPU, 3-bit on CPU, with a compute mode toggle (Auto / CPU / GPU).
 - **Kimi K2 & Kimi VL** — MoonshotAI's open-source Kimi models are fully supported: Kimi K2 (1T/32B active MoE) via Ollama GGUF (Q3/Q4/Q5) for every tier, and Kimi VL A3B (vision-language, 3B active) via TurboQuant for multimodal scene analysis.
+- **NLLB-200 translation service** — Meta's No-Language-Left-Behind models (200 languages) running fully locally as a dedicated microservice. Powers privacy-first AI Dubbing — no translation text ever leaves the host.
 - **All data local** — Files stored in OPFS (Origin Private File System). Nothing leaves the browser or your server.
 - **Docker-ready** — One command to start the full stack. BuildKit cache mounts, CPU-only PyTorch wheels, and parallel builds keep rebuilds fast.
 

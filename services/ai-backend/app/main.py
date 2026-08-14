@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import analyze, audio, command, engagement, export, factcheck, generate, llm, podcast, sarvam, search, setup, smallest, template, transcribe, transcribe_ws, tts, turboquant, video, youtube
+from app.routes import analyze, audio, background, broll, command, dub, engagement, export, factcheck, generate, llm, podcast, sarvam, search, setup, smallest, template, transcribe, transcribe_ws, translate, tts, turboquant, video, youtube
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +47,7 @@ async def lifespan(app: FastAPI):
         settings.AI_MODEL_TIER,
     )
     logger.info("CLIP embeddings: %s", settings.CLIP_SERVICE_URL)
+    logger.info("NLLB translate: %s", settings.TRANSLATE_SERVICE_URL)
     logger.info(
         "Seedance: %s (key %s)",
         settings.SEEDANCE_API_BASE_URL,
@@ -96,6 +97,10 @@ app.include_router(video.router)
 app.include_router(youtube.router)
 app.include_router(engagement.router)
 app.include_router(search.router)
+app.include_router(translate.router)
+app.include_router(dub.router)
+app.include_router(background.router)
+app.include_router(broll.router)
 
 
 @app.get("/health")
@@ -140,6 +145,7 @@ async def health() -> dict:
         _ping("face", settings.FACE_SERVICE_URL),
         _ping("turboquant", settings.TURBOQUANT_SERVICE_URL),
         _ping("clip", settings.CLIP_SERVICE_URL),
+        _ping("translate", settings.TRANSLATE_SERVICE_URL),
     )
 
     # System RAM via psutil
@@ -255,6 +261,7 @@ async def services_health() -> dict:
         _check("face", settings.FACE_SERVICE_URL),
         _check("turboquant", settings.TURBOQUANT_SERVICE_URL),
         _check("clip", settings.CLIP_SERVICE_URL),
+        _check("translate", settings.TRANSLATE_SERVICE_URL),
     )
 
     # Backend is always running if we're responding

@@ -2,15 +2,21 @@
 
 Standalone FastAPI service for image generation (diffusion) and background
 removal (rembg). Supports multiple open-source models with GPU/CPU selection.
+Also supports per-frame video background removal (alpha-matte video output).
 Runs on port 8423.
 """
 
+import asyncio
 import logging
 import os
+import shutil
+import subprocess
+import tempfile
+import time
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -384,6 +390,11 @@ async def remove_bg(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
+        if len(contents) > 500 * 1024 * 1024:  # 500 MB, matches ai-backend MAX_UPLOAD_SIZE
+            raise HTTPException(
+                status_code=413,
+                detail="File too large. Maximum size: 500 MB",
+            )
         with open(upload_path, "wb") as f:
             f.write(contents)
 
@@ -419,6 +430,230 @@ async def remove_bg(file: UploadFile = File(...)):
     finally:
         if os.path.exists(upload_path):
             os.remove(upload_path)
+
+
+# ---------------------------------------------------------------------------
+# Video background removal (per-frame rembg)
+#
+# Extracts frames at a low fps, runs rembg on each, reassembles them into an
+# alpha-enabled WebM. This is CPU-heavy (~0.5-2s per frame), so it runs as an
+# in-process background job with a status-polling API — the same UX shape as
+# the YouTube→Reels pipeline, but local to this single-instance service.
+# ---------------------------------------------------------------------------
+
+ALLOWED_VIDEO_EXTS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv"}
+
+# In-process job store. Fine because image-service runs as a single instance
+# and jobs are short-lived (cleaned up on completion/failure).
+_bg_jobs: dict[str, dict] = {}
+
+
+def _rembg_one(input_path: str, output_path: str) -> None:
+    """Run rembg on a single PNG frame (synchronous — call in a thread)."""
+    from rembg import remove
+    from PIL import Image
+
+    img = Image.open(input_path)
+    out = remove(img)
+    out.save(output_path, "PNG")
+
+
+def _run_ffmpeg(cmd: list[str]) -> None:
+    proc = subprocess.run(cmd, capture_output=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {proc.stderr.decode()[:400]}")
+
+
+async def _remove_bg_video_pipeline(
+    job_id: str,
+    video_path: str,
+    fps: float,
+    max_duration: float,
+) -> None:
+    """Background coroutine: frames → rembg → reassemble as alpha WebM."""
+    job = _bg_jobs[job_id]
+    try:
+        if not _check_rembg_available():
+            raise RuntimeError("rembg is not installed in the image-service container.")
+
+        # Probe source duration + dimensions.
+        probe = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0",
+             "-show_entries", "stream=width,height,duration",
+             "-of", "default=noprint_wrappers=1", video_path],
+            capture_output=True,
+        )
+        info: dict[str, str] = {}
+        for line in probe.stdout.decode().splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                info[k] = v
+        duration = min(float(info.get("duration", 0) or 0), max_duration)
+        width = int(info.get("width", 0) or 0)
+        if duration <= 0:
+            # Fall back to container duration if stream duration missing.
+            probe2 = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "default=noprint_wrappers=1:nokey=1", video_path],
+                capture_output=True,
+            )
+            try:
+                duration = min(float(probe2.stdout.decode().strip()), max_duration)
+            except ValueError:
+                duration = max_duration
+
+        total_frames = max(1, int(duration * fps))
+        job.update({"total_frames": total_frames, "duration": duration})
+
+        work = tempfile.mkdtemp(prefix=f"vbg_{job_id}_")
+        try:
+            # 1. Extract frames as PNGs at the target fps.
+            job.update({"status": "running", "progress": 0.02, "message": "Extracting frames…"})
+            frame_glob = os.path.join(work, "f_%06d.png")
+            _run_ffmpeg([
+                "ffmpeg", "-y", "-i", video_path,
+                "-t", f"{duration:.3f}",
+                "-vf", f"fps={fps}",
+                frame_glob,
+            ])
+
+            # 2. rembg each frame (thread pool to overlap I/O + model).
+            job.update({"message": "Removing backgrounds…"})
+            from concurrent.futures import ThreadPoolExecutor
+
+            frames = sorted(Path(work).glob("f_*.png"))
+            job.update({"total_frames": len(frames)})
+
+            def _process(idx_path: tuple[int, str]) -> None:
+                i, src = idx_path
+                dst = os.path.join(work, f"r_{i:06d}.png")
+                _rembg_one(src, dst)
+
+            max_workers = max(1, (os.cpu_count() or 2) // 2)
+            done = 0
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                for _ in pool.map(_process, enumerate(str(p) for p in frames)):
+                    done += 1
+                    if done % max(1, len(frames) // 20) == 0 or done == len(frames):
+                        job.update({
+                            "progress": 0.1 + 0.8 * (done / max(1, len(frames))),
+                            "processed_frames": done,
+                            "message": f"Processed {done}/{len(frames)} frames…",
+                        })
+
+            # 3. Reassemble into a transparent WebM (VP8 + alpha).
+            job.update({"progress": 0.92, "message": "Encoding transparent video…"})
+            out_name = f"vbg_{job_id}.webm"
+            out_path = os.path.join(GENERATED_DIR, out_name)
+            # Concat the rembg'd frames. VP8 supports alpha via pix_fmt yuva420p.
+            _run_ffmpeg([
+                "ffmpeg", "-y",
+                "-framerate", f"{fps}",
+                "-i", os.path.join(work, "r_%06d.png"),
+                "-c:v", "libvpx-vp9" if shutil.which("ffmpeg") else "libvpx",
+                "-pix_fmt", "yuva420p",
+                "-b:v", "1M",
+                "-auto-alt-ref", "0",  # required for alpha to encode
+                out_path,
+            ])
+
+            job.update({
+                "status": "completed",
+                "progress": 1.0,
+                "message": "Done.",
+                "result": {
+                    "videoUrl": f"/generated/{out_name}",
+                    "filename": out_name,
+                    "fps": fps,
+                    "framesProcessed": len(frames),
+                    "duration": round(duration, 3),
+                    "width": width,
+                },
+            })
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+    except Exception as exc:
+        logger.exception("video bg job %s failed", job_id)
+        job.update({"status": "failed", "error": str(exc)[:400], "message": "Failed."})
+    finally:
+        try:
+            if os.path.exists(video_path):
+                os.remove(video_path)
+        except OSError:
+            pass
+
+
+@app.post("/remove-bg-video")
+async def remove_bg_video(
+    file: UploadFile = File(...),
+    fps: float = Form(default=8.0, ge=1.0, le=30.0),
+    max_duration: float = Form(default=120.0, ge=1.0, le=600.0),
+):
+    """Start a per-frame video background-removal job. Returns a job_id.
+
+    The client polls ``GET /remove-bg-video/job/{job_id}`` for progress and
+    the resulting transparent WebM URL. Deliberately defaults to 8 fps on CPU
+    — per-frame rembg is ~0.5-2s/frame, so estimate roughly
+    ``duration * fps * ~1s`` before starting.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided.")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_VIDEO_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported video format '{ext}'. Allowed: {sorted(ALLOWED_VIDEO_EXTS)}",
+        )
+
+    if not _check_rembg_available():
+        raise HTTPException(
+            status_code=501,
+            detail="rembg is not installed in the image-service. "
+            "Rebuild with rembg[cpu] in the image-service requirements.",
+        )
+
+    upload_id = uuid.uuid4().hex[:8]
+    upload_path = os.path.join(UPLOAD_DIR, f"vbg_{upload_id}{ext}")
+    contents = await file.read()
+    if len(contents) > 500 * 1024 * 1024:  # 500 MB, matches ai-backend MAX_UPLOAD_SIZE
+        raise HTTPException(
+            status_code=413,
+            detail="File too large. Maximum size: 500 MB",
+        )
+    with open(upload_path, "wb") as f:
+        f.write(contents)
+
+    job_id = uuid.uuid4().hex[:12]
+    _bg_jobs[job_id] = {
+        "status": "queued",
+        "progress": 0.0,
+        "message": "Queued.",
+        "total_frames": None,
+        "processed_frames": 0,
+        "duration": None,
+        "result": None,
+        "error": None,
+        "created_at": time.time(),
+    }
+
+    asyncio.create_task(_remove_bg_video_pipeline(job_id, upload_path, fps, max_duration))
+    logger.info("AUDIT vbg create: job=%s fps=%s max_dur=%s", job_id, fps, max_duration)
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/remove-bg-video/job/{job_id}")
+async def remove_bg_video_job(job_id: str):
+    """Poll a video background-removal job."""
+    job = _bg_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    # GC completed/failed jobs older than 1 hour to bound memory.
+    now = time.time()
+    stale = [jid for jid, j in _bg_jobs.items()
+             if j["status"] in ("completed", "failed") and now - j.get("created_at", now) > 3600]
+    for jid in stale:
+        _bg_jobs.pop(jid, None)
+    return {"job_id": job_id, **job}
 
 
 @app.post("/load")

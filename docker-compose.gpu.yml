@@ -35,3 +35,8 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  # Optionally run NLLB translation on the GPU for faster dubbing.
+  translate-service:
+    environment:
+      - DEVICE=cuda
