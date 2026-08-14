@@ -27,6 +27,12 @@ export class PlaybackManager {
 			this.seek({ time: 0 });
 		}
 
+		// Normal play is always 1x. Shuttle sets its own direction/speed via
+		// shuttleForward/shuttleReverse; leaving speed at 0 made time never
+		// advance and, at t=0, every rAF hit newTime <= 0 and stormed
+		// playback-seek events (audio restart / play-pause bootloop).
+		this.shuttleSpeed = 0;
+		this.shuttleDirection = null;
 		this.isPlaying = true;
 		this.startTimer();
 		this.notify();
@@ -34,6 +40,8 @@ export class PlaybackManager {
 
 	pause(): void {
 		this.isPlaying = false;
+		this.shuttleSpeed = 0;
+		this.shuttleDirection = null;
 		this.stopTimer();
 		this.notify();
 	}
@@ -192,7 +200,14 @@ export class PlaybackManager {
 		const delta = (now - this.lastUpdate) / 1000;
 		this.lastUpdate = now;
 
-		const speed = this.shuttleDirection === "reverse" ? -this.shuttleSpeed : this.shuttleSpeed;
+		// Shuttle inactive → 1x (normal play). Active shuttle uses its speed.
+		let speed = 1;
+		if (this.shuttleDirection === "forward") {
+			speed = this.shuttleSpeed;
+		} else if (this.shuttleDirection === "reverse") {
+			speed = -this.shuttleSpeed;
+		}
+
 		const newTime = this.currentTime + delta * speed;
 		const duration = this.editor.timeline.getTotalDuration();
 
@@ -206,18 +221,26 @@ export class PlaybackManager {
 					detail: { time: duration },
 				}),
 			);
-		} else if (newTime <= 0) {
+			return;
+		}
+
+		if (newTime <= 0) {
+			const wasAtStart = this.currentTime <= 0;
 			this.currentTime = 0;
 			this.notify();
 
-			window.dispatchEvent(
-				new CustomEvent("playback-seek", {
-					detail: { time: 0 },
-				}),
-			);
+			// Avoid seek storms when stuck at 0 (e.g. speed was 0 before the fix)
+			if (!wasAtStart) {
+				window.dispatchEvent(
+					new CustomEvent("playback-seek", {
+						detail: { time: 0 },
+					}),
+				);
+			}
 
 			if (this.shuttleDirection === "reverse" && this.shuttleSpeed > 0) {
 				this.shuttleStop();
+				return;
 			}
 		} else {
 			this.currentTime = newTime;

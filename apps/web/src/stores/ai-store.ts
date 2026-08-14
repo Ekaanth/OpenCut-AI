@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { AIBackendStatus, AIErrorType, AISuggestion } from "@/types/ai";
+import { generateUUID } from "@/utils/id";
 
 export interface SavedIdea {
 	id: string;
@@ -122,7 +123,7 @@ export const useAIStore = create<AIState>()((set) => ({
 			savedIdeas: [
 				...state.savedIdeas,
 				{
-					id: crypto.randomUUID(),
+					id: generateUUID(),
 					content,
 					savedAt: Date.now(),
 				},

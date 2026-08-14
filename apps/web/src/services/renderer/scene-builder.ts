@@ -1,4 +1,9 @@
-import type { TimelineTrack, VisualElement } from "@/types/timeline";
+import type {
+	ImageElement,
+	TimelineTrack,
+	VideoElement,
+	VisualElement,
+} from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { RootNode } from "./nodes/root-node";
 import { VideoNode } from "./nodes/video-node";
@@ -275,10 +280,7 @@ function buildTransitionNodes({
 				const asset = mediaMap.get(current.mediaId);
 				if (!asset) continue;
 
-				const nextAsset =
-					next.type === "video" || next.type === "image"
-						? mediaMap.get(next.mediaId)
-						: null;
+				const nextIsMedia = next.type === "video" || next.type === "image";
 
 				transitionNodes.push(
 					new TransitionNode({
@@ -297,6 +299,8 @@ function buildTransitionNodes({
 							opacity: current.opacity,
 							blendMode: current.blendMode,
 							effects: current.effects,
+							mediaId: current.mediaId,
+							mediaType: current.type,
 						},
 						sourceB: {
 							duration: next.duration,
@@ -310,16 +314,17 @@ function buildTransitionNodes({
 							opacity: (next as VisualElement).opacity,
 							blendMode: (next as VisualElement).blendMode,
 							effects: (next as VisualElement).effects,
+							mediaId: nextIsMedia
+								? (next as VideoElement | ImageElement).mediaId
+								: undefined,
+							mediaType: nextIsMedia
+								? (next.type as "video" | "image")
+								: undefined,
 						},
 						mediaMap: mediaMap as unknown as Map<
 							string,
 							{ url: string; file?: File }
 						>,
-						mediaIdA: current.mediaId,
-						mediaIdB:
-							next.type === "video" || next.type === "image"
-								? next.mediaId
-								: undefined,
 					}),
 				);
 			}

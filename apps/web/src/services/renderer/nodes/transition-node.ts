@@ -1,15 +1,12 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { createOffscreenCanvas } from "../canvas-utils";
 import { BaseNode } from "./base-node";
-import type { Transform, TransitionData } from "@/types/timeline";
+import { VideoNode } from "./video-node";
+import { ImageNode } from "./image-node";
+import type { Transform } from "@/types/timeline";
 import type { Effect } from "@/types/effects";
 import type { BlendMode } from "@/types/rendering";
 import type { ElementAnimations } from "@/types/animation";
-import {
-	resolveOpacityAtTime,
-	resolveTransformAtTime,
-	getElementLocalTime,
-} from "@/lib/animation";
 import { renderTransition } from "../transition-renderer";
 import { getTransition } from "@/lib/transitions";
 
@@ -24,6 +21,9 @@ export interface TransitionSourceParams {
 	opacity: number;
 	blendMode?: BlendMode;
 	effects?: Effect[];
+	/** Media backing this side of the transition, if any (video/image only). */
+	mediaId?: string;
+	mediaType?: "video" | "image";
 }
 
 export interface TransitionNodeParams {
@@ -33,8 +33,6 @@ export interface TransitionNodeParams {
 	sourceA: TransitionSourceParams;
 	sourceB: TransitionSourceParams;
 	mediaMap: Map<string, { url: string; file?: File }>;
-	mediaIdA?: string;
-	mediaIdB?: string;
 }
 
 export class TransitionNode extends BaseNode<TransitionNodeParams> {
@@ -54,12 +52,12 @@ export class TransitionNode extends BaseNode<TransitionNodeParams> {
 
 		const progress = (time - transitionStart) / transitionDuration;
 
-		const canvasA = this.renderSourceFrame({
+		const canvasA = await this.renderSourceFrame({
 			renderer,
 			sourceParams: this.params.sourceA,
 			time,
 		});
-		const canvasB = this.renderSourceFrame({
+		const canvasB = await this.renderSourceFrame({
 			renderer,
 			sourceParams: this.params.sourceB,
 			time,
@@ -80,11 +78,50 @@ export class TransitionNode extends BaseNode<TransitionNodeParams> {
 
 		renderer.context.save();
 		renderer.context.globalCompositeOperation = "source-over";
+		renderer.context.globalAlpha = 1;
 		renderer.context.drawImage(result as CanvasImageSource, 0, 0);
 		renderer.context.restore();
 	}
 
-	private renderSourceFrame({
+	private buildContentNode({
+		sourceParams,
+	}: {
+		sourceParams: TransitionSourceParams;
+	}): BaseNode | null {
+		if (!sourceParams.mediaId || !sourceParams.mediaType) return null;
+
+		const media = this.params.mediaMap.get(sourceParams.mediaId);
+		if (!media?.url) return null;
+
+		const shared = {
+			duration: sourceParams.duration,
+			timeOffset: sourceParams.timeOffset,
+			trimStart: sourceParams.trimStart,
+			trimEnd: sourceParams.trimEnd,
+			playbackRate: sourceParams.playbackRate,
+			transform: sourceParams.transform,
+			animations: sourceParams.animations,
+			opacity: sourceParams.opacity,
+			blendMode: sourceParams.blendMode,
+			effects: sourceParams.effects,
+		};
+
+		if (sourceParams.mediaType === "video") {
+			if (!media.file) return null;
+			return new VideoNode({
+				...shared,
+				url: media.url,
+				file: media.file,
+				mediaId: sourceParams.mediaId,
+			});
+		}
+
+		return new ImageNode({ ...shared, url: media.url });
+	}
+
+	// renders the source clip's frame (respecting transform/trim/effects) into
+	// its own offscreen canvas so the transition shader has real pixels to blend
+	private async renderSourceFrame({
 		renderer,
 		sourceParams,
 		time,
@@ -92,7 +129,7 @@ export class TransitionNode extends BaseNode<TransitionNodeParams> {
 		renderer: CanvasRenderer;
 		sourceParams: TransitionSourceParams;
 		time: number;
-	}): HTMLCanvasElement | OffscreenCanvas | null {
+	}): Promise<HTMLCanvasElement | OffscreenCanvas | null> {
 		const offscreen = createOffscreenCanvas({
 			width: renderer.width,
 			height: renderer.height,
@@ -103,24 +140,16 @@ export class TransitionNode extends BaseNode<TransitionNodeParams> {
 			| null;
 		if (!ctx) return null;
 
-		const animLocalTime = getElementLocalTime({
-			timelineTime: time,
-			elementStartTime: sourceParams.timeOffset,
-			elementDuration: sourceParams.duration,
-		});
+		const contentNode = this.buildContentNode({ sourceParams });
+		if (!contentNode) return offscreen;
 
-		const transform = resolveTransformAtTime({
-			baseTransform: sourceParams.transform,
-			animations: sourceParams.animations,
-			localTime: animLocalTime,
-		});
-		const opacity = resolveOpacityAtTime({
-			baseOpacity: sourceParams.opacity,
-			animations: sourceParams.animations,
-			localTime: animLocalTime,
-		});
-
-		(ctx as CanvasRenderingContext2D).globalAlpha = opacity;
+		const originalContext = renderer.context;
+		renderer.context = ctx;
+		try {
+			await contentNode.render({ renderer, time });
+		} finally {
+			renderer.context = originalContext;
+		}
 
 		return offscreen;
 	}

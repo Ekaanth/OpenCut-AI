@@ -2,6 +2,10 @@ import type { EditorCore } from "@/core";
 import type { AudioClipSource } from "@/lib/media/audio";
 import { createAudioContext, collectAudioClips } from "@/lib/media/audio";
 import {
+	getAudioEffectDefinition,
+	type TrackAudioEffect,
+} from "@/lib/audio/audio-effects";
+import {
 	ALL_FORMATS,
 	AudioBufferSink,
 	BlobSource,
@@ -154,6 +158,9 @@ export class AudioManager {
 			(track && ("volume" in track ? track.volume : undefined)) ?? 1;
 		const trackPan =
 			(track && ("pan" in track ? track.pan : undefined)) ?? 0;
+		const audioEffects =
+			(track && "audioEffects" in track ? track.audioEffects : undefined) ??
+			[];
 
 		const gain = ctx.createGain();
 		gain.gain.value = trackVolume;
@@ -165,13 +172,51 @@ export class AudioManager {
 		analyser.fftSize = 256;
 		analyser.smoothingTimeConstant = 0.8;
 
-		gain.connect(panner);
+		this.connectAudioEffectsChain({
+			ctx,
+			input: gain,
+			output: panner,
+			effects: audioEffects,
+		});
 		panner.connect(analyser);
 		analyser.connect(this.masterGain);
 
 		const nodes = { gain, panner, analyser };
 		this.trackNodes.set(trackId, nodes);
 		return nodes;
+	}
+
+	// wires enabled track audio effects (EQ, compressor, reverb, etc.) in
+	// series between the track gain and panner nodes
+	private connectAudioEffectsChain({
+		ctx,
+		input,
+		output,
+		effects,
+	}: {
+		ctx: AudioContext;
+		input: AudioNode;
+		output: AudioNode;
+		effects: TrackAudioEffect[];
+	}): void {
+		const enabledEffects = effects.filter((effect) => effect.enabled);
+		if (enabledEffects.length === 0) {
+			input.connect(output);
+			return;
+		}
+
+		let previousOutput: AudioNode = input;
+		for (const effect of enabledEffects) {
+			const definition = getAudioEffectDefinition(effect.type);
+			if (!definition) continue;
+
+			const nodes = definition.createNodes(ctx, effect.params);
+			if (nodes.length === 0) continue;
+
+			previousOutput.connect(nodes[0]);
+			previousOutput = nodes[nodes.length - 1];
+		}
+		previousOutput.connect(output);
 	}
 
 	private rebuildTrackNodes(): void {

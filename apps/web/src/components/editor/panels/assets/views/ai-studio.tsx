@@ -22,6 +22,7 @@ import { useAIStatus } from "@/hooks/use-ai-status";
 import { useAIStore } from "@/stores/ai-store";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { toast } from "sonner";
+import { generateUUID } from "@/utils/id";
 import { TemplatePanel } from "@/components/editor/ai/template-panel";
 import { BRollSuggestionsPanel } from "@/components/editor/ai/broll-suggestions-panel";
 import { YouTubeReelsPanel } from "@/components/editor/youtube/youtube-reels-panel";
@@ -364,14 +365,14 @@ export function AIStudioView() {
 		}
 
 		addMessage({
-			id: crypto.randomUUID(),
+			id: generateUUID(),
 			role: "user",
 			content: trimmed,
 		});
 		setInputValue("");
 		setIsThinking(true);
 
-		const assistantId = crypto.randomUUID();
+		const assistantId = generateUUID();
 		let messageAdded = false;
 
 		try {

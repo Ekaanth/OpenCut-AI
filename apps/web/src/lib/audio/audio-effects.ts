@@ -25,6 +25,14 @@ export interface AudioEffectDefinition {
 	createNodes: (ctx: AudioContext, params: Record<string, number>) => AudioNode[];
 }
 
+/** A configured audio effect instance stored on a track. */
+export interface TrackAudioEffect {
+	id: string;
+	type: AudioEffectType;
+	params: Record<string, number>;
+	enabled: boolean;
+}
+
 export const AUDIO_EFFECT_DEFINITIONS: Record<AudioEffectType, AudioEffectDefinition> = {
 	eq: {
 		type: "eq",
@@ -40,7 +48,7 @@ export const AUDIO_EFFECT_DEFINITIONS: Record<AudioEffectType, AudioEffectDefini
 		createNodes: (ctx, params) => {
 			const low = ctx.createBiquadFilter();
 			low.type = "lowshelf";
-			low.frequency.value = params.lowGain !== undefined ? (params.lowFreq as number) : 320;
+			low.frequency.value = params.lowFreq ?? 320;
 			low.gain.value = params.lowGain ?? 0;
 
 			const mid = ctx.createBiquadFilter();
@@ -113,6 +121,11 @@ export const AUDIO_EFFECT_DEFINITIONS: Record<AudioEffectType, AudioEffectDefini
 			{ key: "wetLevel", label: "Wet Level", type: "number", default: 30, min: 0, max: 100, step: 1, unit: "%" },
 		],
 		createNodes: (ctx, params) => {
+			// unity fan-out node so both the wet (convolver) and dry paths
+			// receive the same input signal — a single node can't be
+			// connected to twice as a source, so callers must connect to
+			// this node's input and read output from the merger
+			const input = ctx.createGain();
 			const convolver = ctx.createConvolver();
 			const wet = ctx.createGain();
 			const dry = ctx.createGain();
@@ -136,13 +149,15 @@ export const AUDIO_EFFECT_DEFINITIONS: Record<AudioEffectType, AudioEffectDefini
 
 			convolver.buffer = impulse;
 			wet.gain.value = wetLevel;
-			dry.gain.value = 1;
+			dry.gain.value = 1 - wetLevel;
 
+			input.connect(convolver);
+			input.connect(dry);
 			convolver.connect(wet);
 			wet.connect(merger);
 			dry.connect(merger);
 
-			return [convolver, merger];
+			return [input, merger];
 		},
 	},
 	"de-esser": {

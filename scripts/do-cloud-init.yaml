@@ -1,0 +1,128 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+packages:
+  - git
+  - curl
+  - ca-certificates
+  - gnupg
+  - jq
+  - ufw
+  - python3
+  - openssl
+
+write_files:
+  - path: /opt/opencut/deploy.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      exec > >(tee -a /var/log/opencut-deploy.log) 2>&1
+
+      echo "[opencut] deploy started $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      PUBLIC_IP="$(curl -fsS http://169.254.169.254/metadata/v1/interfaces/public/0/ipv4/address)"
+      AUTH_SECRET="$(openssl rand -hex 32)"
+      APP_DIR=/opt/opencut/OpenCut-AI
+
+      if ! command -v docker >/dev/null 2>&1; then
+        curl -fsSL https://get.docker.com | sh
+        systemctl enable --now docker
+      fi
+
+      mkdir -p /opt/opencut
+      if [ ! -d "$APP_DIR/.git" ]; then
+        git clone --depth 1 https://github.com/Ekaanth/OpenCut-AI.git "$APP_DIR"
+      fi
+      cd "$APP_DIR"
+
+      # Bake public URLs into the Next.js build (NEXT_PUBLIC_* is compile-time)
+      sed -i \
+        -e "s|ENV NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\"|ENV NEXT_PUBLIC_SITE_URL=\"http://${PUBLIC_IP}:3100\"|" \
+        -e "s|ENV NEXT_PUBLIC_AI_BACKEND_URL=\"http://localhost:8420\"|ENV NEXT_PUBLIC_AI_BACKEND_URL=\"http://${PUBLIC_IP}:8420\"|" \
+        apps/web/Dockerfile
+
+      cat > .env <<EOF
+      FREESOUND_CLIENT_ID=
+      FREESOUND_API_KEY=
+      MARBLE_WORKSPACE_KEY=placeholder
+      OLLAMA_DEFAULT_MODEL=llama3.2:1b
+      WHISPER_MODEL_SIZE=base
+      AI_MEMORY_BUDGET=auto
+      AI_MODEL_TIER=auto
+      EOF
+
+      PUBLIC_IP="$PUBLIC_IP" AUTH_SECRET="$AUTH_SECRET" python3 - <<'PY'
+      from pathlib import Path
+      import os
+
+      ip = os.environ["PUBLIC_IP"]
+      secret = os.environ["AUTH_SECRET"]
+      p = Path("docker-compose.yml")
+      text = p.read_text()
+      replacements = [
+          (
+              "BETTER_AUTH_SECRET=your-production-secret-key-here",
+              f"BETTER_AUTH_SECRET={secret}",
+          ),
+          (
+              "NEXT_PUBLIC_SITE_URL=http://localhost:3100",
+              f"NEXT_PUBLIC_SITE_URL=http://{ip}:3100",
+          ),
+          (
+              'OPENCUTAI_CORS_ORIGINS=["http://localhost:3000","http://localhost:3100","http://localhost:5173"]',
+              f'OPENCUTAI_CORS_ORIGINS=["http://{ip}:3100","http://localhost:3000","http://localhost:3100"]',
+          ),
+          (
+              "NEXT_PUBLIC_AI_BACKEND_URL=http://localhost:8420",
+              f"NEXT_PUBLIC_AI_BACKEND_URL=http://{ip}:8420",
+          ),
+          (
+              "NEXT_PUBLIC_WHISPER_SERVICE_URL=http://localhost:8421",
+              f"NEXT_PUBLIC_WHISPER_SERVICE_URL=http://{ip}:8421",
+          ),
+          (
+              "NEXT_PUBLIC_TTS_SERVICE_URL=http://localhost:8422",
+              f"NEXT_PUBLIC_TTS_SERVICE_URL=http://{ip}:8422",
+          ),
+          (
+              "NEXT_PUBLIC_IMAGE_SERVICE_URL=http://localhost:8423",
+              f"NEXT_PUBLIC_IMAGE_SERVICE_URL=http://{ip}:8423",
+          ),
+      ]
+      for old, new in replacements:
+          if old not in text:
+              raise SystemExit(f"patch target missing: {old}")
+          text = text.replace(old, new)
+      p.write_text(text)
+      print(f"[opencut] patched compose for http://{ip}:3100")
+      PY
+
+      ufw allow OpenSSH
+      ufw allow 3100/tcp
+      ufw allow 8420:8426/tcp
+      ufw allow 8430/tcp
+      ufw --force enable || true
+
+      export DOCKER_BUILDKIT=1
+      export COMPOSE_DOCKER_CLI_BUILD=1
+
+      echo "[opencut] building images (this can take a long time)..."
+      docker compose build --parallel
+
+      echo "[opencut] starting stack..."
+      docker compose up -d
+
+      sleep 20
+      docker compose exec -T ollama ollama pull llama3.2:1b || true
+
+      echo "[opencut] status:"
+      docker compose ps
+      echo "[opencut] READY at http://${PUBLIC_IP}:3100"
+      echo "[opencut] deploy finished $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+runcmd:
+  - [bash, -lc, "/opt/opencut/deploy.sh"]
+
+final_message: "OpenCut AI cloud-init finished scheduling deploy.sh"
