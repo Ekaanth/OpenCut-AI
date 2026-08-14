@@ -5,10 +5,10 @@ import { cn } from "@/utils/ui";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Camera01Icon, PlayIcon } from "@hugeicons/core-free-icons";
+import { Camera01Icon } from "@hugeicons/core-free-icons";
 import { useEditor } from "@/hooks/use-editor";
 import { detectMulticamAngles, switchAngle, createMulticamClip } from "@/lib/multicam";
-import type { MulticamAngle, MulticamClip } from "@/lib/multicam";
+import type { MulticamClip } from "@/lib/multicam";
 import { useMulticamSync } from "@/hooks/use-multicam-sync";
 import {
 	Select,
@@ -246,6 +246,7 @@ export function MulticamPanel({ className }: { className?: string }) {
 							</div>
 						</>
 					)}
+				</div>
 				</div>
 			)}
 		</div>

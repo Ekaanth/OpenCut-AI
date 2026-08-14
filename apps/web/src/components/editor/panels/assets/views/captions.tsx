@@ -21,7 +21,11 @@ import {
 	isSarvamSTTSupported,
 } from "@/constants/sarvam-constants";
 import { SMALLEST_STT_LANGUAGES } from "@/constants/smallest-constants";
-import type { TranscriptionLanguage, TranscriptionEngine } from "@/types/transcription";
+import type {
+	TranscriptionLanguage,
+	TranscriptionEngine,
+} from "@/types/transcription";
+import type { TranscriptionResult } from "@/types/ai";
 
 import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
@@ -38,6 +42,22 @@ interface SubtitleTrackInfo {
 	trackId: string;
 	language: string;
 }
+
+/** Check if we should use Sarvam for translation (Indian language pair).
+ *  Requires at least one side to be an Indian language (not just "en"),
+ *  AND the other side must also be Sarvam-supported.
+ */
+const shouldUseSarvamTranslation = (
+	sourceLang: string,
+	targetLang: string,
+): boolean => {
+	const sourceIsSarvam = SARVAM_SUPPORTED_CODES.has(sourceLang);
+	const targetIsSarvam = SARVAM_SUPPORTED_CODES.has(targetLang);
+	// Both must be Sarvam-supported, and at least one must be a non-English Indian language
+	const sourceIsIndian = sourceIsSarvam && sourceLang !== "en";
+	const targetIsIndian = targetIsSarvam && targetLang !== "en";
+	return (sourceIsIndian || targetIsIndian) && sourceIsSarvam && targetIsSarvam;
+};
 
 /**
  * Translate transcript segments into a target language.
@@ -266,7 +286,7 @@ export function Captions() {
 
 			let file = mediaAsset.file;
 			const fileName = file.name || "";
-			const hasExtension = fileName.includes(".") && fileName.split(".").pop()!.length > 0;
+			const hasExtension = fileName.includes(".") && (fileName.split(".").pop()?.length ?? 0) > 0;
 
 			if (!hasExtension) {
 				const ext = mimeToExt[file.type] || ".mp4";
@@ -274,7 +294,7 @@ export function Captions() {
 				file = new File([file], newName, { type: file.type || "video/mp4" });
 			}
 
-			let result;
+			let result: TranscriptionResult;
 			if (engine === "sarvam") {
 				// Use Sarvam AI for Indian languages
 				const sarvamLangCode = selectedLanguage === "auto"
@@ -347,7 +367,7 @@ export function Captions() {
 
 			// ── Auto Speaker Diarization + Emotion Detection ──
 			// Run both in parallel: speaker labels and emotion annotations.
-			let speakerChangeTimes: number[] = [];
+			const speakerChangeTimes: number[] = [];
 			setProcessingStep("Detecting speakers & emotions...");
 			bgTasks.updateTask(taskId, { progress: "Detecting speakers & emotions..." });
 
@@ -585,19 +605,6 @@ export function Captions() {
 
 		setSubtitleTracks((prev) => [...prev, { trackId, language: "original" }]);
 		toast.success("Subtitles added with word highlighting");
-	};
-
-	/** Check if we should use Sarvam for translation (Indian language pair).
-	 *  Requires at least one side to be an Indian language (not just "en"),
-	 *  AND the other side must also be Sarvam-supported.
-	 */
-	const shouldUseSarvamTranslation = (sourceLang: string, targetLang: string): boolean => {
-		const sourceIsSarvam = SARVAM_SUPPORTED_CODES.has(sourceLang);
-		const targetIsSarvam = SARVAM_SUPPORTED_CODES.has(targetLang);
-		// Both must be Sarvam-supported, and at least one must be a non-English Indian language
-		const sourceIsIndian = sourceIsSarvam && sourceLang !== "en";
-		const targetIsIndian = targetIsSarvam && targetLang !== "en";
-		return (sourceIsIndian || targetIsIndian) && sourceIsSarvam && targetIsSarvam;
 	};
 
 	const handleTranslateAndAdd = async () => {
