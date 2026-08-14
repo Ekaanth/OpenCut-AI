@@ -408,7 +408,7 @@ torch==2.5.1
     #   coqui-tts
     #   coqui-tts-trainer
     #   encodec
-torchaudio==2.11.0
+torchaudio==2.5.1
     # via
     #   coqui-tts
     #   encodec

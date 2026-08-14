@@ -1,5 +1,6 @@
 import type { EditorCore } from "@/core";
 import type { EffectParamValues } from "@/types/effects";
+import type { TrackAudioEffect } from "@/lib/audio/audio-effects";
 import type {
 	TrackType,
 	TimelineTrack,
@@ -619,7 +620,16 @@ export class TimelineManager {
 		updates,
 	}: {
 		trackId: string;
-		updates: Partial<{ muted: boolean; hidden: boolean; volume: number; pan: number; solo: boolean; color: string; locked: boolean }>;
+		updates: Partial<{
+			muted: boolean;
+			hidden: boolean;
+			volume: number;
+			pan: number;
+			solo: boolean;
+			color: string;
+			locked: boolean;
+			audioEffects: TrackAudioEffect[];
+		}>;
 	}): void {
 		const tracks = this.getTracks();
 		const updatedTracks = tracks.map((track) =>

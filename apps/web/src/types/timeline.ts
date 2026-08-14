@@ -1,6 +1,7 @@
 import type { ElementAnimations } from "./animation";
 import type { Effect, EffectParamValues } from "./effects";
 import type { BlendMode, Transform, CropRect, MaskShape } from "./rendering";
+import type { TrackAudioEffect } from "@/lib/audio/audio-effects";
 
 export interface TransitionData {
 	type: string;
@@ -62,6 +63,7 @@ export interface VideoTrack extends BaseTrack {
 	hidden: boolean;
 	volume?: number;
 	solo?: boolean;
+	audioEffects?: TrackAudioEffect[];
 }
 
 export interface TextTrack extends BaseTrack {
@@ -77,6 +79,7 @@ export interface AudioTrack extends BaseTrack {
 	volume?: number;
 	pan?: number;
 	solo?: boolean;
+	audioEffects?: TrackAudioEffect[];
 }
 
 export interface StickerTrack extends BaseTrack {

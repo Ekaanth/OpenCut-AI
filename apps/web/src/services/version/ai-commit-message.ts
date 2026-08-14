@@ -7,27 +7,19 @@ const AI_BACKEND_URL =
 
 /**
  * Generate an AI-powered commit message from a diff.
- * Tries the local AI backend first, falls back to Ollama.
+ * All LLM traffic goes through the AI backend (which proxies Ollama);
+ * the browser never talks to Ollama directly.
  */
 export async function generateAICommitMessage(
 	diff: TimelineDiff,
 ): Promise<string | null> {
 	const prompt = buildPrompt(diff);
 
-	// Try AI backend
 	try {
 		const message = await tryAIBackend(prompt);
 		if (message) return message;
 	} catch {
-		// Fall through to Ollama
-	}
-
-	// Try Ollama
-	try {
-		const message = await tryOllama(prompt);
-		if (message) return message;
-	} catch {
-		// Both failed
+		// Backend unavailable — no commit message
 	}
 
 	return null;
@@ -80,43 +72,26 @@ async function tryAIBackend(prompt: string): Promise<string | null> {
 		const response = await fetch(`${AI_BACKEND_URL}/api/llm/chat/stream`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				messages: [{ role: "user", content: prompt }],
-				stream: false,
-			}),
+			body: JSON.stringify({ message: prompt }),
 			signal: controller.signal,
 		});
 
 		if (!response.ok) return null;
 
-		const data = await response.json();
-		const text = data?.response || data?.message?.content || data?.choices?.[0]?.message?.content;
+		// Response is newline-delimited JSON: {"token": "..."} then {"done": true}
+		const raw = await response.text();
+		let text = "";
+		for (const line of raw.split("\n")) {
+			if (!line.trim()) continue;
+			try {
+				const chunk = JSON.parse(line);
+				if (typeof chunk.token === "string") text += chunk.token;
+				if (chunk.error) return null;
+			} catch {
+				// Skip malformed lines
+			}
+		}
 		return text ? cleanCommitMessage(text) : null;
-	} finally {
-		clearTimeout(timeout);
-	}
-}
-
-async function tryOllama(prompt: string): Promise<string | null> {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 15000);
-
-	try {
-		const response = await fetch("http://localhost:11434/api/generate", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				model: "llama3.2:1b",
-				prompt,
-				stream: false,
-			}),
-			signal: controller.signal,
-		});
-
-		if (!response.ok) return null;
-
-		const data = await response.json();
-		return data?.response ? cleanCommitMessage(data.response) : null;
 	} finally {
 		clearTimeout(timeout);
 	}

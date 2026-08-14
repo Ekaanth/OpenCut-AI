@@ -9,14 +9,11 @@ import { Slider } from "@/components/ui/slider";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { useEditor } from "@/hooks/use-editor";
-import { getAllAudioEffectDefinitions, type AudioEffectType } from "@/lib/audio/audio-effects";
-
-interface TrackAudioEffect {
-	id: string;
-	type: AudioEffectType;
-	params: Record<string, number>;
-	enabled: boolean;
-}
+import {
+	getAllAudioEffectDefinitions,
+	type AudioEffectType,
+	type TrackAudioEffect,
+} from "@/lib/audio/audio-effects";
 
 interface AudioEffectsChainProps {
 	trackId: string;
@@ -29,7 +26,10 @@ export function AudioEffectsChainPanel({ trackId, trackType, className }: AudioE
 	const track = editor.timeline.getTrackById({ trackId });
 	if (!track || (trackType !== "audio" && trackType !== "video")) return null;
 
-	const effects: TrackAudioEffect[] = (track as any).audioEffects ?? [];
+	const effects: TrackAudioEffect[] =
+		(track.type === "audio" || track.type === "video"
+			? track.audioEffects
+			: undefined) ?? [];
 
 	const handleAdd = useCallback(
 		(type: AudioEffectType) => {
@@ -45,7 +45,7 @@ export function AudioEffectsChainPanel({ trackId, trackType, className }: AudioE
 			];
 			editor.timeline.updateTrack({
 				trackId,
-				updates: { audioEffects: updatedEffects } as any,
+				updates: { audioEffects: updatedEffects },
 			});
 		},
 		[effects, trackId, editor],
@@ -56,7 +56,7 @@ export function AudioEffectsChainPanel({ trackId, trackType, className }: AudioE
 			const updatedEffects = effects.filter((e) => e.id !== effectId);
 			editor.timeline.updateTrack({
 				trackId,
-				updates: { audioEffects: updatedEffects } as any,
+				updates: { audioEffects: updatedEffects },
 			});
 		},
 		[effects, trackId, editor],
@@ -69,7 +69,7 @@ export function AudioEffectsChainPanel({ trackId, trackType, className }: AudioE
 			);
 			editor.timeline.updateTrack({
 				trackId,
-				updates: { audioEffects: updatedEffects } as any,
+				updates: { audioEffects: updatedEffects },
 			});
 		},
 		[effects, trackId, editor],
@@ -82,7 +82,7 @@ export function AudioEffectsChainPanel({ trackId, trackType, className }: AudioE
 			);
 			editor.timeline.updateTrack({
 				trackId,
-				updates: { audioEffects: updatedEffects } as any,
+				updates: { audioEffects: updatedEffects },
 			});
 		},
 		[effects, trackId, editor],
