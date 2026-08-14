@@ -11,6 +11,28 @@
   </tr>
 </table>
 
+<p align="center">
+  <a href="https://github.com/Ekaanth/OpenCut-AI/releases"><img src="https://img.shields.io/badge/release-v0.4.0-blue" alt="release v0.4.0" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license MIT" /></a>
+  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="platforms" />
+  <img src="https://img.shields.io/badge/AI-100%25%20local-8b5cf6" alt="AI 100% local" />
+</p>
+
+## 🚀 Latest Release — v0.4.0
+
+The biggest release yet: **six new AI features**, all running on-device.
+
+| Feature | What it does |
+|---|---|
+| **AI Dubbing (local)** | NLLB-200 translation + voice cloning, fully offline — no API key, no cloud |
+| **Video Background Removal** | Per-frame matting, inserted non-destructively as an alpha layer |
+| **Auto B-roll** | Matches transcript segments to your own footage via on-device CLIP search |
+| **Multilingual Captions** | NLLB-first translation with per-track SRT/VTT export |
+| **Edit by Speaker** | Scope remove / tighten / isolate operations to a single speaker |
+| **Auto Multicam Sync** | Audio cross-correlation aligns angles with no timecode, one undoable apply |
+
+Also in this release: hardened upload endpoints, stabilized VPS deployment, a repaired build/CI pipeline, and community fixes. See the full [changelog](apps/web/content/changelog/0.4.0.md).
+
 ## Why OpenCut AI?
 
 Every major video editor sends your footage to the cloud. OpenCut AI doesn't.
@@ -460,6 +482,8 @@ This project is a fork of [OpenCut](https://github.com/OpenCut-app/OpenCut). We 
 
 
 ## ❤️ Support This Project
+
+**About the maintainer** — OpenCut AI is built and maintained by [Ekaanth](https://github.com/Ekaanth), an independent developer working on privacy-first, local-first AI tools. This fork extends the excellent [OpenCut](https://github.com/OpenCut-app/OpenCut) editor with a full on-device AI suite.
 
 OpenCut-AI is an independent, open-source project maintained in my free time.  
 If it has helped you or saved you time, your support keeps development active and new features coming!

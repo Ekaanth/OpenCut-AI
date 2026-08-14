@@ -1,6 +1,6 @@
 {
   "name": "@opencut-ai/web",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "packageManager": "bun@1.2.18",
   "scripts": {
