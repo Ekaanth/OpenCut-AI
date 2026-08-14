@@ -11,7 +11,7 @@
  * batch in `editor.command.beginTransaction()` / `commitTransaction()`.
  */
 
-import type { TimelineElement } from "@/types/timeline";
+import type { TimelineElement, TimelineTrack } from "@/types/timeline";
 import { getElementsAtTime } from "@/lib/timeline";
 import type { TimeRange } from "@/lib/text-timeline-sync";
 
@@ -22,14 +22,12 @@ import type { TimeRange } from "@/lib/text-timeline-sync";
  */
 export interface TimelineEditor {
 	timeline: {
-		getTracks(): Array<{
-			id: string;
-			type: string;
-			elements: TimelineElement[];
-		}>;
+		getTracks(): TimelineTrack[];
 		splitElements(args: {
-			elements: TimelineElement[];
+			elements: Array<{ trackId: string; elementId: string }>;
 			splitTime: number;
+			retainSide?: "both" | "left" | "right";
+			rippleEnabled?: boolean;
 		}): unknown;
 		deleteElements(args: {
 			elements: Array<{ trackId: string; elementId: string }>;

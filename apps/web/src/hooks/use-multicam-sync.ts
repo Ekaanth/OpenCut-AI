@@ -69,7 +69,7 @@ export function useMulticamSync() {
 				});
 				toast.success(
 					`Sync analysis done — ${confident} angle${confident === 1 ? "" : "s"} aligned` +
-						(skipped ? ` (${skipped} skipped)`) +
+						(skipped > 0 ? ` (${skipped} skipped)` : "") +
 						". Review and apply.",
 				);
 				return result;
