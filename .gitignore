@@ -25,6 +25,9 @@ bun.lockb
 # BlamePrompt staging (auto-generated)
 .blameprompt/
 
+# Session tooling state
+.zcode/
+
 # AI Backend
 services/ai-backend/.venv/
 services/ai-backend/__pycache__/
