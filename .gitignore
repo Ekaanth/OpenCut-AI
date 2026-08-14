@@ -7,6 +7,9 @@ node_modules
 .cursorignore
 .turbo
 
+# TypeScript incremental build state
+*.tsbuildinfo
+
 .env*
 !*.env.example
 
