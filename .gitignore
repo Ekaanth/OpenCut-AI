@@ -42,4 +42,4 @@ ai-models/
 ai-generated/
 
 *.md
-!apps/web/content/**/*.md
+!apps/web/content/changelog/**/*.md
