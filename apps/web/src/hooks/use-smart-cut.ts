@@ -5,8 +5,12 @@ import { useEditor } from "@/hooks/use-editor";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { useBackgroundTasksStore } from "@/stores/background-tasks-store";
 import { aiClient } from "@/lib/ai-client";
-import { hasMediaId, getElementsAtTime } from "@/lib/timeline";
+import { hasMediaId } from "@/lib/timeline";
 import { mergeTimeRanges, type TimeRange } from "@/lib/text-timeline-sync";
+import {
+	applyTimeRangeCuts,
+	compactTimeline,
+} from "@/lib/timeline-edits";
 import {
 	captureTranscriptSnapshot,
 	hasTranscriptChanged,
@@ -150,99 +154,6 @@ export function useSmartCut() {
 	}, [editor]);
 
 	return { runSmartCut };
-}
-
-function applyTimeRangeCuts(
-	editor: ReturnType<typeof useEditor>,
-	cuts: TimeRange[],
-) {
-	if (cuts.length === 0) return;
-
-	const sortedCuts = [...cuts].sort((a, b) => b.start - a.start);
-
-	for (const cut of sortedCuts) {
-		const elementsAtStart = getElementsAtTime({
-			tracks: editor.timeline.getTracks(),
-			time: cut.start,
-		});
-		if (elementsAtStart.length > 0) {
-			editor.timeline.splitElements({
-				elements: elementsAtStart,
-				splitTime: cut.start,
-			});
-		}
-
-		const elementsAtEnd = getElementsAtTime({
-			tracks: editor.timeline.getTracks(),
-			time: cut.end,
-		});
-		if (elementsAtEnd.length > 0) {
-			editor.timeline.splitElements({
-				elements: elementsAtEnd,
-				splitTime: cut.end,
-			});
-		}
-
-		const currentTracks = editor.timeline.getTracks();
-		const elementsToDelete: { trackId: string; elementId: string }[] = [];
-
-		for (const track of currentTracks) {
-			for (const element of track.elements) {
-				if (
-					element.startTime >= cut.start - 0.01 &&
-					element.startTime + element.duration <= cut.end + 0.01
-				) {
-					elementsToDelete.push({
-						trackId: track.id,
-						elementId: element.id,
-					});
-				}
-			}
-		}
-
-		if (elementsToDelete.length > 0) {
-			editor.timeline.deleteElements({
-				elements: elementsToDelete,
-				rippleEnabled: true,
-			});
-		}
-	}
-
-	compactTimeline(editor);
-}
-
-function compactTimeline(editor: ReturnType<typeof useEditor>) {
-	const tracks = editor.timeline.getTracks();
-	const updates: Array<{
-		trackId: string;
-		elementId: string;
-		updates: Partial<TimelineElement>;
-	}> = [];
-
-	for (const track of tracks) {
-		const sorted = [...track.elements].sort(
-			(a, b) => a.startTime - b.startTime,
-		);
-		let cursor = sorted[0]?.startTime ?? 0;
-		if (sorted.length > 0 && cursor > 0.01) {
-			cursor = 0;
-		}
-
-		for (const element of sorted) {
-			if (Math.abs(element.startTime - cursor) > 0.01) {
-				updates.push({
-					trackId: track.id,
-					elementId: element.id,
-					updates: { startTime: cursor },
-				});
-			}
-			cursor += element.duration;
-		}
-	}
-
-	if (updates.length > 0) {
-		editor.timeline.updateElements({ updates });
-	}
 }
 
 const FILLER_WORDS = new Set([
