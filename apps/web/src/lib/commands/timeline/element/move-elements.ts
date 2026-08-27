@@ -159,3 +159,57 @@ export class MoveElementCommand extends Command {
 		}
 	}
 }
+
+/** Moves several elements at once, each staying on its own track (no
+ * cross-track drop, no new-track creation) — used for dragging a
+ * multi-selection of clips together as a group in a single undo step. */
+export class MoveElementsCommand extends Command {
+	private savedState: TimelineTrack[] | null = null;
+	private readonly updates: {
+		trackId: string;
+		elementId: string;
+		newStartTime: number;
+	}[];
+
+	constructor({
+		updates,
+	}: {
+		updates: { trackId: string; elementId: string; newStartTime: number }[];
+	}) {
+		super();
+		this.updates = updates;
+	}
+
+	execute(): void {
+		const editor = EditorCore.getInstance();
+		this.savedState = editor.timeline.getTracks();
+
+		const newStartTimeByKey = new Map(
+			this.updates.map((update) => [
+				`${update.trackId}:${update.elementId}`,
+				update.newStartTime,
+			]),
+		);
+
+		const updatedTracks = this.savedState.map((track): TimelineTrack => {
+			if (!("elements" in track)) return track;
+			let changed = false;
+			const elements = track.elements.map((element) => {
+				const newStartTime = newStartTimeByKey.get(`${track.id}:${element.id}`);
+				if (newStartTime === undefined) return element;
+				changed = true;
+				return { ...element, startTime: newStartTime };
+			});
+			return changed ? ({ ...track, elements } as typeof track) : track;
+		});
+
+		editor.timeline.updateTracks(updatedTracks);
+	}
+
+	undo(): void {
+		if (this.savedState) {
+			const editor = EditorCore.getInstance();
+			editor.timeline.updateTracks(this.savedState);
+		}
+	}
+}

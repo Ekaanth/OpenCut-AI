@@ -17,7 +17,9 @@ import {
 import { snapTimeToFrame } from "@/lib/time";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
 import { getMouseTimeFromClientX } from "@/lib/timeline/drag-utils";
+import { wouldElementOverlap } from "@/lib/timeline/element-utils";
 import { generateUUID } from "@/utils/id";
+import { toast } from "sonner";
 import {
 	snapElementEdge,
 	type SnapPoint,
@@ -169,6 +171,7 @@ export function useElementInteraction({
 	const isShiftHeldRef = useShiftKey();
 	const tracks = editor.timeline.getTracks();
 	const {
+		selectedElements,
 		isElementSelected,
 		selectElement,
 		handleElementClick: handleSelectionClick,
@@ -181,6 +184,12 @@ export function useElementInteraction({
 	const pendingDragRef = useRef<PendingDragState | null>(null);
 	const lastMouseXRef = useRef(0);
 	const mouseDownLocationRef = useRef<{ x: number; y: number } | null>(null);
+	// Snapshot of every selected element's original {trackId, elementId,
+	// startTime} at drag start, set only when dragging a member of a
+	// multi-selection. Each element keeps its own track; only startTime shifts.
+	const groupDragRef = useRef<
+		{ trackId: string; elementId: string; startTime: number }[] | null
+	>(null);
 
 	const startDrag = useCallback(
 		({
@@ -211,6 +220,7 @@ export function useElementInteraction({
 	const endDrag = useCallback(() => {
 		setDragState(initialDragState);
 		setDragDropTarget(null);
+		groupDragRef.current = null;
 	}, []);
 
 	const getDragSnapResult = useCallback(
@@ -445,6 +455,46 @@ export function useElementInteraction({
 				return;
 			}
 
+			// Dragging a multi-selection: shift every selected clip by the same
+			// delta, each staying on its own track. New-track drops fall back
+			// to the single-element path below (out of scope for group drag).
+			const groupDrag = groupDragRef.current;
+			if (groupDrag && groupDrag.length > 1 && !dropTarget.isNewTrack) {
+				const delta = snappedTime - dragState.startElementTime;
+				const movingElementIds = new Set(groupDrag.map((g) => g.elementId));
+				const updates = groupDrag.map((g) => ({
+					trackId: g.trackId,
+					elementId: g.elementId,
+					newStartTime: Math.max(0, g.startTime + delta),
+				}));
+
+				const hasCollision = updates.some((update) => {
+					const track = tracks.find((t) => t.id === update.trackId);
+					const movingElement = track?.elements.find(
+						(el) => el.id === update.elementId,
+					);
+					if (!track || !movingElement) return false;
+					const otherElements = track.elements.filter(
+						(el) => !movingElementIds.has(el.id),
+					);
+					return wouldElementOverlap({
+						elements: otherElements,
+						startTime: update.newStartTime,
+						endTime: update.newStartTime + movingElement.duration,
+					});
+				});
+
+				if (hasCollision) {
+					toast.error("Can't move — clips would overlap");
+				} else {
+					editor.timeline.moveElements({ updates });
+				}
+
+				endDrag();
+				onSnapPointChange?.(null);
+				return;
+			}
+
 		if (dropTarget.isNewTrack) {
 			const newTrackId = generateUUID();
 
@@ -549,6 +599,30 @@ export function useElementInteraction({
 					elementId: element.id,
 					isMultiKey: true,
 				});
+				groupDragRef.current = null;
+			} else if (
+				selectedElements.length > 1 &&
+				isElementSelected({ trackId: track.id, elementId: element.id })
+			) {
+				// Grabbing a clip that's part of a bigger selection: drag the
+				// whole group together, each clip keeping its own track.
+				groupDragRef.current = selectedElements
+					.map((selected) => {
+						const selectedTrack = tracks.find((t) => t.id === selected.trackId);
+						const selectedElement = selectedTrack?.elements.find(
+							(el) => el.id === selected.elementId,
+						);
+						return selectedElement
+							? {
+									trackId: selected.trackId,
+									elementId: selected.elementId,
+									startTime: selectedElement.startTime,
+								}
+							: null;
+					})
+					.filter((entry) => entry !== null);
+			} else {
+				groupDragRef.current = null;
 			}
 
 		const clickOffsetTime = getClickOffsetTime({
@@ -566,7 +640,7 @@ export function useElementInteraction({
 			};
 			setIsPendingDrag(true);
 		},
-		[zoomLevel, isElementSelected, handleSelectionClick],
+		[zoomLevel, isElementSelected, handleSelectionClick, selectedElements, tracks],
 	);
 
 	const handleElementClick = useCallback(
