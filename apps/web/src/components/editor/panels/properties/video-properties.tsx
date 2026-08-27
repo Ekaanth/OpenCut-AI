@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type {
 	ImageElement,
 	StickerElement,
 	VideoElement,
+	VideoTrack,
 } from "@/types/timeline";
 import { BlendingSection, TransformSection } from "./sections";
 import { CropMaskSection } from "./sections/crop-mask";
@@ -13,9 +15,14 @@ import {
 } from "./section";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Spinner } from "@/components/ui/spinner";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/utils/ui";
 import { SpeedCurveEditor } from "./speed-curve-editor";
+import { aiClient } from "@/lib/ai-client";
+import { extractTimelineAudio } from "@/lib/media/mediabunny";
+import { mediaSupportsAudio } from "@/lib/media/media-utils";
+import { toast } from "sonner";
 
 export function VideoProperties({
 	element,
@@ -35,8 +42,128 @@ export function VideoProperties({
 			{element.type === "video" && (
 				<SpeedSection element={element} trackId={trackId} />
 			)}
+			{element.type === "video" && (
+				<EnhanceAudioSection element={element} trackId={trackId} />
+			)}
 			<BlendingSection element={element} trackId={trackId} />
 		</div>
+	);
+}
+
+/** Denoises this video clip's own audio: mutes the original, adds the
+ * cleaned copy as a new audio track synced to the same start/duration. */
+function EnhanceAudioSection({
+	element,
+	trackId,
+}: {
+	element: VideoElement;
+	trackId: string;
+}) {
+	const editor = useEditor();
+	const [strength, setStrength] = useState(0.7);
+	const [isProcessing, setIsProcessing] = useState(false);
+
+	const mediaAsset = editor.media
+		.getAssets()
+		.find((asset) => asset.id === element.mediaId);
+	if (!mediaSupportsAudio({ media: mediaAsset })) return null;
+
+	const handleEnhance = async () => {
+		setIsProcessing(true);
+		try {
+			// Isolate this clip's audio by decoding it on its own synthetic track.
+			const soloTrack: VideoTrack = {
+				id: "solo-enhance",
+				name: "solo",
+				type: "video",
+				elements: [{ ...element, startTime: 0 }],
+				isMain: false,
+				muted: false,
+				hidden: false,
+			};
+
+			const wavBlob = await extractTimelineAudio({
+				tracks: [soloTrack],
+				mediaAssets: editor.media.getAssets(),
+				totalDuration: element.duration,
+			});
+
+			const file = new File([wavBlob], "clip-audio.wav", {
+				type: "audio/wav",
+			});
+			const denoisedBlob = await aiClient.denoiseAudio(file, strength);
+			const audioUrl = URL.createObjectURL(denoisedBlob);
+
+			editor.timeline.updateElements({
+				updates: [
+					{ trackId, elementId: element.id, updates: { muted: true } },
+				],
+			});
+
+			const audioTrackId = editor.timeline.addTrack({
+				type: "audio",
+				index: 0,
+			});
+			editor.timeline.insertElement({
+				placement: { mode: "explicit", trackId: audioTrackId },
+				element: {
+					type: "audio",
+					sourceType: "library",
+					sourceUrl: audioUrl,
+					name: `Enhanced: ${element.name}`,
+					startTime: element.startTime,
+					duration: element.duration,
+					trimStart: 0,
+					trimEnd: 0,
+					sourceDuration: element.duration,
+					volume: 1,
+				},
+			});
+
+			toast.success("Voice enhanced. Original muted, cleaned audio added.");
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Voice enhance failed");
+		} finally {
+			setIsProcessing(false);
+		}
+	};
+
+	return (
+		<Section collapsible sectionKey="video:enhance-audio">
+			<SectionHeader>
+				<SectionTitle>Voice Enhance</SectionTitle>
+			</SectionHeader>
+			<SectionContent>
+				<div className="flex flex-col gap-3">
+					<div className="flex flex-col gap-1.5">
+						<Slider
+							value={[strength]}
+							onValueChange={([v]) => setStrength(v)}
+							min={0}
+							max={1}
+							step={0.05}
+						/>
+						<div className="flex justify-between text-[9px] text-muted-foreground tabular-nums">
+							<span>None</span>
+							<span>Max</span>
+						</div>
+					</div>
+					<Button
+						size="sm"
+						className="w-full h-7 text-[11px]"
+						onClick={handleEnhance}
+						disabled={isProcessing}
+					>
+						{isProcessing && <Spinner className="size-3 mr-1" />}
+						Enhance voice
+					</Button>
+					<p className="text-[9px] text-muted-foreground">
+						Removes background noise from this clip&apos;s audio. Mutes the
+						original, adds the cleaned audio as a new track.
+					</p>
+				</div>
+			</SectionContent>
+		</Section>
 	);
 }
 

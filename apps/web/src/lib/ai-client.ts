@@ -4,7 +4,6 @@ import type {
 	AISuggestion,
 	BRollSuggestionsResult,
 	CommandResult,
-	DenoiseResult,
 	EmotionDetectionResult,
 	FaceDetectionResult,
 	FindClipsResult,
@@ -1431,18 +1430,40 @@ class AIClient {
 		});
 	}
 
-	async denoiseAudio(
-		file: File,
-		strength: number,
-	): Promise<DenoiseResult> {
+	/** Denoise/enhance a voice recording. Backend streams back the cleaned WAV directly. */
+	async denoiseAudio(file: File, strength: number): Promise<Blob> {
+		const url = `${this.baseUrl}/api/audio/denoise`;
 		const formData = new FormData();
 		formData.append("file", file);
 		formData.append("strength", strength.toString());
 
-		return this.requestFormData<DenoiseResult>(
-			"/api/audio/denoise",
-			formData,
-		);
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				body: formData,
+				signal: controller.signal,
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text().catch(() => "Unknown error");
+				throw new AIClientError(
+					`Audio denoise error (${response.status}): ${errorBody}`,
+					response.status >= 500 ? "backend_error" : "network_error",
+					response.status,
+				);
+			}
+
+			return await response.blob();
+		} catch (error) {
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		} finally {
+			clearTimeout(timeoutId);
+		}
 	}
 
 	async exportRender(
