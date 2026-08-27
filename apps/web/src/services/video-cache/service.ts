@@ -5,6 +5,7 @@ import {
 	CanvasSink,
 	type WrappedCanvas,
 } from "mediabunny";
+import { aiClient } from "@/lib/ai-client";
 
 interface VideoSinkData {
 	sink: CanvasSink;
@@ -19,6 +20,9 @@ interface VideoSinkData {
 export class VideoCache {
 	private sinks = new Map<string, VideoSinkData>();
 	private initPromises = new Map<string, Promise<void>>();
+	// Server-transcoded stand-ins for files the browser can't decode
+	// natively (e.g. ProRes-alpha .mov), keyed by mediaId.
+	private transcodedFiles = new Map<string, File>();
 
 	async getFrameAt({
 		mediaId,
@@ -246,9 +250,11 @@ export class VideoCache {
 		mediaId: string;
 		file: File;
 	}): Promise<void> {
+		const effectiveFile = this.transcodedFiles.get(mediaId) ?? file;
+
 		try {
 			const input = new Input({
-				source: new BlobSource(file),
+				source: new BlobSource(effectiveFile),
 				formats: ALL_FORMATS,
 			});
 
@@ -277,8 +283,46 @@ export class VideoCache {
 				prefetchPromise: null,
 			});
 		} catch (error) {
-			console.error(`Failed to initialize video sink for ${mediaId}:`, error);
-			throw error;
+			// Already tried the transcoded stand-in and it still won't decode —
+			// give up for real this time.
+			if (this.transcodedFiles.has(mediaId)) {
+				console.error(`Failed to initialize video sink for ${mediaId}:`, error);
+				throw error;
+			}
+
+			// Likely an undecodable codec (e.g. ProRes-alpha .mov, which no
+			// browser can decode at all) — fall back to a server transcode
+			// and retry once with the result.
+			console.warn(
+				`Video ${mediaId} failed to decode natively, trying server transcode:`,
+				error,
+			);
+			const transcoded = await this.transcodeForPreview({ file });
+			if (!transcoded) {
+				console.error(`Failed to initialize video sink for ${mediaId}:`, error);
+				throw error;
+			}
+
+			this.transcodedFiles.set(mediaId, transcoded);
+			return this.initializeSink({ mediaId, file });
+		}
+	}
+
+	private async transcodeForPreview({
+		file,
+	}: {
+		file: File;
+	}): Promise<File | null> {
+		try {
+			const blob = await aiClient.transcodeAlphaVideo(file);
+			return new File(
+				[blob],
+				file.name.replace(/\.[^.]+$/, "") + ".webm",
+				{ type: "video/webm" },
+			);
+		} catch (error) {
+			console.warn("Alpha-video transcode fallback failed:", error);
+			return null;
 		}
 	}
 
@@ -293,6 +337,7 @@ export class VideoCache {
 		}
 
 		this.initPromises.delete(mediaId);
+		this.transcodedFiles.delete(mediaId);
 	}
 
 	clearAll(): void {
