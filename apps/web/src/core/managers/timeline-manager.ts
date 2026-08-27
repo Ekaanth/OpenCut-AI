@@ -30,6 +30,7 @@ import {
 	PasteCommand,
 	UpdateElementStartTimeCommand,
 	MoveElementCommand,
+	MoveElementsCommand,
 	TracksSnapshotCommand,
 	UpsertKeyframeCommand,
 	RemoveKeyframeCommand,
@@ -159,6 +160,17 @@ export class TimelineManager {
 			createTrack,
 			rippleEnabled,
 		});
+		this.editor.command.execute({ command });
+	}
+
+	/** Moves several elements together, each staying on its own current
+	 * track, as one undo step. Used for dragging a multi-selection. */
+	moveElements({
+		updates,
+	}: {
+		updates: { trackId: string; elementId: string; newStartTime: number }[];
+	}): void {
+		const command = new MoveElementsCommand({ updates });
 		this.editor.command.execute({ command });
 	}
 
