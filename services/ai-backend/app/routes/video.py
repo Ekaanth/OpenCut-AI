@@ -11,7 +11,10 @@ import os
 import time
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.config import settings
@@ -20,6 +23,8 @@ from app.services.model_backend import llm_backend
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/video", tags=["video"])
+
+ALLOWED_ALPHA_TRANSCODE_EXTENSIONS = {".mov", ".mp4", ".mkv", ".avi", ".mxf"}
 
 
 def _get_seedance_key(request: Request) -> str:
@@ -194,6 +199,77 @@ async def generate_video(req: VideoGenerateRequest, request: Request) -> dict:
         "prompt": req.prompt,
         "provider": req.provider,
     }
+
+
+@router.post("/transcode-alpha")
+async def transcode_alpha_video(file: UploadFile = File(...)) -> FileResponse:
+    """Transcode a video with baked-in alpha (e.g. ProRes 4444 .mov) into a
+    browser-playable WebM VP9 alpha stream.
+
+    Browsers ship no ProRes decoder at all, so files like this fail to
+    decode client-side and render as a blank frame. This is a fallback the
+    frontend calls only after a client-side decode attempt has already
+    failed — it re-encodes losslessly-alpha input into a format the
+    WebCodecs-based preview/export pipeline can actually play.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided.")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_ALPHA_TRANSCODE_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported video format '{ext}'. Allowed: {sorted(ALLOWED_ALPHA_TRANSCODE_EXTENSIONS)}",
+        )
+
+    upload_id = uuid.uuid4().hex[:8]
+    upload_path = os.path.join(settings.UPLOAD_DIR, f"alpha_{upload_id}{ext}")
+    output_filename = f"alpha_{upload_id}.webm"
+    output_path = os.path.join(settings.GENERATED_DIR, output_filename)
+
+    try:
+        contents = await file.read()
+        if len(contents) > settings.MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
+            )
+
+        with open(upload_path, "wb") as f:
+            f.write(contents)
+
+        cmd = [
+            "ffmpeg", "-y", "-i", upload_path,
+            "-c:v", "libvpx-vp9",
+            "-pix_fmt", "yuva420p",
+            "-b:v", "2M",
+            "-auto-alt-ref", "0",  # required for alpha to encode
+            "-c:a", "libopus",
+            output_path,
+        ]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0 or not os.path.exists(output_path):
+            logger.error("Alpha transcode failed: %s", stderr.decode(errors="replace")[:500])
+            raise HTTPException(status_code=500, detail="Alpha video transcode failed.")
+
+        return FileResponse(
+            path=output_path,
+            media_type="video/webm",
+            filename=output_filename,
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Alpha video transcode failed for '%s'", file.filename)
+        raise HTTPException(status_code=500, detail="Alpha video transcode failed.")
+    finally:
+        if os.path.exists(upload_path):
+            os.remove(upload_path)
 
 
 @router.get("/jobs/{job_id}")
