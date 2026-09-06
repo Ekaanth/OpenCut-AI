@@ -18,7 +18,6 @@ import type {
 	ModelTierSpec,
 	QuestionCardsResult,
 	ReelTemplate,
-	StackMemoryEstimate,
 	TQDownloadProgress,
 	TQLoadResult,
 	TQModelsResponse,
@@ -144,13 +143,17 @@ class AIClient {
 		return this.baseUrl;
 	}
 
-	/** Get the Sarvam API key from localStorage or env. */
+	/**
+	 * Get the Sarvam API key from localStorage.
+	 *
+	 * Audit finding H-3: NEXT_PUBLIC_* API keys were inlined into the browser
+	 * bundle, letting any visitor scrape them from the deployed JS. Keys now
+	 * come from the user's own localStorage entry only; server-side keys live
+	 * in the backend env and are used by the backend without ever reaching the
+	 * client.
+	 */
 	private getSarvamApiKey(): string {
-		return (
-			getStoredApiKey("sarvam") ||
-			process.env.NEXT_PUBLIC_SARVAM_API_KEY ||
-			""
-		);
+		return getStoredApiKey("sarvam");
 	}
 
 	/** Build extra headers that include the Sarvam API key for passthrough. */
@@ -160,13 +163,9 @@ class AIClient {
 		return { "X-Sarvam-Api-Key": key };
 	}
 
-	/** Get the Smallest AI API key from localStorage or env. */
+	/** Get the Smallest AI API key from localStorage only (audit finding H-3). */
 	private getSmallestApiKey(): string {
-		return (
-			getStoredApiKey("smallest") ||
-			process.env.NEXT_PUBLIC_SMALLEST_API_KEY ||
-			""
-		);
+		return getStoredApiKey("smallest");
 	}
 
 	/** Build extra headers that include the Smallest AI API key for passthrough. */
@@ -176,13 +175,9 @@ class AIClient {
 		return { "X-Smallest-Api-Key": key };
 	}
 
-	/** Get the Seedance API key from localStorage or env. */
+	/** Get the Seedance API key from localStorage only (audit finding H-3). */
 	private getSeedanceApiKey(): string {
-		return (
-			getStoredApiKey("seedance") ||
-			process.env.NEXT_PUBLIC_SEEDANCE_API_KEY ||
-			""
-		);
+		return getStoredApiKey("seedance");
 	}
 
 	/** Build extra headers that include the Seedance API key for passthrough. */
@@ -192,12 +187,9 @@ class AIClient {
 		return { "X-Seedance-Api-Key": key };
 	}
 
+	/** Get the Replicate API key from localStorage only (audit finding H-3). */
 	private getReplicateApiKey(): string {
-		return (
-			getStoredApiKey("replicate") ||
-			process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN ||
-			""
-		);
+		return getStoredApiKey("replicate");
 	}
 
 	private replicateHeaders(): Record<string, string> {
@@ -206,12 +198,9 @@ class AIClient {
 		return { "X-Replicate-Api-Token": key };
 	}
 
+	/** Get the Stability AI key from localStorage only (audit finding H-3). */
 	private getStabilityApiKey(): string {
-		return (
-			getStoredApiKey("stability") ||
-			process.env.NEXT_PUBLIC_STABILITY_API_KEY ||
-			""
-		);
+		return getStoredApiKey("stability");
 	}
 
 	private stabilityHeaders(): Record<string, string> {
@@ -220,12 +209,9 @@ class AIClient {
 		return { "X-Stability-Api-Key": key };
 	}
 
+	/** Get the Luma AI key from localStorage only (audit finding H-3). */
 	private getLumaApiKey(): string {
-		return (
-			getStoredApiKey("luma") ||
-			process.env.NEXT_PUBLIC_LUMA_API_KEY ||
-			""
-		);
+		return getStoredApiKey("luma");
 	}
 
 	private lumaHeaders(): Record<string, string> {
@@ -1559,7 +1545,7 @@ class AIClient {
 		result?: ReelTemplate;
 		error?: string;
 	}> {
-		return this.request("/api/template/jobs/" + jobId);
+		return this.request(`/api/template/jobs/${jobId}`);
 	}
 
 	/** List all template jobs. */
