@@ -119,6 +119,7 @@ export type VideoAspectRatioId = (typeof VIDEO_ASPECT_RATIOS)[number]["id"];
 
 export interface VideoGenProviderConfig {
 	provider: VideoProvider;
+	/** @deprecated Server-side env vars are never read in the browser (audit H-3). Keys live in localStorage. */
 	apiKeyEnvVar: string;
 	apiKeyLocalStorageKey: string;
 	headerName: string;
@@ -130,7 +131,7 @@ export interface VideoGenProviderConfig {
 export const VIDEO_PROVIDER_CONFIGS: VideoGenProviderConfig[] = [
 	{
 		provider: "replicate",
-		apiKeyEnvVar: "NEXT_PUBLIC_REPLICATE_API_TOKEN",
+		apiKeyEnvVar: "REPLICATE_API_TOKEN",
 		apiKeyLocalStorageKey: "replicate",
 		headerName: "X-Replicate-Api-Token",
 		label: "Replicate",
@@ -139,7 +140,7 @@ export const VIDEO_PROVIDER_CONFIGS: VideoGenProviderConfig[] = [
 	},
 	{
 		provider: "seedance",
-		apiKeyEnvVar: "NEXT_PUBLIC_SEEDANCE_API_KEY",
+		apiKeyEnvVar: "SEEDANCE_API_KEY",
 		apiKeyLocalStorageKey: "seedance",
 		headerName: "X-Seedance-Api-Key",
 		label: "Seedance (PiAPI)",
@@ -148,7 +149,7 @@ export const VIDEO_PROVIDER_CONFIGS: VideoGenProviderConfig[] = [
 	},
 	{
 		provider: "stability",
-		apiKeyEnvVar: "NEXT_PUBLIC_STABILITY_API_KEY",
+		apiKeyEnvVar: "STABILITY_API_KEY",
 		apiKeyLocalStorageKey: "stability",
 		headerName: "X-Stability-Api-Key",
 		label: "Stability AI",
@@ -157,7 +158,7 @@ export const VIDEO_PROVIDER_CONFIGS: VideoGenProviderConfig[] = [
 	},
 	{
 		provider: "luma",
-		apiKeyEnvVar: "NEXT_PUBLIC_LUMA_API_KEY",
+		apiKeyEnvVar: "LUMA_API_KEY",
 		apiKeyLocalStorageKey: "luma",
 		headerName: "X-Luma-Api-Key",
 		label: "Luma AI",

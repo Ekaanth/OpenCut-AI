@@ -3,15 +3,12 @@ import { useCallback, useRef, useState } from "react";
 import { aiClient } from "@/lib/ai-client";
 import { getApiKey } from "@/lib/api-keys";
 import {
-	VIDEO_MODELS,
 	VIDEO_ASPECT_RATIOS,
 	getModelById,
-	getProviderForModel,
 	isProviderKeyRequired,
 	type VideoGenMode,
-	type VideoModel,
 } from "@/lib/video-gen/video-gen-types";
-import type { VideoGenRequest, VideoGenResult } from "@/types/ai";
+import type { VideoGenRequest, } from "@/types/ai";
 
 export type VideoGenStatus = "idle" | "enhancing" | "generating" | "polling" | "done" | "error";
 
@@ -64,7 +61,7 @@ export function useVideoGeneration(): UseVideoGenerationReturn {
 	const cancelRef = useRef(false);
 
 	const model = getModelById(selectedModel);
-	const provider = model?.provider || "replicate";
+	const _provider = model?.provider || "replicate";
 
 	const generate = useCallback(
 		async (prompt: string) => {
@@ -78,7 +75,7 @@ export function useVideoGeneration(): UseVideoGenerationReturn {
 
 			if (isProviderKeyRequired(m.provider)) {
 				const config = getProviderKeyConfig(m.provider);
-				const key = getApiKey(config.localStorageKey) || getEnvKey(config.envVar);
+				const key = getApiKey(config.localStorageKey);
 				if (!key) {
 					setError(`${config.label} API key not configured. Add it in Settings > API Keys.`);
 					return;
@@ -241,17 +238,15 @@ export function useVideoGeneration(): UseVideoGenerationReturn {
 	};
 }
 
-function getProviderKeyConfig(provider: string): { localStorageKey: string; envVar: string; label: string } {
+// Audit finding H-3: provider keys are read from the user's localStorage
+// entry only. The previous NEXT_PUBLIC_* env fallbacks inlined those secrets
+// into the browser bundle for every visitor to scrape.
+function getProviderKeyConfig(provider: string): { localStorageKey: string; label: string } {
 	switch (provider) {
-		case "replicate": return { localStorageKey: "replicate", envVar: "NEXT_PUBLIC_REPLICATE_API_TOKEN", label: "Replicate" };
-		case "seedance": return { localStorageKey: "seedance", envVar: "NEXT_PUBLIC_SEEDANCE_API_KEY", label: "Seedance" };
-		case "stability": return { localStorageKey: "stability", envVar: "NEXT_PUBLIC_STABILITY_API_KEY", label: "Stability AI" };
-		case "luma": return { localStorageKey: "luma", envVar: "NEXT_PUBLIC_LUMA_API_KEY", label: "Luma AI" };
-		default: return { localStorageKey: "", envVar: "", label: "" };
+		case "replicate": return { localStorageKey: "replicate", label: "Replicate" };
+		case "seedance": return { localStorageKey: "seedance", label: "Seedance" };
+		case "stability": return { localStorageKey: "stability", label: "Stability AI" };
+		case "luma": return { localStorageKey: "luma", label: "Luma AI" };
+		default: return { localStorageKey: "", label: "" };
 	}
-}
-
-function getEnvKey(envVar: string): string | undefined {
-	if (typeof process === "undefined" || !process.env) return undefined;
-	return (process.env as Record<string, string | undefined>)[envVar];
 }
