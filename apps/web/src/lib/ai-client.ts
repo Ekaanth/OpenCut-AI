@@ -1445,6 +1445,44 @@ class AIClient {
 		);
 	}
 
+	/** Fallback for videos the browser can't decode client-side (e.g. ProRes
+	 * 4444 alpha .mov — no browser ships a ProRes decoder). Re-encodes to a
+	 * WebM VP9 alpha stream the preview/export pipeline can actually play. */
+	async transcodeAlphaVideo(file: File): Promise<Blob> {
+		const url = `${this.baseUrl}/api/video/transcode-alpha`;
+		const formData = new FormData();
+		formData.append("file", file);
+
+		const controller = new AbortController();
+		// Re-encoding is slow (VP9), give it more room than the default.
+		const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				body: formData,
+				signal: controller.signal,
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text().catch(() => "Unknown error");
+				throw new AIClientError(
+					`Alpha video transcode error (${response.status}): ${errorBody}`,
+					response.status >= 500 ? "backend_error" : "network_error",
+					response.status,
+				);
+			}
+
+			return await response.blob();
+		} catch (error) {
+			if (error instanceof AIClientError) throw error;
+			const classified = classifyError(error);
+			throw new AIClientError(classified.message, classified.errorType);
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
 	async exportRender(
 		projectData: unknown,
 	): Promise<{ videoUrl: string }> {
