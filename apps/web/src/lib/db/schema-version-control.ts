@@ -199,3 +199,61 @@ export const branchPermissions = pgTable(
 		unique("branch_perm_unique").on(table.branchId, table.userId),
 	],
 ).enableRLS();
+
+// ─── Share Links (read-only review) ────────────────────────────────────────
+
+export const shareLinks = pgTable(
+	"share_links",
+	{
+		id: text("id").primaryKey(),
+		repoId: text("repo_id")
+			.notNull()
+			.references(() => projectRepositories.id, { onDelete: "cascade" }),
+		// Snapshot the link is pinned to — reviewers always see this commit
+		commitId: text("commit_id")
+			.notNull()
+			.references(() => commits.id),
+		// Unguessable URL token — the only credential a reviewer needs
+		token: text("token").notNull().unique(),
+		passwordHash: text("password_hash"), // scrypt, null = no password
+		allowDownload: boolean("allow_download").default(false).notNull(),
+		expiresAt: timestamp("expires_at"),
+		revokedAt: timestamp("revoked_at"),
+		viewCount: integer("view_count").default(0).notNull(),
+		createdBy: text("created_by").references(() => users.id),
+		createdAt: timestamp("created_at").$defaultFn(() => new Date()).notNull(),
+	},
+	(table) => [
+		index("share_links_repo_id_idx").on(table.repoId),
+		index("share_links_token_idx").on(table.token),
+	],
+).enableRLS();
+
+// ─── Review Comments (frame-accurate, on the timeline) ─────────────────────
+
+export const reviewComments = pgTable(
+	"review_comments",
+	{
+		id: text("id").primaryKey(),
+		shareLinkId: text("share_link_id")
+			.notNull()
+			.references(() => shareLinks.id, { onDelete: "cascade" }),
+		repoId: text("repo_id")
+			.notNull()
+			.references(() => projectRepositories.id, { onDelete: "cascade" }),
+		// Where the comment is anchored on the timeline
+		timeSeconds: real("time_seconds").notNull(),
+		timelineTrackId: text("timeline_track_id"),
+		timelineElementId: text("timeline_element_id"),
+		body: text("body").notNull(),
+		authorName: text("author_name").notNull(),
+		parentId: text("parent_id"), // threaded replies
+		resolvedAt: timestamp("resolved_at"),
+		resolvedBy: text("resolved_by").references(() => users.id),
+		createdAt: timestamp("created_at").$defaultFn(() => new Date()).notNull(),
+	},
+	(table) => [
+		index("review_comments_link_idx").on(table.shareLinkId),
+		index("review_comments_repo_idx").on(table.repoId),
+	],
+).enableRLS();
