@@ -7,6 +7,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { ShareDialog } from "@/components/editor/share-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useVersionStore } from "@/stores/version-store";
@@ -23,8 +24,8 @@ export function VersionControlBar({
 	onOpenDrawer: () => void;
 }) {
 	const editor = useEditor();
+	const [shareOpen, setShareOpen] = useState(false);
 	const {
-		currentBranch,
 		isDirty,
 		isCommitting,
 		initialized,
@@ -127,6 +128,18 @@ export function VersionControlBar({
 
 			<Separator orientation="vertical" className="h-4" />
 
+			{/* Share for review */}
+			<button
+				type="button"
+				className="text-[11px] text-muted-foreground hover:text-foreground px-1 transition-colors"
+				onClick={() => setShareOpen(true)}
+				title="Share a read-only review link"
+			>
+				Share
+			</button>
+
+			<Separator orientation="vertical" className="h-4" />
+
 			{/* Open full panel */}
 			<button
 				type="button"
@@ -135,6 +148,7 @@ export function VersionControlBar({
 				title="Open version control panel"
 			>
 				<svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+					<title>Version history</title>
 					<path d="M5 3v6.5a3.5 3.5 0 1 0 3 3.46V3M11 3v3.5a3.5 3.5 0 0 1-3 3.46" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 					<circle cx="5" cy="3" r="1.5" stroke="currentColor" strokeWidth="1.5" />
 					<circle cx="11" cy="3" r="1.5" stroke="currentColor" strokeWidth="1.5" />
@@ -142,6 +156,8 @@ export function VersionControlBar({
 				</svg>
 				History
 			</button>
+
+			<ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
 		</div>
 	);
 }
@@ -212,12 +228,14 @@ function BranchButton() {
 					className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground px-1 transition-colors"
 					title="Switch branch"
 				>
-					<svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-						<path d="M5 3v8M11 3v3.5a3.5 3.5 0 0 1-3 3.46" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-					</svg>
-					{currentBranch}
-					<svg width="8" height="8" viewBox="0 0 16 16" fill="none" className="opacity-50">
-						<path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+				<svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+					<title>Current branch</title>
+					<path d="M5 3v8M11 3v3.5a3.5 3.5 0 0 1-3 3.46" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+				</svg>
+				{currentBranch}
+				<svg width="8" height="8" viewBox="0 0 16 16" fill="none" className="opacity-50">
+					<title>Branch menu</title>
+					<path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 					</svg>
 				</button>
 			</PopoverTrigger>

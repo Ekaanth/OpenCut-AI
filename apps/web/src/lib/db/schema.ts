@@ -1,5 +1,9 @@
 import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
+// Drizzle entry point — re-exports every schema so drizzle-kit sees the
+// full database in one config (see drizzle.config.ts).
+export * from "./schema-version-control";
+
 export const users = pgTable("users", {
 	id: text("id").primaryKey(),
 
@@ -16,6 +20,14 @@ export const users = pgTable("users", {
 		.$defaultFn(() => /* @__PURE__ */ new Date())
 		.notNull(),
 }).enableRLS();
+
+// Legacy table from the original migration (0000) — declared so
+// drizzle-kit diffs stay non-destructive. No app code reads it.
+export const waitlist = pgTable("waitlist", {
+	id: text("id").primaryKey(),
+	email: text("email").notNull().unique(),
+	createdAt: timestamp("created_at").notNull(),
+});
 
 export const sessions = pgTable("sessions", {
 	id: text("id").primaryKey(),
