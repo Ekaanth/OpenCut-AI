@@ -4,6 +4,7 @@ import { SubTabView } from "./sub-tab-view";
 import { SoundsView } from "./sounds";
 import { VoiceoverView } from "./voiceover";
 import { PodcastClipsView } from "./podcast-clips";
+import { EnhanceView } from "./enhance";
 
 export function AudioCombinedView() {
 	return (
@@ -12,6 +13,7 @@ export function AudioCombinedView() {
 				{ key: "sounds", label: "Sounds", content: <SoundsView /> },
 				{ key: "voiceover", label: "Voiceover", content: <VoiceoverView /> },
 				{ key: "podcast", label: "Podcast", content: <PodcastClipsView /> },
+				{ key: "enhance", label: "Enhance", content: <EnhanceView /> },
 			]}
 		/>
 	);

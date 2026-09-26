@@ -85,6 +85,14 @@ async def denoise(audio_path: str, strength: float = 0.7) -> str:
         if data.dtype != np.float32:
             data = data.astype(np.float32)
 
+        # soundfile reads multi-channel audio as (frames, channels), but
+        # noisereduce expects (channels, frames) -- transpose or it treats
+        # the 2-wide channel axis as the time axis and blows up in scipy's
+        # stft ("noverlap must be less than nperseg").
+        is_multichannel = data.ndim == 2
+        if is_multichannel:
+            data = data.T
+
         # prop_decrease maps strength to how much noise is reduced
         reduced = nr.reduce_noise(
             y=data,
@@ -92,6 +100,9 @@ async def denoise(audio_path: str, strength: float = 0.7) -> str:
             prop_decrease=strength,
             stationary=True,
         )
+
+        if is_multichannel:
+            reduced = reduced.T
 
         sf.write(output_path, reduced, sample_rate)
 
